@@ -40,11 +40,11 @@ export default function DashboardScreen({ navigation }) {
       screen: 'YourStats',
     },
     {
-      title: 'World Bank',
+      title: 'World Rank',
       description: 'Explore country rankings',
       icon: 'globe',
       color: '#34d399',
-      screen: 'WorldBank',
+      screen: 'WorldRank',
     },
   ];
 

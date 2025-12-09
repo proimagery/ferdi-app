@@ -14,7 +14,7 @@ import MyBudgetScreen from './screens/MyBudgetScreen';
 import TravelMapperScreen from './screens/TravelMapperScreen';
 import AddCompletedTripScreen from './screens/AddCompletedTripScreen';
 import YourStatsScreen from './screens/YourStatsScreen';
-import WorldBankScreen from './screens/WorldBankScreen';
+import WorldRankScreen from './screens/WorldRankScreen';
 import CountryDetailScreen from './screens/CountryDetailScreen';
 import ManageCountriesScreen from './screens/ManageCountriesScreen';
 import ManageCitiesScreen from './screens/ManageCitiesScreen';
@@ -92,9 +92,9 @@ export default function App() {
             options={{ title: 'Your Stats' }}
           />
           <Stack.Screen
-            name="WorldBank"
-            component={WorldBankScreen}
-            options={{ title: 'World Bank' }}
+            name="WorldRank"
+            component={WorldRankScreen}
+            options={{ title: 'World Rank' }}
           />
           <Stack.Screen
             name="CountryDetail"

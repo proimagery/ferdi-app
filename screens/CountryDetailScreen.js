@@ -5,6 +5,21 @@ import { Ionicons } from '@expo/vector-icons';
 export default function CountryDetailScreen({ route }) {
   const { country } = route.params;
 
+  const getRatingColor = (rating) => {
+    if (rating >= 8) return '#4ade80'; // Green - Excellent
+    if (rating >= 6) return '#fbbf24'; // Yellow - Good
+    if (rating >= 4) return '#fb923c'; // Orange - Fair
+    return '#ef4444'; // Red - Poor
+  };
+
+  const getRatingLabel = (rating) => {
+    if (rating >= 9) return 'Excellent';
+    if (rating >= 7) return 'Very Good';
+    if (rating >= 5) return 'Good';
+    if (rating >= 3) return 'Fair';
+    return 'Poor';
+  };
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
@@ -24,6 +39,110 @@ export default function CountryDetailScreen({ route }) {
           <Text style={styles.statLabel}>Annual Visitors</Text>
         </View>
       </View>
+
+      {country.rankings && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Category Rankings</Text>
+          <Text style={styles.sectionSubtitle}>Based on public travel data (1-10 scale)</Text>
+
+          <View style={styles.rankingCard}>
+            <View style={styles.rankingHeader}>
+              <Ionicons name="car" size={24} color="#60a5fa" />
+              <Text style={styles.rankingTitle}>Transportation</Text>
+            </View>
+            <View style={styles.rankingBar}>
+              <View
+                style={[
+                  styles.rankingFill,
+                  {
+                    width: `${country.rankings.transportation * 10}%`,
+                    backgroundColor: getRatingColor(country.rankings.transportation)
+                  }
+                ]}
+              />
+            </View>
+            <View style={styles.rankingFooter}>
+              <Text style={styles.rankingScore}>{country.rankings.transportation}/10</Text>
+              <Text style={[styles.rankingLabel, { color: getRatingColor(country.rankings.transportation) }]}>
+                {getRatingLabel(country.rankings.transportation)}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.rankingCard}>
+            <View style={styles.rankingHeader}>
+              <Ionicons name="restaurant" size={24} color="#f472b6" />
+              <Text style={styles.rankingTitle}>Food & Dining</Text>
+            </View>
+            <View style={styles.rankingBar}>
+              <View
+                style={[
+                  styles.rankingFill,
+                  {
+                    width: `${country.rankings.food * 10}%`,
+                    backgroundColor: getRatingColor(country.rankings.food)
+                  }
+                ]}
+              />
+            </View>
+            <View style={styles.rankingFooter}>
+              <Text style={styles.rankingScore}>{country.rankings.food}/10</Text>
+              <Text style={[styles.rankingLabel, { color: getRatingColor(country.rankings.food) }]}>
+                {getRatingLabel(country.rankings.food)}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.rankingCard}>
+            <View style={styles.rankingHeader}>
+              <Ionicons name="camera" size={24} color="#a78bfa" />
+              <Text style={styles.rankingTitle}>Tourist Activities</Text>
+            </View>
+            <View style={styles.rankingBar}>
+              <View
+                style={[
+                  styles.rankingFill,
+                  {
+                    width: `${country.rankings.activities * 10}%`,
+                    backgroundColor: getRatingColor(country.rankings.activities)
+                  }
+                ]}
+              />
+            </View>
+            <View style={styles.rankingFooter}>
+              <Text style={styles.rankingScore}>{country.rankings.activities}/10</Text>
+              <Text style={[styles.rankingLabel, { color: getRatingColor(country.rankings.activities) }]}>
+                {getRatingLabel(country.rankings.activities)}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.rankingCard}>
+            <View style={styles.rankingHeader}>
+              <Ionicons name="people" size={24} color="#fb923c" />
+              <Text style={styles.rankingTitle}>Crowdedness</Text>
+            </View>
+            <View style={styles.rankingBar}>
+              <View
+                style={[
+                  styles.rankingFill,
+                  {
+                    width: `${country.rankings.crowdedness * 10}%`,
+                    backgroundColor: getRatingColor(country.rankings.crowdedness)
+                  }
+                ]}
+              />
+            </View>
+            <View style={styles.rankingFooter}>
+              <Text style={styles.rankingScore}>{country.rankings.crowdedness}/10</Text>
+              <Text style={[styles.rankingLabel, { color: getRatingColor(country.rankings.crowdedness) }]}>
+                {getRatingLabel(country.rankings.crowdedness)}
+              </Text>
+            </View>
+            <Text style={styles.rankingNote}>Higher is less crowded</Text>
+          </View>
+        </View>
+      )}
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Top Attractions</Text>
@@ -111,6 +230,62 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#ffffff',
     marginBottom: 15,
+  },
+  sectionSubtitle: {
+    fontSize: 14,
+    color: '#888',
+    marginBottom: 15,
+    marginTop: -10,
+  },
+  rankingCard: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+  },
+  rankingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 12,
+  },
+  rankingTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#ffffff',
+  },
+  rankingBar: {
+    height: 10,
+    backgroundColor: '#2a2a2a',
+    borderRadius: 5,
+    overflow: 'hidden',
+    marginBottom: 10,
+  },
+  rankingFill: {
+    height: '100%',
+    borderRadius: 5,
+  },
+  rankingFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  rankingScore: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#ffffff',
+  },
+  rankingLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  rankingNote: {
+    fontSize: 12,
+    color: '#666',
+    fontStyle: 'italic',
+    marginTop: 5,
   },
   highlightCard: {
     flexDirection: 'row',
