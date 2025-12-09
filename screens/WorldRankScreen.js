@@ -1,10 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Picker } from '@react-navigation/native';
 
 export default function WorldRankScreen({ navigation }) {
-  const [selectedCountry, setSelectedCountry] = useState('');
 
   const allCountries = [
     {
@@ -278,15 +276,6 @@ export default function WorldRankScreen({ navigation }) {
     return '#4ade80';
   };
 
-  const handleCountrySelect = (countryName) => {
-    if (countryName) {
-      const country = allCountries.find(c => c.name === countryName);
-      if (country) {
-        navigation.navigate('CountryDetail', { country });
-      }
-    }
-  };
-
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
@@ -326,27 +315,25 @@ export default function WorldRankScreen({ navigation }) {
       </View>
 
       <View style={styles.searchSection}>
-        <Text style={styles.sectionTitle}>Search Other Countries</Text>
-        <Text style={styles.searchSubtitle}>Select a country to view its ranking</Text>
+        <Text style={styles.sectionTitle}>All Countries</Text>
+        <Text style={styles.searchSubtitle}>Tap any country to view details</Text>
 
-        <View style={styles.pickerContainer}>
-          <Ionicons name="search" size={20} color="#4ade80" style={styles.pickerIcon} />
-          <select
-            value={selectedCountry}
-            onChange={(e) => {
-              setSelectedCountry(e.target.value);
-              handleCountrySelect(e.target.value);
-            }}
-            style={styles.picker}
+        {allCountries.map((country, index) => (
+          <TouchableOpacity
+            key={index}
+            style={styles.searchCountryCard}
+            onPress={() => navigation.navigate('CountryDetail', { country })}
           >
-            <option value="">Select a country...</option>
-            {allCountries.map((country, index) => (
-              <option key={index} value={country.name}>
-                #{country.rank} - {country.name} ({country.visitors} visitors)
-              </option>
-            ))}
-          </select>
-        </View>
+            <View style={[styles.smallRankBadge, { backgroundColor: getRankColor(country.rank) }]}>
+              <Text style={styles.smallRankText}>#{country.rank}</Text>
+            </View>
+            <View style={styles.searchCountryInfo}>
+              <Text style={styles.searchCountryName}>{country.name}</Text>
+              <Text style={styles.searchCountryVisitors}>{country.visitors} visitors</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#888" />
+          </TouchableOpacity>
+        ))}
       </View>
     </ScrollView>
   );
@@ -435,27 +422,41 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#888',
     marginBottom: 15,
-    paddingHorizontal: 0,
   },
-  pickerContainer: {
+  searchCountryCard: {
+    flexDirection: 'row',
     backgroundColor: '#1a1a1a',
+    padding: 12,
     borderRadius: 10,
+    marginBottom: 10,
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: '#2a2a2a',
-    flexDirection: 'row',
+  },
+  smallRankBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
-    paddingHorizontal: 15,
+    justifyContent: 'center',
+    marginRight: 12,
   },
-  pickerIcon: {
-    marginRight: 10,
+  smallRankText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#0a0a0a',
   },
-  picker: {
+  searchCountryInfo: {
     flex: 1,
-    height: 50,
-    color: '#ffffff',
-    backgroundColor: 'transparent',
-    border: 'none',
-    outline: 'none',
+  },
+  searchCountryName: {
     fontSize: 16,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    marginBottom: 3,
+  },
+  searchCountryVisitors: {
+    fontSize: 13,
+    color: '#888',
   },
 });
