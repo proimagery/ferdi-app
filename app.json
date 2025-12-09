@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "Travel Planner",
+    "slug": "travel-planner-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#0a0a0a"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.travelplanner.app"
+    },
+    "android": {
+      "package": "com.travelplanner.app"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "platforms": [
+      "ios",
+      "android"
+    ]
+  }
+}
