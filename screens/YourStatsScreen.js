@@ -1,16 +1,31 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function YourStatsScreen({ route }) {
-  const completedTrips = route.params?.completedTrips || [];
+export default function YourStatsScreen({ route, navigation }) {
+  const [completedTrips, setCompletedTrips] = useState(route.params?.completedTrips || []);
+  const [visitedCities, setVisitedCities] = useState(route.params?.visitedCities || []);
   const trips = route.params?.trips || [];
 
-  // Calculate statistics
-  const totalCountriesVisited = completedTrips.length;
+  React.useEffect(() => {
+    if (route.params?.completedTrips) {
+      setCompletedTrips(route.params.completedTrips);
+    }
+    if (route.params?.visitedCities) {
+      setVisitedCities(route.params.visitedCities);
+    }
+  }, [route.params?.completedTrips, route.params?.visitedCities]);
+
+  // Calculate statistics - merge completed trips from all sources
+  const allCountries = [
+    ...completedTrips.map(t => t.country),
+    ...trips.flatMap(t => t.countries.map(c => c.name))
+  ];
+  const uniqueCountries = [...new Set(allCountries)];
+  const totalCountriesVisited = uniqueCountries.length;
+
   const totalPlannedTrips = trips.length;
-  const totalPlannedCountries = trips.reduce((sum, trip) => sum + trip.countries.length, 0);
-  const totalBudget = trips.reduce((sum, trip) => sum + trip.budget, 0);
+  const totalCitiesVisited = visitedCities.length;
 
   // Approximate world countries count
   const worldCountries = 195;
@@ -22,30 +37,45 @@ export default function YourStatsScreen({ route }) {
       label: 'Completed Trips',
       value: totalCountriesVisited,
       color: '#4ade80',
+      clickable: false,
     },
     {
       icon: 'calendar',
       label: 'Planned Trips',
       value: totalPlannedTrips,
       color: '#60a5fa',
+      clickable: false,
     },
     {
       icon: 'map',
-      label: 'Planned Countries',
-      value: totalPlannedCountries,
+      label: 'Countries Visited',
+      value: totalCountriesVisited,
       color: '#f472b6',
+      clickable: true,
+      onPress: () => navigation.navigate('ManageCountries', {
+        completedTrips,
+        visitedCities,
+        returnScreen: 'YourStats'
+      }),
     },
     {
-      icon: 'wallet',
-      label: 'Total Budget',
-      value: `$${totalBudget}`,
+      icon: 'business',
+      label: 'Cities Visited',
+      value: totalCitiesVisited,
       color: '#fb923c',
+      clickable: true,
+      onPress: () => navigation.navigate('ManageCities', {
+        visitedCities,
+        completedTrips,
+        returnScreen: 'YourStats'
+      }),
     },
     {
       icon: 'globe',
       label: 'World Coverage',
       value: `${worldCoverage}%`,
       color: '#a78bfa',
+      clickable: false,
     },
   ];
 
@@ -81,15 +111,28 @@ export default function YourStatsScreen({ route }) {
       </View>
 
       <View style={styles.statsGrid}>
-        {stats.map((stat, index) => (
-          <View key={index} style={styles.statCard}>
-            <View style={[styles.iconContainer, { backgroundColor: stat.color + '20' }]}>
-              <Ionicons name={stat.icon} size={32} color={stat.color} />
-            </View>
-            <Text style={styles.statValue}>{stat.value}</Text>
-            <Text style={styles.statLabel}>{stat.label}</Text>
-          </View>
-        ))}
+        {stats.map((stat, index) => {
+          const CardComponent = stat.clickable ? TouchableOpacity : View;
+          return (
+            <CardComponent
+              key={index}
+              style={styles.statCard}
+              onPress={stat.clickable ? stat.onPress : undefined}
+              activeOpacity={stat.clickable ? 0.7 : 1}
+            >
+              <View style={[styles.iconContainer, { backgroundColor: stat.color + '20' }]}>
+                <Ionicons name={stat.icon} size={32} color={stat.color} />
+              </View>
+              <Text style={styles.statValue}>{stat.value}</Text>
+              <Text style={styles.statLabel}>{stat.label}</Text>
+              {stat.clickable && (
+                <View style={styles.clickableIndicator}>
+                  <Ionicons name="add-circle" size={20} color={stat.color} />
+                </View>
+              )}
+            </CardComponent>
+          );
+        })}
       </View>
 
       {visitedContinents.length > 0 && (
@@ -185,6 +228,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#888888',
     textAlign: 'center',
+  },
+  clickableIndicator: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
   },
   section: {
     padding: 20,

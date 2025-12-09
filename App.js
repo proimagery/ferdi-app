@@ -16,6 +16,8 @@ import AddCompletedTripScreen from './screens/AddCompletedTripScreen';
 import YourStatsScreen from './screens/YourStatsScreen';
 import WorldBankScreen from './screens/WorldBankScreen';
 import CountryDetailScreen from './screens/CountryDetailScreen';
+import ManageCountriesScreen from './screens/ManageCountriesScreen';
+import ManageCitiesScreen from './screens/ManageCitiesScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -98,6 +100,16 @@ export default function App() {
             name="CountryDetail"
             component={CountryDetailScreen}
             options={{ title: 'Country Details' }}
+          />
+          <Stack.Screen
+            name="ManageCountries"
+            component={ManageCountriesScreen}
+            options={{ title: 'Manage Countries' }}
+          />
+          <Stack.Screen
+            name="ManageCities"
+            component={ManageCitiesScreen}
+            options={{ title: 'Manage Cities' }}
           />
         </Stack.Navigator>
       </NavigationContainer>
