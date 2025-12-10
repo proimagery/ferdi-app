@@ -2,6 +2,8 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
+import { TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 // Import all screens
 import HomeScreen from './screens/HomeScreen';
@@ -23,6 +25,17 @@ import WorldMapScreen from './screens/WorldMapScreen';
 const Stack = createNativeStackNavigator();
 
 export default function App() {
+  const getDashboardButton = (navigation) => ({
+    headerRight: () => (
+      <TouchableOpacity
+        onPress={() => navigation.navigate('Dashboard')}
+        style={{ marginRight: 10 }}
+      >
+        <Ionicons name="home" size={24} color="#4ade80" />
+      </TouchableOpacity>
+    ),
+  });
+
   return (
     <>
       <StatusBar style="light" />
@@ -55,67 +68,106 @@ export default function App() {
           <Stack.Screen
             name="MyTrips"
             component={MyTripsScreen}
-            options={{ title: 'My Trips' }}
+            options={({ navigation }) => ({
+              title: 'My Trips',
+              ...getDashboardButton(navigation),
+            })}
           />
           <Stack.Screen
             name="CreateTrip"
             component={CreateTripScreen}
-            options={{ title: 'Create Trip' }}
+            options={({ navigation }) => ({
+              title: 'Create Trip',
+              ...getDashboardButton(navigation),
+            })}
           />
           <Stack.Screen
             name="TripDetail"
             component={TripDetailScreen}
-            options={{ title: 'Trip Details' }}
+            options={({ navigation }) => ({
+              title: 'Trip Details',
+              ...getDashboardButton(navigation),
+            })}
           />
           <Stack.Screen
             name="BudgetMaker"
             component={BudgetMakerScreen}
-            options={{ title: 'Budget Maker' }}
+            options={({ navigation }) => ({
+              title: 'Budget Maker',
+              ...getDashboardButton(navigation),
+            })}
           />
           <Stack.Screen
             name="MyBudget"
             component={MyBudgetScreen}
-            options={{ title: 'My Budget' }}
+            options={({ navigation }) => ({
+              title: 'My Budget',
+              ...getDashboardButton(navigation),
+            })}
           />
           <Stack.Screen
             name="TravelMapper"
             component={TravelMapperScreen}
-            options={{ title: 'Travel Mapper' }}
+            options={({ navigation }) => ({
+              title: 'Travel Mapper',
+              ...getDashboardButton(navigation),
+            })}
           />
           <Stack.Screen
             name="AddCompletedTrip"
             component={AddCompletedTripScreen}
-            options={{ title: 'Add Completed Trip' }}
+            options={({ navigation }) => ({
+              title: 'Add Completed Trip',
+              ...getDashboardButton(navigation),
+            })}
           />
           <Stack.Screen
             name="YourStats"
             component={YourStatsScreen}
-            options={{ title: 'Your Stats' }}
+            options={({ navigation }) => ({
+              title: 'Your Stats',
+              ...getDashboardButton(navigation),
+            })}
           />
           <Stack.Screen
             name="WorldRank"
             component={WorldRankScreen}
-            options={{ title: 'World Rank' }}
+            options={({ navigation }) => ({
+              title: 'World Rank',
+              ...getDashboardButton(navigation),
+            })}
           />
           <Stack.Screen
             name="CountryDetail"
             component={CountryDetailScreen}
-            options={{ title: 'Country Details' }}
+            options={({ navigation }) => ({
+              title: 'Country Details',
+              ...getDashboardButton(navigation),
+            })}
           />
           <Stack.Screen
             name="ManageCountries"
             component={ManageCountriesScreen}
-            options={{ title: 'Manage Countries' }}
+            options={({ navigation }) => ({
+              title: 'Manage Countries',
+              ...getDashboardButton(navigation),
+            })}
           />
           <Stack.Screen
             name="ManageCities"
             component={ManageCitiesScreen}
-            options={{ title: 'Manage Cities' }}
+            options={({ navigation }) => ({
+              title: 'Manage Cities',
+              ...getDashboardButton(navigation),
+            })}
           />
           <Stack.Screen
             name="WorldMap"
             component={WorldMapScreen}
-            options={{ title: 'World Map' }}
+            options={({ navigation }) => ({
+              title: 'World Map',
+              ...getDashboardButton(navigation),
+            })}
           />
         </Stack.Navigator>
       </NavigationContainer>
