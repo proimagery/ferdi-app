@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 export default function WorldMapScreen({ route }) {
   const { completedTrips = [], visitedCities = [] } = route.params || {};
 
-  // Approximate coordinates for countries (simplified for demo)
+  // Comprehensive coordinates for countries
   const countryCoordinates = {
     'France': { latitude: 48.8566, longitude: 2.3522 },
     'Spain': { latitude: 40.4168, longitude: -3.7038 },
@@ -60,6 +60,55 @@ export default function WorldMapScreen({ route }) {
     'Cambodia': { latitude: 11.5564, longitude: 104.9282 },
     'Jordan': { latitude: 31.9454, longitude: 35.9284 },
     'Iceland': { latitude: 64.1466, longitude: -21.9426 },
+    'Luxembourg': { latitude: 49.6116, longitude: 6.1319 },
+    'Romania': { latitude: 44.4268, longitude: 26.1025 },
+    'Bulgaria': { latitude: 42.6977, longitude: 23.3219 },
+    'Slovakia': { latitude: 48.1486, longitude: 17.1077 },
+    'Slovenia': { latitude: 46.0569, longitude: 14.5058 },
+    'Estonia': { latitude: 59.4370, longitude: 24.7536 },
+    'Latvia': { latitude: 56.9496, longitude: 24.1052 },
+    'Lithuania': { latitude: 54.6872, longitude: 25.2797 },
+    'Tunisia': { latitude: 36.8065, longitude: 10.1815 },
+    'Sri Lanka': { latitude: 6.9271, longitude: 79.8612 },
+    'Maldives': { latitude: 4.1755, longitude: 73.5093 },
+    'Cuba': { latitude: 23.1136, longitude: -82.3666 },
+    'Costa Rica': { latitude: 9.9281, longitude: -84.0907 },
+    'Dominican Republic': { latitude: 18.7357, longitude: -70.1627 },
+    'Jamaica': { latitude: 18.0179, longitude: -76.8099 },
+    'Kenya': { latitude: -1.2864, longitude: 36.8172 },
+    'Tanzania': { latitude: -6.7924, longitude: 39.2083 },
+    'Ethiopia': { latitude: 9.0054, longitude: 38.7636 },
+    'Nepal': { latitude: 27.7172, longitude: 85.3240 },
+    'Bhutan': { latitude: 27.5142, longitude: 90.4336 },
+    'Myanmar': { latitude: 16.8661, longitude: 96.1951 },
+    'Laos': { latitude: 17.9757, longitude: 102.6331 },
+    'Oman': { latitude: 23.5880, longitude: 58.3829 },
+    'Qatar': { latitude: 25.2854, longitude: 51.5310 },
+    'Kuwait': { latitude: 29.3759, longitude: 47.9774 },
+    'Bahrain': { latitude: 26.0667, longitude: 50.5577 },
+    'Lebanon': { latitude: 33.8886, longitude: 35.4955 },
+    'Malta': { latitude: 35.8989, longitude: 14.5146 },
+    'Cyprus': { latitude: 35.1264, longitude: 33.4299 },
+    'Albania': { latitude: 41.3275, longitude: 19.8187 },
+    'North Macedonia': { latitude: 41.9973, longitude: 21.4280 },
+    'Serbia': { latitude: 44.7866, longitude: 20.4489 },
+    'Bosnia and Herzegovina': { latitude: 43.8564, longitude: 18.4131 },
+    'Montenegro': { latitude: 42.4304, longitude: 19.2594 },
+    'Uruguay': { latitude: -34.9011, longitude: -56.1645 },
+    'Paraguay': { latitude: -25.2637, longitude: -57.5759 },
+    'Bolivia': { latitude: -16.5000, longitude: -68.1500 },
+    'Ecuador': { latitude: -0.1807, longitude: -78.4678 },
+    'Panama': { latitude: 8.9824, longitude: -79.5199 },
+    'Guatemala': { latitude: 14.6349, longitude: -90.5069 },
+    'Nicaragua': { latitude: 12.1150, longitude: -86.2362 },
+    'El Salvador': { latitude: 13.6929, longitude: -89.2182 },
+    'Honduras': { latitude: 14.0723, longitude: -87.1921 },
+    'Belize': { latitude: 17.1899, longitude: -88.4976 },
+    'Fiji': { latitude: -17.7134, longitude: 178.0650 },
+    'Papua New Guinea': { latitude: -9.4438, longitude: 147.1803 },
+    'Madagascar': { latitude: -18.8792, longitude: 47.5079 },
+    'Zimbabwe': { latitude: -17.8252, longitude: 31.0335 },
+    'Zambia': { latitude: -15.4167, longitude: 28.2833 },
   };
 
   // Collect all visited locations with coordinates
@@ -77,12 +126,6 @@ export default function WorldMapScreen({ route }) {
         type: 'country',
       });
     }
-  });
-
-  // Add city markers (if we have city data with coordinates in the future)
-  visitedCities.forEach((city, index) => {
-    // For now, we'll skip cities as they would need a more comprehensive coordinate database
-    // This can be enhanced with a city coordinates lookup
   });
 
   const initialRegion = {
