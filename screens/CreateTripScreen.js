@@ -7,17 +7,59 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 export default function CreateTripScreen({ navigation, route }) {
   const [step, setStep] = useState(1);
   const [tripName, setTripName] = useState('');
-  const [countries, setCountries] = useState([{ name: '', startDate: '', endDate: '' }]);
+  const [countries, setCountries] = useState([{ name: '', startDate: null, endDate: null }]);
   const [budget, setBudget] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState({ index: null, type: null });
+  const [dropdownVisible, setDropdownVisible] = useState(null);
+
+  // List of all countries
+  const allCountries = [
+    'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Argentina', 'Armenia', 'Australia',
+    'Austria', 'Azerbaijan', 'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium',
+    'Belize', 'Benin', 'Bhutan', 'Bolivia', 'Bosnia and Herzegovina', 'Botswana', 'Brazil', 'Brunei',
+    'Bulgaria', 'Burkina Faso', 'Burundi', 'Cambodia', 'Cameroon', 'Canada', 'Cape Verde',
+    'Central African Republic', 'Chad', 'Chile', 'China', 'Colombia', 'Comoros', 'Congo',
+    'Costa Rica', 'Croatia', 'Cuba', 'Cyprus', 'Czech Republic', 'Denmark', 'Djibouti',
+    'Dominica', 'Dominican Republic', 'East Timor', 'Ecuador', 'Egypt', 'El Salvador',
+    'Equatorial Guinea', 'Eritrea', 'Estonia', 'Ethiopia', 'Fiji', 'Finland', 'France',
+    'Gabon', 'Gambia', 'Georgia', 'Germany', 'Ghana', 'Greece', 'Grenada', 'Guatemala',
+    'Guinea', 'Guinea-Bissau', 'Guyana', 'Haiti', 'Honduras', 'Hong Kong', 'Hungary', 'Iceland',
+    'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland', 'Israel', 'Italy', 'Jamaica', 'Japan',
+    'Jordan', 'Kazakhstan', 'Kenya', 'Kiribati', 'Kosovo', 'Kuwait', 'Kyrgyzstan', 'Laos',
+    'Latvia', 'Lebanon', 'Lesotho', 'Liberia', 'Libya', 'Liechtenstein', 'Lithuania', 'Luxembourg',
+    'Macedonia', 'Madagascar', 'Malawi', 'Malaysia', 'Maldives', 'Mali', 'Malta', 'Marshall Islands',
+    'Mauritania', 'Mauritius', 'Mexico', 'Micronesia', 'Moldova', 'Monaco', 'Mongolia', 'Montenegro',
+    'Morocco', 'Mozambique', 'Myanmar', 'Namibia', 'Nauru', 'Nepal', 'Netherlands', 'New Zealand',
+    'Nicaragua', 'Niger', 'Nigeria', 'North Korea', 'North Macedonia', 'Norway', 'Oman', 'Pakistan',
+    'Palau', 'Palestine', 'Panama', 'Papua New Guinea', 'Paraguay', 'Peru', 'Philippines', 'Poland',
+    'Portugal', 'Qatar', 'Romania', 'Russia', 'Rwanda', 'Saint Kitts and Nevis', 'Saint Lucia',
+    'Saint Vincent and the Grenadines', 'Samoa', 'San Marino', 'Sao Tome and Principe', 'Saudi Arabia',
+    'Senegal', 'Serbia', 'Seychelles', 'Sierra Leone', 'Singapore', 'Slovakia', 'Slovenia',
+    'Solomon Islands', 'Somalia', 'South Africa', 'South Korea', 'South Sudan', 'Spain', 'Sri Lanka',
+    'Sudan', 'Suriname', 'Swaziland', 'Sweden', 'Switzerland', 'Syria', 'Taiwan', 'Tajikistan',
+    'Tanzania', 'Thailand', 'Togo', 'Tonga', 'Trinidad and Tobago', 'Tunisia', 'Turkey',
+    'Turkmenistan', 'Tuvalu', 'Uganda', 'Ukraine', 'United Arab Emirates', 'United Kingdom',
+    'United States', 'Uruguay', 'Uzbekistan', 'Vanuatu', 'Vatican City', 'Venezuela', 'Vietnam',
+    'Yemen', 'Zambia', 'Zimbabwe',
+  ].sort();
+
+  const selectCountry = (index, country) => {
+    const newCountries = [...countries];
+    newCountries[index].name = country;
+    setCountries(newCountries);
+    setDropdownVisible(null);
+  };
 
   const addCountry = () => {
-    setCountries([...countries, { name: '', startDate: '', endDate: '' }]);
+    setCountries([...countries, { name: '', startDate: null, endDate: null }]);
   };
 
   const removeCountry = (index) => {
@@ -30,6 +72,25 @@ export default function CreateTripScreen({ navigation, route }) {
     const newCountries = [...countries];
     newCountries[index][field] = value;
     setCountries(newCountries);
+  };
+
+  const formatDate = (date) => {
+    if (!date) return '';
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  const onDateChange = (event, selectedDate) => {
+    if (Platform.OS === 'android') {
+      setShowDatePicker({ index: null, type: null });
+    }
+
+    if (selectedDate && showDatePicker.index !== null) {
+      updateCountry(showDatePicker.index, showDatePicker.type, selectedDate);
+    }
+
+    if (Platform.OS === 'ios' && event.type === 'dismissed') {
+      setShowDatePicker({ index: null, type: null });
+    }
   };
 
   const handleNext = () => {
@@ -62,6 +123,7 @@ export default function CreateTripScreen({ navigation, route }) {
     }
 
     const newTrip = {
+      id: Date.now().toString(),
       name: tripName,
       countries: countries,
       budget: parseFloat(budget),
@@ -70,7 +132,7 @@ export default function CreateTripScreen({ navigation, route }) {
     const existingTrips = route.params?.trips || [];
     const updatedTrips = [...existingTrips, newTrip];
 
-    navigation.navigate('MyTrips', { trips: updatedTrips });
+    navigation.navigate('TripDetail', { trip: newTrip, trips: updatedTrips });
   };
 
   return (
@@ -118,28 +180,61 @@ export default function CreateTripScreen({ navigation, route }) {
                     </TouchableOpacity>
                   )}
                 </View>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Country name"
-                  placeholderTextColor="#666"
-                  value={country.name}
-                  onChangeText={(text) => updateCountry(index, 'name', text)}
-                />
+
+                {/* Country Dropdown */}
+                <TouchableOpacity
+                  style={styles.dropdownButton}
+                  onPress={() => setDropdownVisible(dropdownVisible === index ? null : index)}
+                >
+                  <Text style={country.name ? styles.dropdownButtonTextSelected : styles.dropdownButtonTextPlaceholder}>
+                    {country.name || 'Select a country'}
+                  </Text>
+                  <Ionicons
+                    name={dropdownVisible === index ? 'chevron-up' : 'chevron-down'}
+                    size={20}
+                    color="#4ade80"
+                  />
+                </TouchableOpacity>
+
+                {dropdownVisible === index && (
+                  <ScrollView style={styles.dropdownList} nestedScrollEnabled={true}>
+                    {allCountries.map((countryName, idx) => (
+                      <TouchableOpacity
+                        key={idx}
+                        style={styles.dropdownItem}
+                        onPress={() => selectCountry(index, countryName)}
+                      >
+                        <Text style={styles.dropdownItemText}>{countryName}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                )}
+
+                {/* Date Pickers */}
                 <View style={styles.dateRow}>
-                  <TextInput
+                  <TouchableOpacity
                     style={[styles.input, styles.dateInput]}
-                    placeholder="Start date"
-                    placeholderTextColor="#666"
-                    value={country.startDate}
-                    onChangeText={(text) => updateCountry(index, 'startDate', text)}
-                  />
-                  <TextInput
+                    onPress={() => setShowDatePicker({ index, type: 'startDate' })}
+                  >
+                    <View style={styles.datePickerContent}>
+                      <Ionicons name="calendar-outline" size={20} color="#4ade80" />
+                      <Text style={country.startDate ? styles.dateText : styles.datePlaceholder}>
+                        {country.startDate ? formatDate(country.startDate) : 'Start date'}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
                     style={[styles.input, styles.dateInput]}
-                    placeholder="End date"
-                    placeholderTextColor="#666"
-                    value={country.endDate}
-                    onChangeText={(text) => updateCountry(index, 'endDate', text)}
-                  />
+                    onPress={() => setShowDatePicker({ index, type: 'endDate' })}
+                  >
+                    <View style={styles.datePickerContent}>
+                      <Ionicons name="calendar-outline" size={20} color="#4ade80" />
+                      <Text style={country.endDate ? styles.dateText : styles.datePlaceholder}>
+                        {country.endDate ? formatDate(country.endDate) : 'End date'}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
                 </View>
               </View>
             ))}
@@ -165,6 +260,17 @@ export default function CreateTripScreen({ navigation, route }) {
           </View>
         )}
       </ScrollView>
+
+      {/* Date Picker Modal */}
+      {showDatePicker.index !== null && (
+        <DateTimePicker
+          value={countries[showDatePicker.index][showDatePicker.type] || new Date()}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={onDateChange}
+          themeVariant="dark"
+        />
+      )}
 
       {/* Navigation Buttons */}
       <View style={styles.buttonContainer}>
@@ -252,12 +358,61 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#4ade80',
   },
+  dropdownButton: {
+    backgroundColor: '#1a1a1a',
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+    borderRadius: 10,
+    padding: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+  },
+  dropdownButtonTextPlaceholder: {
+    fontSize: 16,
+    color: '#666',
+  },
+  dropdownButtonTextSelected: {
+    fontSize: 16,
+    color: '#ffffff',
+  },
+  dropdownList: {
+    maxHeight: 200,
+    backgroundColor: '#1a1a1a',
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+    borderRadius: 10,
+    marginBottom: 15,
+  },
+  dropdownItem: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2a2a2a',
+  },
+  dropdownItemText: {
+    fontSize: 16,
+    color: '#ffffff',
+  },
   dateRow: {
     flexDirection: 'row',
     gap: 10,
   },
   dateInput: {
     flex: 1,
+  },
+  datePickerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  dateText: {
+    color: '#ffffff',
+    fontSize: 16,
+  },
+  datePlaceholder: {
+    color: '#666',
+    fontSize: 16,
   },
   addButton: {
     flexDirection: 'row',
