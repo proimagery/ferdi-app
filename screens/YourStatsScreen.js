@@ -75,7 +75,11 @@ export default function YourStatsScreen({ route, navigation }) {
       label: 'World Coverage',
       value: `${worldCoverage}%`,
       color: '#a78bfa',
-      clickable: false,
+      clickable: true,
+      onPress: () => navigation.navigate('WorldMap', {
+        completedTrips,
+        visitedCities,
+      }),
     },
   ];
 

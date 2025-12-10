@@ -18,6 +18,7 @@ import WorldRankScreen from './screens/WorldRankScreen';
 import CountryDetailScreen from './screens/CountryDetailScreen';
 import ManageCountriesScreen from './screens/ManageCountriesScreen';
 import ManageCitiesScreen from './screens/ManageCitiesScreen';
+import WorldMapScreen from './screens/WorldMapScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -110,6 +111,11 @@ export default function App() {
             name="ManageCities"
             component={ManageCitiesScreen}
             options={{ title: 'Manage Cities' }}
+          />
+          <Stack.Screen
+            name="WorldMap"
+            component={WorldMapScreen}
+            options={{ title: 'World Map' }}
           />
         </Stack.Navigator>
       </NavigationContainer>

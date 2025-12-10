@@ -14,8 +14,45 @@ export default function ManageCountriesScreen({ navigation, route }) {
   const [completedTrips, setCompletedTrips] = useState(route.params?.completedTrips || []);
   const [newCountry, setNewCountry] = useState('');
   const [newYear, setNewYear] = useState('');
+  const [dropdownVisible, setDropdownVisible] = useState(false);
 
   const returnScreen = route.params?.returnScreen || 'YourStats';
+
+  // List of all countries (simplified version from WorldRankScreen)
+  const allCountries = [
+    'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Argentina', 'Armenia', 'Australia',
+    'Austria', 'Azerbaijan', 'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium',
+    'Belize', 'Benin', 'Bhutan', 'Bolivia', 'Bosnia and Herzegovina', 'Botswana', 'Brazil', 'Brunei',
+    'Bulgaria', 'Burkina Faso', 'Burundi', 'Cambodia', 'Cameroon', 'Canada', 'Cape Verde',
+    'Central African Republic', 'Chad', 'Chile', 'China', 'Colombia', 'Comoros', 'Congo',
+    'Costa Rica', 'Croatia', 'Cuba', 'Cyprus', 'Czech Republic', 'Denmark', 'Djibouti',
+    'Dominica', 'Dominican Republic', 'East Timor', 'Ecuador', 'Egypt', 'El Salvador',
+    'Equatorial Guinea', 'Eritrea', 'Estonia', 'Ethiopia', 'Fiji', 'Finland', 'France',
+    'Gabon', 'Gambia', 'Georgia', 'Germany', 'Ghana', 'Greece', 'Grenada', 'Guatemala',
+    'Guinea', 'Guinea-Bissau', 'Guyana', 'Haiti', 'Honduras', 'Hong Kong', 'Hungary', 'Iceland',
+    'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland', 'Israel', 'Italy', 'Jamaica', 'Japan',
+    'Jordan', 'Kazakhstan', 'Kenya', 'Kiribati', 'Kosovo', 'Kuwait', 'Kyrgyzstan', 'Laos',
+    'Latvia', 'Lebanon', 'Lesotho', 'Liberia', 'Libya', 'Liechtenstein', 'Lithuania', 'Luxembourg',
+    'Macedonia', 'Madagascar', 'Malawi', 'Malaysia', 'Maldives', 'Mali', 'Malta', 'Marshall Islands',
+    'Mauritania', 'Mauritius', 'Mexico', 'Micronesia', 'Moldova', 'Monaco', 'Mongolia', 'Montenegro',
+    'Morocco', 'Mozambique', 'Myanmar', 'Namibia', 'Nauru', 'Nepal', 'Netherlands', 'New Zealand',
+    'Nicaragua', 'Niger', 'Nigeria', 'North Korea', 'North Macedonia', 'Norway', 'Oman', 'Pakistan',
+    'Palau', 'Palestine', 'Panama', 'Papua New Guinea', 'Paraguay', 'Peru', 'Philippines', 'Poland',
+    'Portugal', 'Qatar', 'Romania', 'Russia', 'Rwanda', 'Saint Kitts and Nevis', 'Saint Lucia',
+    'Saint Vincent and the Grenadines', 'Samoa', 'San Marino', 'Sao Tome and Principe', 'Saudi Arabia',
+    'Senegal', 'Serbia', 'Seychelles', 'Sierra Leone', 'Singapore', 'Slovakia', 'Slovenia',
+    'Solomon Islands', 'Somalia', 'South Africa', 'South Korea', 'South Sudan', 'Spain', 'Sri Lanka',
+    'Sudan', 'Suriname', 'Swaziland', 'Sweden', 'Switzerland', 'Syria', 'Taiwan', 'Tajikistan',
+    'Tanzania', 'Thailand', 'Togo', 'Tonga', 'Trinidad and Tobago', 'Tunisia', 'Turkey',
+    'Turkmenistan', 'Tuvalu', 'Uganda', 'Ukraine', 'United Arab Emirates', 'United Kingdom',
+    'United States', 'Uruguay', 'Uzbekistan', 'Vanuatu', 'Vatican City', 'Venezuela', 'Vietnam',
+    'Yemen', 'Zambia', 'Zimbabwe',
+  ].sort();
+
+  const selectCountry = (country) => {
+    setNewCountry(country);
+    setDropdownVisible(false);
+  };
 
   const addCountry = () => {
     if (!newCountry.trim()) {
@@ -68,13 +105,35 @@ export default function ManageCountriesScreen({ navigation, route }) {
 
       <View style={styles.addSection}>
         <Text style={styles.sectionTitle}>Add New Country</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Country name"
-          placeholderTextColor="#666"
-          value={newCountry}
-          onChangeText={setNewCountry}
-        />
+
+        <TouchableOpacity
+          style={styles.dropdownButton}
+          onPress={() => setDropdownVisible(!dropdownVisible)}
+        >
+          <Text style={newCountry ? styles.dropdownButtonTextSelected : styles.dropdownButtonTextPlaceholder}>
+            {newCountry || 'Select a country'}
+          </Text>
+          <Ionicons
+            name={dropdownVisible ? 'chevron-up' : 'chevron-down'}
+            size={20}
+            color="#4ade80"
+          />
+        </TouchableOpacity>
+
+        {dropdownVisible && (
+          <ScrollView style={styles.dropdownList} nestedScrollEnabled={true}>
+            {allCountries.map((country, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.dropdownItem}
+                onPress={() => selectCountry(country)}
+              >
+                <Text style={styles.dropdownItemText}>{country}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
+
         <TextInput
           style={styles.input}
           placeholder="Year visited (optional)"
@@ -215,5 +274,41 @@ const styles = StyleSheet.create({
   countryDate: {
     fontSize: 14,
     color: '#888',
+  },
+  dropdownButton: {
+    backgroundColor: '#1a1a1a',
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+    borderRadius: 10,
+    padding: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+  },
+  dropdownButtonTextPlaceholder: {
+    fontSize: 16,
+    color: '#666',
+  },
+  dropdownButtonTextSelected: {
+    fontSize: 16,
+    color: '#ffffff',
+  },
+  dropdownList: {
+    maxHeight: 200,
+    backgroundColor: '#1a1a1a',
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+    borderRadius: 10,
+    marginBottom: 15,
+  },
+  dropdownItem: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2a2a2a',
+  },
+  dropdownItemText: {
+    fontSize: 16,
+    color: '#ffffff',
   },
 });
