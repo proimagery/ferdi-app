@@ -32,7 +32,12 @@ export default function MyTripsScreen({ navigation, route }) {
             <TouchableOpacity
               key={index}
               style={styles.tripCard}
-              onPress={() => navigation.navigate('TripDetail', { trip, index, trips })}
+              onPress={() => navigation.navigate('TripDetail', {
+                trip,
+                tripIndex: index,
+                trips,
+                isNewTrip: false
+              })}
             >
               <View style={styles.tripHeader}>
                 <Text style={styles.tripName}>{trip.name}</Text>

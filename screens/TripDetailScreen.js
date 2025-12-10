@@ -1,10 +1,11 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Alert } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function TripDetailScreen({ route }) {
-  const { trip } = route.params;
+export default function TripDetailScreen({ route, navigation }) {
+  const { trip, trips = [], tripIndex, isNewTrip = true } = route.params;
+  const [isSaved, setIsSaved] = useState(!isNewTrip);
 
   // Country coordinates database
   const countryCoordinates = {
@@ -118,6 +119,28 @@ export default function TripDetailScreen({ route }) {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
+  // Save trip function
+  const handleSaveTrip = () => {
+    const updatedTrips = [...trips, trip];
+    setIsSaved(true);
+    Alert.alert('Success', 'Trip saved successfully!', [
+      {
+        text: 'OK',
+        onPress: () => navigation.navigate('MyTrips', { trips: updatedTrips })
+      }
+    ]);
+  };
+
+  // Edit trip function
+  const handleEditTrip = () => {
+    navigation.navigate('CreateTrip', {
+      trips,
+      editMode: true,
+      editTrip: trip,
+      editIndex: tripIndex
+    });
+  };
+
   // Create markers and polyline coordinates for trip route
   const markers = [];
   const routeCoordinates = [];
@@ -187,7 +210,7 @@ export default function TripDetailScreen({ route }) {
             showsUserLocation={false}
             showsMyLocationButton={false}
           >
-            {markers.map((marker) => (
+            {markers.map((marker, idx) => (
               <Marker
                 key={marker.id}
                 coordinate={{
@@ -196,8 +219,14 @@ export default function TripDetailScreen({ route }) {
                 }}
                 title={marker.title}
                 description={marker.description}
-                pinColor="#4ade80"
-              />
+              >
+                <View style={styles.markerContainer}>
+                  <Ionicons name="location" size={40} color="#4ade80" />
+                  <View style={styles.markerNumber}>
+                    <Text style={styles.markerNumberText}>{idx + 1}</Text>
+                  </View>
+                </View>
+              </Marker>
             ))}
             {routeCoordinates.length > 1 && (
               <Polyline
@@ -229,6 +258,21 @@ export default function TripDetailScreen({ route }) {
             )}
           </View>
         ))}
+      </View>
+
+      {/* Action Buttons */}
+      <View style={styles.buttonContainer}>
+        {isSaved ? (
+          <TouchableOpacity style={styles.editButton} onPress={handleEditTrip}>
+            <Ionicons name="create-outline" size={24} color="#0a0a0a" />
+            <Text style={styles.buttonText}>Edit Trip</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={styles.saveButton} onPress={handleSaveTrip}>
+            <Ionicons name="save-outline" size={24} color="#0a0a0a" />
+            <Text style={styles.buttonText}>Save Trip</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </ScrollView>
   );
@@ -313,5 +357,53 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: 14,
     color: '#888',
+  },
+  markerContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  markerNumber: {
+    position: 'absolute',
+    top: 8,
+    backgroundColor: '#0a0a0a',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#4ade80',
+  },
+  markerNumberText: {
+    color: '#4ade80',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  buttonContainer: {
+    padding: 20,
+    paddingBottom: 30,
+  },
+  saveButton: {
+    backgroundColor: '#4ade80',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 18,
+    borderRadius: 15,
+    gap: 10,
+  },
+  editButton: {
+    backgroundColor: '#4ade80',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 18,
+    borderRadius: 15,
+    gap: 10,
+  },
+  buttonText: {
+    color: '#0a0a0a',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });

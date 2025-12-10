@@ -13,10 +13,16 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 export default function CreateTripScreen({ navigation, route }) {
+  const editMode = route.params?.editMode || false;
+  const editTrip = route.params?.editTrip;
+  const editIndex = route.params?.editIndex;
+
   const [step, setStep] = useState(1);
-  const [tripName, setTripName] = useState('');
-  const [countries, setCountries] = useState([{ name: '', startDate: null, endDate: null }]);
-  const [budget, setBudget] = useState('');
+  const [tripName, setTripName] = useState(editMode ? editTrip.name : '');
+  const [countries, setCountries] = useState(
+    editMode ? editTrip.countries : [{ name: '', startDate: null, endDate: null }]
+  );
+  const [budget, setBudget] = useState(editMode ? editTrip.budget.toString() : '');
   const [showDatePicker, setShowDatePicker] = useState({ index: null, type: null });
   const [dropdownVisible, setDropdownVisible] = useState(null);
 
@@ -80,16 +86,19 @@ export default function CreateTripScreen({ navigation, route }) {
   };
 
   const onDateChange = (event, selectedDate) => {
+    const currentIndex = showDatePicker.index;
+    const currentType = showDatePicker.type;
+
     if (Platform.OS === 'android') {
       setShowDatePicker({ index: null, type: null });
-    }
-
-    if (selectedDate && showDatePicker.index !== null) {
-      updateCountry(showDatePicker.index, showDatePicker.type, selectedDate);
-    }
-
-    if (Platform.OS === 'ios' && event.type === 'dismissed') {
-      setShowDatePicker({ index: null, type: null });
+      if (event.type === 'set' && selectedDate && currentIndex !== null) {
+        updateCountry(currentIndex, currentType, selectedDate);
+      }
+    } else {
+      // iOS
+      if (selectedDate && currentIndex !== null) {
+        updateCountry(currentIndex, currentType, selectedDate);
+      }
     }
   };
 
@@ -122,17 +131,41 @@ export default function CreateTripScreen({ navigation, route }) {
       return;
     }
 
-    const newTrip = {
-      id: Date.now().toString(),
-      name: tripName,
-      countries: countries,
-      budget: parseFloat(budget),
-    };
-
     const existingTrips = route.params?.trips || [];
-    const updatedTrips = [...existingTrips, newTrip];
 
-    navigation.navigate('TripDetail', { trip: newTrip, trips: updatedTrips });
+    if (editMode) {
+      // Update existing trip
+      const updatedTrip = {
+        ...editTrip,
+        name: tripName,
+        countries: countries,
+        budget: parseFloat(budget),
+      };
+
+      const updatedTrips = [...existingTrips];
+      updatedTrips[editIndex] = updatedTrip;
+
+      navigation.navigate('TripDetail', {
+        trip: updatedTrip,
+        trips: updatedTrips,
+        tripIndex: editIndex,
+        isNewTrip: false
+      });
+    } else {
+      // Create new trip
+      const newTrip = {
+        id: Date.now().toString(),
+        name: tripName,
+        countries: countries,
+        budget: parseFloat(budget),
+      };
+
+      navigation.navigate('TripDetail', {
+        trip: newTrip,
+        trips: existingTrips,
+        isNewTrip: true
+      });
+    }
   };
 
   return (
@@ -155,7 +188,9 @@ export default function CreateTripScreen({ navigation, route }) {
         {/* Step 1: Trip Name */}
         {step === 1 && (
           <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>Step 1: Name Your Trip</Text>
+            <Text style={styles.stepTitle}>
+              {editMode ? 'Edit Trip Name' : 'Step 1: Name Your Trip'}
+            </Text>
             <TextInput
               style={styles.input}
               placeholder="Enter trip name"
@@ -169,7 +204,9 @@ export default function CreateTripScreen({ navigation, route }) {
         {/* Step 2: Countries */}
         {step === 2 && (
           <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>Step 2: Add Countries</Text>
+            <Text style={styles.stepTitle}>
+              {editMode ? 'Edit Countries' : 'Step 2: Add Countries'}
+            </Text>
             {countries.map((country, index) => (
               <View key={index} style={styles.countryCard}>
                 <View style={styles.countryHeader}>
@@ -248,7 +285,9 @@ export default function CreateTripScreen({ navigation, route }) {
         {/* Step 3: Budget */}
         {step === 3 && (
           <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>Step 3: Set Your Budget</Text>
+            <Text style={styles.stepTitle}>
+              {editMode ? 'Edit Budget' : 'Step 3: Set Your Budget'}
+            </Text>
             <TextInput
               style={styles.input}
               placeholder="Enter budget amount"
@@ -284,7 +323,7 @@ export default function CreateTripScreen({ navigation, route }) {
           onPress={step === 3 ? handleSubmit : handleNext}
         >
           <Text style={styles.nextButtonText}>
-            {step === 3 ? 'Create Trip' : 'Next'}
+            {step === 3 ? (editMode ? 'Update Trip' : 'Create Trip') : 'Next'}
           </Text>
         </TouchableOpacity>
       </View>
