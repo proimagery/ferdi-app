@@ -101,6 +101,7 @@ export default function PublicProfileScreen({ navigation, route }) {
   }
 
   const userName = displayProfile?.name || 'Traveler';
+  const userUsername = displayProfile?.username || '';
   const userLocation = displayProfile?.location || 'United States';
   const userBio = displayProfile?.bio || '';
 
@@ -191,6 +192,9 @@ export default function PublicProfileScreen({ navigation, route }) {
             </Text>
             <Ionicons name="checkmark-circle" size={28} color="#1DA1F2" />
           </View>
+          {userUsername ? (
+            <Text style={[styles.usernameText, { color: theme.primary }]}>@{userUsername}</Text>
+          ) : null}
           <View style={styles.levelContainer}>
             <Ionicons name="star" size={14} color="#fbbf24" />
             <Text style={[styles.levelText, { color: theme.text }]}>{travelerRank}</Text>
@@ -693,6 +697,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
     flexShrink: 1,
+  },
+  usernameText: {
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 5,
   },
   levelContainer: {
     flexDirection: 'row',

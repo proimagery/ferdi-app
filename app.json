@@ -1,10 +1,11 @@
 {
   "expo": {
-    "name": "Travel Planner",
-    "slug": "travel-planner-app",
+    "name": "Ferdi",
+    "slug": "ferdi-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
+    "scheme": "ferdi",
     "splash": {
       "resizeMode": "contain",
       "backgroundColor": "#0a0a0a"
@@ -14,10 +15,24 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.travelplanner.app"
+      "bundleIdentifier": "com.ferdi.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "This app uses your location to show your position on travel maps.",
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload travel photos.",
+        "NSCameraUsageDescription": "This app needs access to your camera to take travel photos."
+      }
     },
     "android": {
-      "package": "com.travelplanner.app"
+      "package": "com.ferdi.app",
+      "versionCode": 1,
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "bundler": "metro"
@@ -25,6 +40,12 @@
     "platforms": [
       "ios",
       "android"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "2d22f6d7-3ef5-47f8-b2e1-8b9b559dd49f"
+      }
+    },
+    "owner": "proimagery"
   }
 }

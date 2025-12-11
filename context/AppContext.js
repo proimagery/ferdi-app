@@ -13,6 +13,7 @@ export const AppProvider = ({ children }) => {
   const [budgets, setBudgets] = useState([]);
   const [profile, setProfile] = useState({
     name: '',
+    username: '',
     location: '',
     bio: '',
     instagram: '',
@@ -51,6 +52,7 @@ export const AppProvider = ({ children }) => {
       setBudgets([]);
       setProfile({
         name: '',
+        username: '',
         location: '',
         bio: '',
         instagram: '',
@@ -116,6 +118,7 @@ export const AppProvider = ({ children }) => {
     if (data) {
       setProfile({
         name: data.name || '',
+        username: data.username || '',
         location: data.location || '',
         bio: data.bio || '',
         instagram: data.instagram || '',
@@ -146,6 +149,7 @@ export const AppProvider = ({ children }) => {
       .from('profiles')
       .update({
         name: profileData.name,
+        username: profileData.username,
         location: profileData.location,
         bio: profileData.bio,
         instagram: profileData.instagram,

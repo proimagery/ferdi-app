@@ -9,12 +9,41 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [needsUsername, setNeedsUsername] = useState(false);
+
+  // Check if user has set up a username
+  const checkUsernameSetup = async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.log('Error checking username:', error);
+        return false;
+      }
+
+      // If username is null or empty, user needs to set one up
+      return !data?.username;
+    } catch (err) {
+      console.error('Error in checkUsernameSetup:', err);
+      return false;
+    }
+  };
 
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+
+      if (session?.user) {
+        const needsSetup = await checkUsernameSetup(session.user.id);
+        setNeedsUsername(needsSetup);
+      }
+
       setLoading(false);
     });
 
@@ -23,12 +52,25 @@ export const AuthProvider = ({ children }) => {
       async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+
+        if (session?.user) {
+          const needsSetup = await checkUsernameSetup(session.user.id);
+          setNeedsUsername(needsSetup);
+        } else {
+          setNeedsUsername(false);
+        }
+
         setLoading(false);
       }
     );
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Function to mark username as set up
+  const completeUsernameSetup = () => {
+    setNeedsUsername(false);
+  };
 
   // Sign up with email and password
   const signUp = async (email, password) => {
@@ -115,10 +157,12 @@ export const AuthProvider = ({ children }) => {
     user,
     session,
     loading,
+    needsUsername,
     signUp,
     signIn,
     signOut,
     resetPassword,
+    completeUsernameSetup,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

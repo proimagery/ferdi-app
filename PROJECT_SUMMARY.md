@@ -856,4 +856,100 @@ Fixed keyboard overlap issues across all screens with country selection dropdown
 - iOS: `behavior="padding"` with `keyboardVerticalOffset={90}`
 - Android: `behavior="height"`
 
+### Username Input Glitch Fix
+Fixed typing glitch in username fields where letters were duplicating/glitching during input.
+
+**Screens Updated:**
+- UsernameSetupScreen.js
+- EditProfileScreen.js
+
+**Solution:**
+- Added `useRef` for debounce timer to prevent race conditions
+- Created `handleUsernameChange` with `useCallback` for stable reference
+- Increased debounce delay from 500ms to 600ms
+- Added `autoComplete="off"` and `spellCheck={false}` to TextInput
+
+---
+
+## 🚀 App Rebranding & Production Setup (December 11, 2025)
+
+### App Renamed to "Ferdi"
+The app has been officially renamed to **Ferdi** (short for Ferdinand Magellan, the first explorer to circumnavigate the globe).
+
+**Updated Configurations:**
+- App name: `Ferdi`
+- Slug: `ferdi-app`
+- URL scheme: `ferdi`
+- iOS Bundle ID: `com.ferdi.app`
+- Android Package: `com.ferdi.app`
+
+### Unique Username System
+Implemented a complete username system where each user must create a unique @username:
+
+**Features:**
+- Mandatory username setup after account creation
+- Real-time username availability checking
+- Username validation (3-20 chars, alphanumeric + underscores)
+- Username displayed as @username on profile pages
+- Editable in profile settings
+
+**New Files:**
+- `screens/UsernameSetupScreen.js` - Username setup flow
+- `supabase/schema_username.sql` - Database migration for username column
+
+**Modified Files:**
+- `context/AuthContext.js` - Added `needsUsername` state and checks
+- `context/AppContext.js` - Added username to profile state and sync
+- `App.js` - Added UsernameSetupNavigator
+- `screens/EditProfileScreen.js` - Username editing capability
+- `screens/PublicProfileScreen.js` - Username display
+
+### EAS Build Configuration (Production Ready)
+Expo Application Services (EAS) has been configured for building and distributing the app.
+
+**Configuration Files Created:**
+- `eas.json` - Build profiles (development, preview, production)
+
+**Build Profiles:**
+| Profile | Purpose | Output |
+|---------|---------|--------|
+| development | Dev client with debugging | APK (simulator) |
+| preview | Internal testing | APK |
+| production | App store submission | AAB (Android App Bundle) |
+
+**EAS Project Details:**
+- Project ID: `2d22f6d7-3ef5-47f8-b2e1-8b9b559dd49f`
+- Owner: `proimagery`
+- Dashboard: https://expo.dev/accounts/proimagery/projects/ferdi-app
+
+### Build Commands
+```bash
+# Preview build (APK for testing)
+eas build --platform android --profile preview
+
+# Production build (AAB for Google Play)
+eas build --platform android --profile production
+
+# iOS build (requires Apple Developer account)
+eas build --platform ios --profile production
+
+# Submit to stores
+eas submit --platform android
+eas submit --platform ios
+```
+
+### App Store Requirements
+**Google Play Store:**
+- Developer account: $25 one-time fee
+- App icon: 512x512 PNG
+- Feature graphic: 1024x500 PNG
+- Screenshots: At least 2 phone screenshots
+- Privacy policy URL required
+
+**Apple App Store:**
+- Developer account: $99/year
+- App icon: 1024x1024 PNG
+- Screenshots for various device sizes
+- App review process
+
 ---

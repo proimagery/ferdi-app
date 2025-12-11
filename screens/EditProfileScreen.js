@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Image, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Image, Alert, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppContext } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
@@ -8,12 +8,18 @@ import { Picker } from '@react-native-picker/picker';
 import { countryCoordinates } from '../utils/coordinates';
 import { presetAvatars } from '../utils/presetAvatars';
 import * as ImagePicker from 'expo-image-picker';
+import { supabase } from '../lib/supabase';
 
 export default function EditProfileScreen({ navigation }) {
   const { profile, updateProfile, completedTrips, visitedCities, trips } = useAppContext();
   const { theme } = useTheme();
 
   const [name, setName] = useState(profile?.name || '');
+  const [username, setUsername] = useState(profile?.username || '');
+  const [originalUsername, setOriginalUsername] = useState(profile?.username || '');
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [usernameAvailable, setUsernameAvailable] = useState(null);
+  const [usernameError, setUsernameError] = useState('');
   const [location, setLocation] = useState(profile?.location || '');
   const [bio, setBio] = useState(profile?.bio || '');
   const [instagram, setInstagram] = useState(profile?.instagram || '');
@@ -31,6 +37,78 @@ export default function EditProfileScreen({ navigation }) {
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [travelPhotos, setTravelPhotos] = useState(profile?.travelPhotos || []);
   const [sharedTripMaps, setSharedTripMaps] = useState(profile?.sharedTripMaps || []);
+  const debounceTimer = useRef(null);
+
+  // Handle username change without causing input glitches
+  const handleUsernameChange = useCallback((text) => {
+    const cleanedText = text.replace(/\s/g, '').toLowerCase();
+    setUsername(cleanedText);
+  }, []);
+
+  // Check username availability when it changes (debounced)
+  useEffect(() => {
+    // Clear any existing timer
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+
+    if (!username || username === originalUsername) {
+      setUsernameAvailable(null);
+      setUsernameError('');
+      return;
+    }
+
+    if (username.length < 3) {
+      setUsernameAvailable(null);
+      setUsernameError('');
+      return;
+    }
+
+    // Validate username format
+    const usernameRegex = /^[a-zA-Z0-9_]+$/;
+    if (!usernameRegex.test(username)) {
+      setUsernameAvailable(false);
+      setUsernameError('Letters, numbers, and underscores only');
+      return;
+    }
+
+    debounceTimer.current = setTimeout(() => {
+      checkUsernameAvailability(username);
+    }, 600);
+
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
+    };
+  }, [username, originalUsername]);
+
+  const checkUsernameAvailability = async (usernameToCheck) => {
+    setIsCheckingUsername(true);
+    setUsernameError('');
+
+    try {
+      const { data, error: checkError } = await supabase
+        .from('profiles')
+        .select('username')
+        .ilike('username', usernameToCheck)
+        .single();
+
+      if (checkError && checkError.code === 'PGRST116') {
+        setUsernameAvailable(true);
+      } else if (data) {
+        setUsernameAvailable(false);
+        setUsernameError('Username already taken');
+      } else {
+        setUsernameAvailable(true);
+      }
+    } catch (err) {
+      console.error('Error checking username:', err);
+      setUsernameAvailable(true);
+    } finally {
+      setIsCheckingUsername(false);
+    }
+  };
 
   const [showTop1Picker, setShowTop1Picker] = useState(false);
   const [showTop2Picker, setShowTop2Picker] = useState(false);
@@ -60,9 +138,22 @@ export default function EditProfileScreen({ navigation }) {
   const worldCountries = 195;
   const worldCoverage = ((totalCountriesVisited / worldCountries) * 100).toFixed(1);
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    // Validate username if changed
+    if (username !== originalUsername) {
+      if (username.length < 3) {
+        Alert.alert('Invalid Username', 'Username must be at least 3 characters.');
+        return;
+      }
+      if (usernameAvailable === false) {
+        Alert.alert('Username Taken', 'Please choose a different username.');
+        return;
+      }
+    }
+
     updateProfile({
       name,
+      username: username.toLowerCase(),
       location,
       bio,
       instagram,
@@ -314,8 +405,45 @@ export default function EditProfileScreen({ navigation }) {
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: theme.text }]}>Basic Information</Text>
 
+        {/* Username Field */}
         <View style={styles.inputGroup}>
-          <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Name</Text>
+          <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Username</Text>
+          <View style={[styles.usernameInputContainer, {
+            backgroundColor: theme.inputBackground,
+            borderColor: usernameError ? theme.error : usernameAvailable === true ? theme.primary : theme.inputBorder
+          }]}>
+            <Text style={[styles.atSymbol, { color: theme.primary }]}>@</Text>
+            <TextInput
+              style={[styles.usernameInput, { color: theme.text }]}
+              placeholder="username"
+              placeholderTextColor={theme.textSecondary}
+              value={username}
+              onChangeText={handleUsernameChange}
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete="off"
+              spellCheck={false}
+              maxLength={20}
+            />
+            <View style={styles.usernameStatus}>
+              {isCheckingUsername && <ActivityIndicator size="small" color={theme.primary} />}
+              {!isCheckingUsername && usernameAvailable === true && username !== originalUsername && (
+                <Ionicons name="checkmark-circle" size={20} color={theme.primary} />
+              )}
+              {!isCheckingUsername && usernameAvailable === false && (
+                <Ionicons name="close-circle" size={20} color={theme.error} />
+              )}
+            </View>
+          </View>
+          {usernameError ? (
+            <Text style={[styles.usernameErrorText, { color: theme.error }]}>{usernameError}</Text>
+          ) : username !== originalUsername && usernameAvailable === true ? (
+            <Text style={[styles.usernameSuccessText, { color: theme.primary }]}>Username available!</Text>
+          ) : null}
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Display Name</Text>
           <TextInput
             style={[styles.input, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
             placeholder="Enter your name"
@@ -714,6 +842,37 @@ const styles = StyleSheet.create({
   },
   inputGroup: {
     marginBottom: 15,
+  },
+  usernameInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    height: 50,
+  },
+  atSymbol: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginRight: 5,
+  },
+  usernameInput: {
+    flex: 1,
+    fontSize: 16,
+    height: '100%',
+  },
+  usernameStatus: {
+    width: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  usernameErrorText: {
+    fontSize: 12,
+    marginTop: 5,
+  },
+  usernameSuccessText: {
+    fontSize: 12,
+    marginTop: 5,
   },
   inputLabel: {
     fontSize: 14,

@@ -36,6 +36,7 @@ import TravelBuddiesScreen from './screens/TravelBuddiesScreen';
 import LoginScreen from './screens/LoginScreen';
 import SignupScreen from './screens/SignupScreen';
 import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
+import UsernameSetupScreen from './screens/UsernameSetupScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -356,9 +357,21 @@ function MainNavigator() {
   );
 }
 
+// Username Setup Navigator - for users who need to set up their username
+function UsernameSetupNavigator() {
+  const { theme } = useTheme();
+  const { completeUsernameSetup } = useAuth();
+
+  return (
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
+      <UsernameSetupScreen onComplete={completeUsernameSetup} />
+    </View>
+  );
+}
+
 // Root Navigator - handles auth state
 function RootNavigator() {
-  const { user, loading } = useAuth();
+  const { user, loading, needsUsername } = useAuth();
   const { theme, isDarkMode } = useTheme();
 
   if (loading) {
@@ -366,6 +379,16 @@ function RootNavigator() {
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background }}>
         <ActivityIndicator size="large" color={theme.primary} />
       </View>
+    );
+  }
+
+  // If user is logged in but needs to set up username, show username setup
+  if (user && needsUsername) {
+    return (
+      <>
+        <StatusBar style={isDarkMode ? "light" : "dark"} />
+        <UsernameSetupNavigator />
+      </>
     );
   }
 
