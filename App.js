@@ -2,10 +2,11 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
-import { TouchableOpacity, View, Image, Text } from 'react-native';
+import { TouchableOpacity, View, Image, Text, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AppProvider, useAppContext } from './context/AppContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { presetAvatars } from './utils/presetAvatars';
 
 // Import all screens
@@ -30,6 +31,11 @@ import EditProfileScreen from './screens/EditProfileScreen';
 import SearchScreen from './screens/SearchScreen';
 import LeaderboardScreen from './screens/LeaderboardScreen';
 import TravelBuddiesScreen from './screens/TravelBuddiesScreen';
+
+// Auth screens
+import LoginScreen from './screens/LoginScreen';
+import SignupScreen from './screens/SignupScreen';
+import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -84,8 +90,30 @@ function ProfileAvatar() {
   );
 }
 
-function Navigation() {
+// Auth Navigator - for unauthenticated users
+function AuthNavigator() {
+  const { theme } = useTheme();
+
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        contentStyle: {
+          backgroundColor: theme.background,
+        },
+      }}
+    >
+      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Signup" component={SignupScreen} />
+      <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+    </Stack.Navigator>
+  );
+}
+
+// Main App Navigator - for authenticated users
+function MainNavigator() {
   const { theme, isDarkMode, toggleTheme } = useTheme();
+  const { signOut } = useAuth();
 
   const getDashboardHeaderButtons = (navigation) => ({
     headerRight: () => (
@@ -126,215 +154,237 @@ function Navigation() {
 
   return (
     <AppProvider>
+      <Stack.Navigator
+        initialRouteName="Home"
+        screenOptions={{
+          headerStyle: {
+            backgroundColor: theme.background,
+          },
+          headerTintColor: theme.primary,
+          headerTitleStyle: {
+            fontWeight: 'bold',
+          },
+          contentStyle: {
+            backgroundColor: theme.background,
+          },
+        }}
+      >
+        <Stack.Screen
+          name="Home"
+          component={HomeScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Dashboard"
+          component={DashboardScreen}
+          options={({ navigation }) => ({
+            title: 'Dashboard',
+            ...getDashboardHeaderButtons(navigation),
+          })}
+        />
+        <Stack.Screen
+          name="MyTrips"
+          component={MyTripsScreen}
+          options={({ navigation }) => ({
+            title: 'My Trips',
+            ...getHeaderButtons(navigation),
+          })}
+        />
+        <Stack.Screen
+          name="CreateTrip"
+          component={CreateTripScreen}
+          options={({ navigation }) => ({
+            title: 'Create Trip',
+            ...getHeaderButtons(navigation),
+          })}
+        />
+        <Stack.Screen
+          name="TripDetail"
+          component={TripDetailScreen}
+          options={({ navigation }) => ({
+            title: 'Trip Details',
+            ...getHeaderButtons(navigation),
+          })}
+        />
+        <Stack.Screen
+          name="BudgetMaker"
+          component={BudgetMakerScreen}
+          options={({ navigation }) => ({
+            title: 'Budget Maker',
+            ...getHeaderButtons(navigation),
+          })}
+        />
+        <Stack.Screen
+          name="MyBudget"
+          component={MyBudgetScreen}
+          options={({ navigation }) => ({
+            title: 'My Budgets',
+            ...getHeaderButtons(navigation),
+          })}
+        />
+        <Stack.Screen
+          name="TravelMapper"
+          component={TravelMapperScreen}
+          options={({ navigation }) => ({
+            title: 'Travel Mapper',
+            ...getHeaderButtons(navigation),
+          })}
+        />
+        <Stack.Screen
+          name="AddCompletedTrip"
+          component={AddCompletedTripScreen}
+          options={({ navigation }) => ({
+            title: 'Add Completed Trip',
+            ...getHeaderButtons(navigation),
+          })}
+        />
+        <Stack.Screen
+          name="YourStats"
+          component={YourStatsScreen}
+          options={({ navigation }) => ({
+            title: 'Your Stats',
+            ...getHeaderButtons(navigation),
+          })}
+        />
+        <Stack.Screen
+          name="WorldRank"
+          component={WorldRankScreen}
+          options={({ navigation }) => ({
+            title: 'World Rank',
+            ...getHeaderButtons(navigation),
+          })}
+        />
+        <Stack.Screen
+          name="CountryDetail"
+          component={CountryDetailScreen}
+          options={({ navigation }) => ({
+            title: 'Country Details',
+            ...getHeaderButtons(navigation),
+          })}
+        />
+        <Stack.Screen
+          name="ManageCountries"
+          component={ManageCountriesScreen}
+          options={({ navigation }) => ({
+            title: 'Manage Countries',
+            ...getHeaderButtons(navigation),
+          })}
+        />
+        <Stack.Screen
+          name="ManageCities"
+          component={ManageCitiesScreen}
+          options={({ navigation }) => ({
+            title: 'Manage Cities',
+            ...getHeaderButtons(navigation),
+          })}
+        />
+        <Stack.Screen
+          name="WorldMap"
+          component={WorldMapScreen}
+          options={({ navigation }) => ({
+            title: 'World Map',
+            ...getHeaderButtons(navigation),
+          })}
+        />
+        <Stack.Screen
+          name="CompletedTrips"
+          component={CompletedTripsScreen}
+          options={({ navigation }) => ({
+            title: 'Completed Trips',
+            ...getHeaderButtons(navigation),
+          })}
+        />
+        <Stack.Screen
+          name="Profile"
+          component={PublicProfileScreen}
+          options={({ navigation }) => ({
+            title: 'Profile',
+            headerRight: () => (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 15, marginRight: 10 }}>
+                <TouchableOpacity onPress={() => navigation.navigate('EditProfile')}>
+                  <Ionicons name="create" size={24} color={theme.primary} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={signOut}>
+                  <Ionicons name="log-out-outline" size={24} color={theme.danger} />
+                </TouchableOpacity>
+              </View>
+            ),
+          })}
+        />
+        <Stack.Screen
+          name="EditProfile"
+          component={EditProfileScreen}
+          options={({ navigation }) => ({
+            title: 'Edit Profile',
+            ...getHeaderButtons(navigation),
+          })}
+        />
+        <Stack.Screen
+          name="Search"
+          component={SearchScreen}
+          options={({ navigation }) => ({
+            title: 'Search Travelers',
+            ...getHeaderButtons(navigation),
+          })}
+        />
+        <Stack.Screen
+          name="Leaderboard"
+          component={LeaderboardScreen}
+          options={({ navigation }) => ({
+            title: 'Leaderboard',
+            ...getHeaderButtons(navigation),
+          })}
+        />
+        <Stack.Screen
+          name="TravelBuddies"
+          component={TravelBuddiesScreen}
+          options={({ navigation }) => ({
+            title: 'Travel Buddies',
+            ...getHeaderButtons(navigation),
+          })}
+        />
+        <Stack.Screen
+          name="PublicProfile"
+          component={PublicProfileScreen}
+          options={({ navigation }) => ({
+            title: 'Profile',
+            ...getHeaderButtons(navigation),
+          })}
+        />
+      </Stack.Navigator>
+    </AppProvider>
+  );
+}
+
+// Root Navigator - handles auth state
+function RootNavigator() {
+  const { user, loading } = useAuth();
+  const { theme, isDarkMode } = useTheme();
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background }}>
+        <ActivityIndicator size="large" color={theme.primary} />
+      </View>
+    );
+  }
+
+  return (
+    <>
       <StatusBar style={isDarkMode ? "light" : "dark"} />
       <NavigationContainer>
-        <Stack.Navigator
-          initialRouteName="Home"
-          screenOptions={{
-            headerStyle: {
-              backgroundColor: theme.background,
-            },
-            headerTintColor: theme.primary,
-            headerTitleStyle: {
-              fontWeight: 'bold',
-            },
-            contentStyle: {
-              backgroundColor: theme.background,
-            },
-          }}
-        >
-          <Stack.Screen
-            name="Home"
-            component={HomeScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="Dashboard"
-            component={DashboardScreen}
-            options={({ navigation }) => ({
-              title: 'Dashboard',
-              ...getDashboardHeaderButtons(navigation),
-            })}
-          />
-          <Stack.Screen
-            name="MyTrips"
-            component={MyTripsScreen}
-            options={({ navigation }) => ({
-              title: 'My Trips',
-              ...getHeaderButtons(navigation),
-            })}
-          />
-          <Stack.Screen
-            name="CreateTrip"
-            component={CreateTripScreen}
-            options={({ navigation }) => ({
-              title: 'Create Trip',
-              ...getHeaderButtons(navigation),
-            })}
-          />
-          <Stack.Screen
-            name="TripDetail"
-            component={TripDetailScreen}
-            options={({ navigation }) => ({
-              title: 'Trip Details',
-              ...getHeaderButtons(navigation),
-            })}
-          />
-          <Stack.Screen
-            name="BudgetMaker"
-            component={BudgetMakerScreen}
-            options={({ navigation }) => ({
-              title: 'Budget Maker',
-              ...getHeaderButtons(navigation),
-            })}
-          />
-          <Stack.Screen
-            name="MyBudget"
-            component={MyBudgetScreen}
-            options={({ navigation }) => ({
-              title: 'My Budgets',
-              ...getHeaderButtons(navigation),
-            })}
-          />
-          <Stack.Screen
-            name="TravelMapper"
-            component={TravelMapperScreen}
-            options={({ navigation }) => ({
-              title: 'Travel Mapper',
-              ...getHeaderButtons(navigation),
-            })}
-          />
-          <Stack.Screen
-            name="AddCompletedTrip"
-            component={AddCompletedTripScreen}
-            options={({ navigation }) => ({
-              title: 'Add Completed Trip',
-              ...getHeaderButtons(navigation),
-            })}
-          />
-          <Stack.Screen
-            name="YourStats"
-            component={YourStatsScreen}
-            options={({ navigation }) => ({
-              title: 'Your Stats',
-              ...getHeaderButtons(navigation),
-            })}
-          />
-          <Stack.Screen
-            name="WorldRank"
-            component={WorldRankScreen}
-            options={({ navigation }) => ({
-              title: 'World Rank',
-              ...getHeaderButtons(navigation),
-            })}
-          />
-          <Stack.Screen
-            name="CountryDetail"
-            component={CountryDetailScreen}
-            options={({ navigation }) => ({
-              title: 'Country Details',
-              ...getHeaderButtons(navigation),
-            })}
-          />
-          <Stack.Screen
-            name="ManageCountries"
-            component={ManageCountriesScreen}
-            options={({ navigation }) => ({
-              title: 'Manage Countries',
-              ...getHeaderButtons(navigation),
-            })}
-          />
-          <Stack.Screen
-            name="ManageCities"
-            component={ManageCitiesScreen}
-            options={({ navigation }) => ({
-              title: 'Manage Cities',
-              ...getHeaderButtons(navigation),
-            })}
-          />
-          <Stack.Screen
-            name="WorldMap"
-            component={WorldMapScreen}
-            options={({ navigation }) => ({
-              title: 'World Map',
-              ...getHeaderButtons(navigation),
-            })}
-          />
-          <Stack.Screen
-            name="CompletedTrips"
-            component={CompletedTripsScreen}
-            options={({ navigation }) => ({
-              title: 'Completed Trips',
-              ...getHeaderButtons(navigation),
-            })}
-          />
-          <Stack.Screen
-            name="Profile"
-            component={PublicProfileScreen}
-            options={({ navigation }) => ({
-              title: 'Profile',
-              headerRight: () => (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 15, marginRight: 10 }}>
-                  <TouchableOpacity onPress={() => navigation.navigate('EditProfile')}>
-                    <Ionicons name="create" size={24} color={theme.primary} />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => navigation.navigate('Dashboard')}>
-                    <Ionicons name="home" size={24} color={theme.primary} />
-                  </TouchableOpacity>
-                </View>
-              ),
-            })}
-          />
-          <Stack.Screen
-            name="EditProfile"
-            component={EditProfileScreen}
-            options={({ navigation }) => ({
-              title: 'Edit Profile',
-              ...getHeaderButtons(navigation),
-            })}
-          />
-          <Stack.Screen
-            name="Search"
-            component={SearchScreen}
-            options={({ navigation }) => ({
-              title: 'Search Travelers',
-              ...getHeaderButtons(navigation),
-            })}
-          />
-          <Stack.Screen
-            name="Leaderboard"
-            component={LeaderboardScreen}
-            options={({ navigation }) => ({
-              title: 'Leaderboard',
-              ...getHeaderButtons(navigation),
-            })}
-          />
-          <Stack.Screen
-            name="TravelBuddies"
-            component={TravelBuddiesScreen}
-            options={({ navigation }) => ({
-              title: 'Travel Buddies',
-              ...getHeaderButtons(navigation),
-            })}
-          />
-          <Stack.Screen
-            name="PublicProfile"
-            component={PublicProfileScreen}
-            options={({ navigation }) => ({
-              title: 'Profile',
-              ...getHeaderButtons(navigation),
-            })}
-          />
-        </Stack.Navigator>
+        {user ? <MainNavigator /> : <AuthNavigator />}
       </NavigationContainer>
-    </AppProvider>
+    </>
   );
 }
 
 export default function App() {
   return (
     <ThemeProvider>
-      <Navigation />
+      <AuthProvider>
+        <RootNavigator />
+      </AuthProvider>
     </ThemeProvider>
   );
 }

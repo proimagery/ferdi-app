@@ -1,29 +1,44 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet, Dimensions } from 'react-native';
 import { WebView } from 'react-native-webview';
+import { countryCoordinates } from '../utils/coordinates';
 
 const { width } = Dimensions.get('window');
 
 export default function SpinningGlobe({ completedTrips = [], visitedCities = [] }) {
-  // Convert countries to red markers with labels
-  const countryMarkers = completedTrips.map((trip) => ({
-    lat: trip.latitude || 0,
-    lng: trip.longitude || 0,
-    label: trip.country || trip.name || 'Country',
-    color: '#ff4444', // Red for countries
-    size: 0.6, // Larger markers for countries
-    type: 'country',
-  }));
+  // Convert countries to red markers with labels - look up coordinates by country name
+  const countryMarkers = useMemo(() => {
+    return completedTrips.map((trip) => {
+      const countryName = trip.country || trip.name || '';
+      const coords = countryCoordinates[countryName] || { latitude: 0, longitude: 0 };
+
+      return {
+        lat: trip.latitude || coords.latitude || 0,
+        lng: trip.longitude || coords.longitude || 0,
+        label: countryName,
+        color: '#ff4444', // Red for countries
+        size: 0.6, // Larger markers for countries
+        type: 'country',
+      };
+    }).filter(marker => marker.lat !== 0 || marker.lng !== 0); // Filter out markers with no coordinates
+  }, [completedTrips]);
 
   // Convert cities to blue markers with labels
-  const cityMarkers = visitedCities.map((city) => ({
-    lat: city.latitude || 0,
-    lng: city.longitude || 0,
-    label: city.city || city.name || 'City',
-    color: '#3b82f6', // Blue for cities
-    size: 0.4, // Smaller markers for cities
-    type: 'city',
-  }));
+  const cityMarkers = useMemo(() => {
+    return visitedCities.map((city) => {
+      const countryName = city.country || '';
+      const coords = countryCoordinates[countryName] || { latitude: 0, longitude: 0 };
+
+      return {
+        lat: city.latitude || coords.latitude || 0,
+        lng: city.longitude || coords.longitude || 0,
+        label: city.city || city.name || 'City',
+        color: '#3b82f6', // Blue for cities
+        size: 0.4, // Smaller markers for cities
+        type: 'city',
+      };
+    }).filter(marker => marker.lat !== 0 || marker.lng !== 0);
+  }, [visitedCities]);
 
   // Combine all markers
   const allMarkers = [...countryMarkers, ...cityMarkers];
