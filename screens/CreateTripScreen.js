@@ -8,23 +8,32 @@ import {
   ScrollView,
   Alert,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useAppContext } from '../context/AppContext';
+import { useTheme } from '../context/ThemeContext';
 
 export default function CreateTripScreen({ navigation, route }) {
+  const { theme } = useTheme();
+  const { trips, addTrip, updateTrip, addBudget } = useAppContext();
   const editMode = route.params?.editMode || false;
-  const editTrip = route.params?.editTrip;
   const editIndex = route.params?.editIndex;
+  const editTrip = editMode && editIndex !== undefined ? trips[editIndex] : null;
+  const prefilledCountries = route.params?.prefilledCountries || null;
 
   const [step, setStep] = useState(1);
   const [tripName, setTripName] = useState(editMode ? editTrip.name : '');
-  const [countries, setCountries] = useState(
-    editMode ? editTrip.countries : [{ name: '', startDate: null, endDate: null }]
-  );
+  const [countries, setCountries] = useState(() => {
+    if (editMode) return editTrip.countries;
+    if (prefilledCountries) return prefilledCountries;
+    return [{ name: '', startDate: null, endDate: null }];
+  });
   const [budget, setBudget] = useState(editMode ? editTrip.budget.toString() : '');
   const [showDatePicker, setShowDatePicker] = useState({ index: null, type: null });
   const [dropdownVisible, setDropdownVisible] = useState(null);
+  const [searchQuery, setSearchQuery] = useState({});
 
   // List of all countries
   const allCountries = [
@@ -52,8 +61,8 @@ export default function CreateTripScreen({ navigation, route }) {
     'Solomon Islands', 'Somalia', 'South Africa', 'South Korea', 'South Sudan', 'Spain', 'Sri Lanka',
     'Sudan', 'Suriname', 'Swaziland', 'Sweden', 'Switzerland', 'Syria', 'Taiwan', 'Tajikistan',
     'Tanzania', 'Thailand', 'Togo', 'Tonga', 'Trinidad and Tobago', 'Tunisia', 'Turkey',
-    'Turkmenistan', 'Tuvalu', 'Uganda', 'Ukraine', 'United Arab Emirates', 'United Kingdom',
-    'United States', 'Uruguay', 'Uzbekistan', 'Vanuatu', 'Vatican City', 'Venezuela', 'Vietnam',
+    'Turkmenistan', 'Tuvalu', 'Uganda', 'Ukraine', 'United Arab Emirates', 'England', 'Scotland',
+    'Wales', 'Northern Ireland', 'United States', 'Uruguay', 'Uzbekistan', 'Vanuatu', 'Vatican City', 'Venezuela', 'Vietnam',
     'Yemen', 'Zambia', 'Zimbabwe',
   ].sort();
 
@@ -62,10 +71,23 @@ export default function CreateTripScreen({ navigation, route }) {
     newCountries[index].name = country;
     setCountries(newCountries);
     setDropdownVisible(null);
+    setSearchQuery({ ...searchQuery, [index]: '' });
+  };
+
+  const getFilteredCountries = (index) => {
+    const query = searchQuery[index] || '';
+    if (!query) return allCountries;
+    return allCountries.filter(country =>
+      country.toLowerCase().includes(query.toLowerCase())
+    );
   };
 
   const addCountry = () => {
-    setCountries([...countries, { name: '', startDate: null, endDate: null }]);
+    // Get the end date of the last country
+    const lastCountry = countries[countries.length - 1];
+    const newStartDate = lastCountry?.endDate || null;
+
+    setCountries([...countries, { name: '', startDate: newStartDate, endDate: null }]);
   };
 
   const removeCountry = (index) => {
@@ -77,6 +99,12 @@ export default function CreateTripScreen({ navigation, route }) {
   const updateCountry = (index, field, value) => {
     const newCountries = [...countries];
     newCountries[index][field] = value;
+
+    // If updating end date, update the next country's start date
+    if (field === 'endDate' && value && index < countries.length - 1) {
+      newCountries[index + 1].startDate = value;
+    }
+
     setCountries(newCountries);
   };
 
@@ -131,8 +159,6 @@ export default function CreateTripScreen({ navigation, route }) {
       return;
     }
 
-    const existingTrips = route.params?.trips || [];
-
     if (editMode) {
       // Update existing trip
       const updatedTrip = {
@@ -142,12 +168,10 @@ export default function CreateTripScreen({ navigation, route }) {
         budget: parseFloat(budget),
       };
 
-      const updatedTrips = [...existingTrips];
-      updatedTrips[editIndex] = updatedTrip;
+      updateTrip(editIndex, updatedTrip);
 
+      // Navigate to Trip Detail page
       navigation.navigate('TripDetail', {
-        trip: updatedTrip,
-        trips: updatedTrips,
         tripIndex: editIndex,
         isNewTrip: false
       });
@@ -160,25 +184,58 @@ export default function CreateTripScreen({ navigation, route }) {
         budget: parseFloat(budget),
       };
 
+      addTrip(newTrip);
+
+      // Also create a budget entry for this trip
+      const tripBudget = {
+        id: `trip-${Date.now()}`,
+        source: 'trip', // Mark as coming from trip creation
+        tripId: newTrip.id,
+        tripType: 'multi',
+        countries: countries.map(c => ({
+          name: c.name,
+          days: 1, // Default to 1 day per country
+          currency: 'USD',
+          symbol: '$',
+          rate: 1,
+          accommodation: 0,
+        })),
+        mode: 'custom',
+        preset: null,
+        totalBudget: parseFloat(budget),
+        tripDuration: countries.length, // Default to 1 day per country
+        accommodation: 0,
+        lineItems: [],
+        currencyRate: 1,
+        country: null,
+      };
+
+      addBudget(tripBudget);
+
+      // Navigate to Trip Detail page to show the breakdown
+      const newTripIndex = trips.length; // The new trip will be at this index
       navigation.navigate('TripDetail', {
-        trip: newTrip,
-        trips: existingTrips,
+        tripIndex: newTripIndex,
         isNewTrip: true
       });
     }
   };
 
   return (
-    <View style={styles.container}>
-      {/* Progress Indicator */}
-      <View style={styles.progressContainer}>
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: theme.background }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    >
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        {/* Progress Indicator */}
+        <View style={styles.progressContainer}>
         {[1, 2, 3].map((s) => (
           <View
             key={s}
             style={[
               styles.progressDot,
-              s === step && styles.progressDotActive,
-              s < step && styles.progressDotCompleted,
+              { backgroundColor: s === step || s < step ? theme.primary : theme.border },
             ]}
           />
         ))}
@@ -188,13 +245,13 @@ export default function CreateTripScreen({ navigation, route }) {
         {/* Step 1: Trip Name */}
         {step === 1 && (
           <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>
+            <Text style={[styles.stepTitle, { color: theme.text }]}>
               {editMode ? 'Edit Trip Name' : 'Step 1: Name Your Trip'}
             </Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.cardBackground, borderColor: theme.border, color: theme.text }]}
               placeholder="Enter trip name"
-              placeholderTextColor="#666"
+              placeholderTextColor={theme.textSecondary}
               value={tripName}
               onChangeText={setTripName}
             />
@@ -204,70 +261,80 @@ export default function CreateTripScreen({ navigation, route }) {
         {/* Step 2: Countries */}
         {step === 2 && (
           <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>
+            <Text style={[styles.stepTitle, { color: theme.text }]}>
               {editMode ? 'Edit Countries' : 'Step 2: Add Countries'}
             </Text>
             {countries.map((country, index) => (
-              <View key={index} style={styles.countryCard}>
+              <View key={index} style={[styles.countryCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
                 <View style={styles.countryHeader}>
-                  <Text style={styles.countryLabel}>Country {index + 1}</Text>
+                  <Text style={[styles.countryLabel, { color: theme.primary }]}>Country {index + 1}</Text>
                   {countries.length > 1 && (
                     <TouchableOpacity onPress={() => removeCountry(index)}>
-                      <Ionicons name="close-circle" size={24} color="#ef4444" />
+                      <Ionicons name="close-circle" size={24} color={theme.danger} />
                     </TouchableOpacity>
                   )}
                 </View>
 
                 {/* Country Dropdown */}
                 <TouchableOpacity
-                  style={styles.dropdownButton}
+                  style={[styles.dropdownButton, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
                   onPress={() => setDropdownVisible(dropdownVisible === index ? null : index)}
                 >
-                  <Text style={country.name ? styles.dropdownButtonTextSelected : styles.dropdownButtonTextPlaceholder}>
+                  <Text style={country.name ? { fontSize: 16, color: theme.text } : { fontSize: 16, color: theme.textSecondary }}>
                     {country.name || 'Select a country'}
                   </Text>
                   <Ionicons
                     name={dropdownVisible === index ? 'chevron-up' : 'chevron-down'}
                     size={20}
-                    color="#4ade80"
+                    color={theme.primary}
                   />
                 </TouchableOpacity>
 
                 {dropdownVisible === index && (
-                  <ScrollView style={styles.dropdownList} nestedScrollEnabled={true}>
-                    {allCountries.map((countryName, idx) => (
-                      <TouchableOpacity
-                        key={idx}
-                        style={styles.dropdownItem}
-                        onPress={() => selectCountry(index, countryName)}
-                      >
-                        <Text style={styles.dropdownItemText}>{countryName}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
+                  <View style={[styles.dropdownContainer, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+                    <TextInput
+                      style={[styles.searchInput, { backgroundColor: theme.background, borderBottomColor: theme.border, color: theme.text }]}
+                      placeholder="Search countries..."
+                      placeholderTextColor={theme.textSecondary}
+                      value={searchQuery[index] || ''}
+                      onChangeText={(text) => setSearchQuery({ ...searchQuery, [index]: text })}
+                      autoFocus={true}
+                    />
+                    <ScrollView style={styles.dropdownList} nestedScrollEnabled={true}>
+                      {getFilteredCountries(index).map((countryName, idx) => (
+                        <TouchableOpacity
+                          key={idx}
+                          style={[styles.dropdownItem, { borderBottomColor: theme.border }]}
+                          onPress={() => selectCountry(index, countryName)}
+                        >
+                          <Text style={[styles.dropdownItemText, { color: theme.text }]}>{countryName}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
                 )}
 
                 {/* Date Pickers */}
                 <View style={styles.dateRow}>
                   <TouchableOpacity
-                    style={[styles.input, styles.dateInput]}
+                    style={[styles.input, styles.dateInput, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
                     onPress={() => setShowDatePicker({ index, type: 'startDate' })}
                   >
                     <View style={styles.datePickerContent}>
-                      <Ionicons name="calendar-outline" size={20} color="#4ade80" />
-                      <Text style={country.startDate ? styles.dateText : styles.datePlaceholder}>
+                      <Ionicons name="calendar-outline" size={20} color={theme.primary} />
+                      <Text style={country.startDate ? { color: theme.text, fontSize: 16 } : { color: theme.textSecondary, fontSize: 16 }}>
                         {country.startDate ? formatDate(country.startDate) : 'Start date'}
                       </Text>
                     </View>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={[styles.input, styles.dateInput]}
+                    style={[styles.input, styles.dateInput, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
                     onPress={() => setShowDatePicker({ index, type: 'endDate' })}
                   >
                     <View style={styles.datePickerContent}>
-                      <Ionicons name="calendar-outline" size={20} color="#4ade80" />
-                      <Text style={country.endDate ? styles.dateText : styles.datePlaceholder}>
+                      <Ionicons name="calendar-outline" size={20} color={theme.primary} />
+                      <Text style={country.endDate ? { color: theme.text, fontSize: 16 } : { color: theme.textSecondary, fontSize: 16 }}>
                         {country.endDate ? formatDate(country.endDate) : 'End date'}
                       </Text>
                     </View>
@@ -276,8 +343,8 @@ export default function CreateTripScreen({ navigation, route }) {
               </View>
             ))}
             <TouchableOpacity style={styles.addButton} onPress={addCountry}>
-              <Ionicons name="add-circle" size={24} color="#4ade80" />
-              <Text style={styles.addButtonText}>Add Another Country</Text>
+              <Ionicons name="add-circle" size={24} color={theme.primary} />
+              <Text style={[styles.addButtonText, { color: theme.primary }]}>Add Another Country</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -285,13 +352,13 @@ export default function CreateTripScreen({ navigation, route }) {
         {/* Step 3: Budget */}
         {step === 3 && (
           <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>
+            <Text style={[styles.stepTitle, { color: theme.text }]}>
               {editMode ? 'Edit Budget' : 'Step 3: Set Your Budget'}
             </Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.cardBackground, borderColor: theme.border, color: theme.text }]}
               placeholder="Enter budget amount"
-              placeholderTextColor="#666"
+              placeholderTextColor={theme.textSecondary}
               keyboardType="numeric"
               value={budget}
               onChangeText={setBudget}
@@ -303,7 +370,11 @@ export default function CreateTripScreen({ navigation, route }) {
       {/* Date Picker Modal */}
       {showDatePicker.index !== null && (
         <DateTimePicker
-          value={countries[showDatePicker.index][showDatePicker.type] || new Date()}
+          value={
+            countries[showDatePicker.index][showDatePicker.type] ||
+            (showDatePicker.type === 'endDate' && countries[showDatePicker.index].startDate) ||
+            new Date()
+          }
           mode="date"
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           onChange={onDateChange}
@@ -314,27 +385,27 @@ export default function CreateTripScreen({ navigation, route }) {
       {/* Navigation Buttons */}
       <View style={styles.buttonContainer}>
         {step > 1 && (
-          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-            <Text style={styles.backButtonText}>Back</Text>
+          <TouchableOpacity style={[styles.backButton, { backgroundColor: theme.border }]} onPress={handleBack}>
+            <Text style={[styles.backButtonText, { color: theme.text }]}>Back</Text>
           </TouchableOpacity>
         )}
         <TouchableOpacity
-          style={[styles.nextButton, step === 1 && styles.nextButtonFull]}
+          style={[styles.nextButton, { backgroundColor: theme.primary }, step === 1 && styles.nextButtonFull]}
           onPress={step === 3 ? handleSubmit : handleNext}
         >
-          <Text style={styles.nextButtonText}>
+          <Text style={[styles.nextButtonText, { color: theme.background }]}>
             {step === 3 ? (editMode ? 'Update Trip' : 'Create Trip') : 'Next'}
           </Text>
         </TouchableOpacity>
       </View>
-    </View>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0a',
   },
   progressContainer: {
     flexDirection: 'row',
@@ -347,13 +418,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#2a2a2a',
-  },
-  progressDotActive: {
-    backgroundColor: '#4ade80',
-  },
-  progressDotCompleted: {
-    backgroundColor: '#4ade80',
   },
   scrollView: {
     flex: 1,
@@ -365,26 +429,20 @@ const styles = StyleSheet.create({
   stepTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#ffffff',
     marginBottom: 20,
   },
   input: {
-    backgroundColor: '#1a1a1a',
     borderWidth: 1,
-    borderColor: '#2a2a2a',
     borderRadius: 10,
     padding: 15,
-    color: '#ffffff',
     fontSize: 16,
     marginBottom: 15,
   },
   countryCard: {
-    backgroundColor: '#1a1a1a',
     borderRadius: 15,
     padding: 15,
     marginBottom: 15,
     borderWidth: 1,
-    borderColor: '#2a2a2a',
   },
   countryHeader: {
     flexDirection: 'row',
@@ -395,12 +453,9 @@ const styles = StyleSheet.create({
   countryLabel: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#4ade80',
   },
   dropdownButton: {
-    backgroundColor: '#1a1a1a',
     borderWidth: 1,
-    borderColor: '#2a2a2a',
     borderRadius: 10,
     padding: 15,
     flexDirection: 'row',
@@ -408,30 +463,26 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 15,
   },
-  dropdownButtonTextPlaceholder: {
-    fontSize: 16,
-    color: '#666',
+  dropdownContainer: {
+    borderWidth: 1,
+    borderRadius: 10,
+    marginBottom: 15,
+    overflow: 'hidden',
   },
-  dropdownButtonTextSelected: {
+  searchInput: {
+    borderBottomWidth: 1,
+    padding: 15,
     fontSize: 16,
-    color: '#ffffff',
   },
   dropdownList: {
     maxHeight: 200,
-    backgroundColor: '#1a1a1a',
-    borderWidth: 1,
-    borderColor: '#2a2a2a',
-    borderRadius: 10,
-    marginBottom: 15,
   },
   dropdownItem: {
     padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#2a2a2a',
   },
   dropdownItemText: {
     fontSize: 16,
-    color: '#ffffff',
   },
   dateRow: {
     flexDirection: 'row',
@@ -445,14 +496,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
-  dateText: {
-    color: '#ffffff',
-    fontSize: 16,
-  },
-  datePlaceholder: {
-    color: '#666',
-    fontSize: 16,
-  },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -461,7 +504,6 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   addButtonText: {
-    color: '#4ade80',
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -472,19 +514,16 @@ const styles = StyleSheet.create({
   },
   backButton: {
     flex: 1,
-    backgroundColor: '#2a2a2a',
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',
   },
   backButtonText: {
-    color: '#ffffff',
     fontSize: 16,
     fontWeight: 'bold',
   },
   nextButton: {
     flex: 1,
-    backgroundColor: '#4ade80',
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',
@@ -493,7 +532,6 @@ const styles = StyleSheet.create({
     flex: 2,
   },
   nextButtonText: {
-    color: '#0a0a0a',
     fontSize: 16,
     fontWeight: 'bold',
   },

@@ -2,115 +2,24 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Alert } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
+import { useAppContext } from '../context/AppContext';
+import { useTheme } from '../context/ThemeContext';
+import { countryCoordinates } from '../utils/coordinates';
 
 export default function TripDetailScreen({ route, navigation }) {
-  const { trip, trips = [], tripIndex, isNewTrip = true } = route.params;
+  const { theme } = useTheme();
+  const { trips } = useAppContext();
+  const { tripIndex, isNewTrip = true } = route.params;
+  const trip = trips[tripIndex];
   const [isSaved, setIsSaved] = useState(!isNewTrip);
 
-  // Country coordinates database
-  const countryCoordinates = {
-    'France': { latitude: 48.8566, longitude: 2.3522 },
-    'Spain': { latitude: 40.4168, longitude: -3.7038 },
-    'United States': { latitude: 38.9072, longitude: -77.0369 },
-    'USA': { latitude: 38.9072, longitude: -77.0369 },
-    'China': { latitude: 39.9042, longitude: 116.4074 },
-    'Italy': { latitude: 41.9028, longitude: 12.4964 },
-    'Turkey': { latitude: 39.9334, longitude: 32.8597 },
-    'Mexico': { latitude: 19.4326, longitude: -99.1332 },
-    'Thailand': { latitude: 13.7563, longitude: 100.5018 },
-    'Germany': { latitude: 52.5200, longitude: 13.4050 },
-    'United Kingdom': { latitude: 51.5074, longitude: -0.1278 },
-    'Japan': { latitude: 35.6762, longitude: 139.6503 },
-    'Greece': { latitude: 37.9838, longitude: 23.7275 },
-    'Austria': { latitude: 48.2082, longitude: 16.3738 },
-    'Malaysia': { latitude: 3.1390, longitude: 101.6869 },
-    'Portugal': { latitude: 38.7223, longitude: -9.1393 },
-    'Canada': { latitude: 45.4215, longitude: -75.6972 },
-    'Poland': { latitude: 52.2297, longitude: 21.0122 },
-    'Netherlands': { latitude: 52.3676, longitude: 4.9041 },
-    'South Korea': { latitude: 37.5665, longitude: 126.9780 },
-    'Vietnam': { latitude: 21.0285, longitude: 105.8542 },
-    'Russia': { latitude: 55.7558, longitude: 37.6173 },
-    'Hong Kong': { latitude: 22.3193, longitude: 114.1694 },
-    'Croatia': { latitude: 45.8150, longitude: 15.9819 },
-    'Hungary': { latitude: 47.4979, longitude: 19.0402 },
-    'Morocco': { latitude: 33.9716, longitude: -6.8498 },
-    'Czech Republic': { latitude: 50.0755, longitude: 14.4378 },
-    'United Arab Emirates': { latitude: 25.2048, longitude: 55.2708 },
-    'Indonesia': { latitude: -6.2088, longitude: 106.8456 },
-    'Saudi Arabia': { latitude: 24.7136, longitude: 46.6753 },
-    'India': { latitude: 28.6139, longitude: 77.2090 },
-    'Singapore': { latitude: 1.3521, longitude: 103.8198 },
-    'Switzerland': { latitude: 46.9480, longitude: 7.4474 },
-    'Ireland': { latitude: 53.3498, longitude: -6.2603 },
-    'Belgium': { latitude: 50.8503, longitude: 4.3517 },
-    'Denmark': { latitude: 55.6761, longitude: 12.5683 },
-    'Sweden': { latitude: 59.3293, longitude: 18.0686 },
-    'Norway': { latitude: 59.9139, longitude: 10.7522 },
-    'Finland': { latitude: 60.1695, longitude: 24.9354 },
-    'Brazil': { latitude: -15.8267, longitude: -47.9218 },
-    'Egypt': { latitude: 30.0444, longitude: 31.2357 },
-    'South Africa': { latitude: -33.9249, longitude: 18.4241 },
-    'New Zealand': { latitude: -41.2865, longitude: 174.7762 },
-    'Australia': { latitude: -35.2809, longitude: 149.1300 },
-    'Argentina': { latitude: -34.6037, longitude: -58.3816 },
-    'Chile': { latitude: -33.4489, longitude: -70.6693 },
-    'Peru': { latitude: -12.0464, longitude: -77.0428 },
-    'Colombia': { latitude: 4.7110, longitude: -74.0721 },
-    'Philippines': { latitude: 14.5995, longitude: 120.9842 },
-    'Cambodia': { latitude: 11.5564, longitude: 104.9282 },
-    'Jordan': { latitude: 31.9454, longitude: 35.9284 },
-    'Iceland': { latitude: 64.1466, longitude: -21.9426 },
-    'Luxembourg': { latitude: 49.6116, longitude: 6.1319 },
-    'Romania': { latitude: 44.4268, longitude: 26.1025 },
-    'Bulgaria': { latitude: 42.6977, longitude: 23.3219 },
-    'Slovakia': { latitude: 48.1486, longitude: 17.1077 },
-    'Slovenia': { latitude: 46.0569, longitude: 14.5058 },
-    'Estonia': { latitude: 59.4370, longitude: 24.7536 },
-    'Latvia': { latitude: 56.9496, longitude: 24.1052 },
-    'Lithuania': { latitude: 54.6872, longitude: 25.2797 },
-    'Tunisia': { latitude: 36.8065, longitude: 10.1815 },
-    'Sri Lanka': { latitude: 6.9271, longitude: 79.8612 },
-    'Maldives': { latitude: 4.1755, longitude: 73.5093 },
-    'Cuba': { latitude: 23.1136, longitude: -82.3666 },
-    'Costa Rica': { latitude: 9.9281, longitude: -84.0907 },
-    'Dominican Republic': { latitude: 18.7357, longitude: -70.1627 },
-    'Jamaica': { latitude: 18.0179, longitude: -76.8099 },
-    'Kenya': { latitude: -1.2864, longitude: 36.8172 },
-    'Tanzania': { latitude: -6.7924, longitude: 39.2083 },
-    'Ethiopia': { latitude: 9.0054, longitude: 38.7636 },
-    'Nepal': { latitude: 27.7172, longitude: 85.3240 },
-    'Bhutan': { latitude: 27.5142, longitude: 90.4336 },
-    'Myanmar': { latitude: 16.8661, longitude: 96.1951 },
-    'Laos': { latitude: 17.9757, longitude: 102.6331 },
-    'Oman': { latitude: 23.5880, longitude: 58.3829 },
-    'Qatar': { latitude: 25.2854, longitude: 51.5310 },
-    'Kuwait': { latitude: 29.3759, longitude: 47.9774 },
-    'Bahrain': { latitude: 26.0667, longitude: 50.5577 },
-    'Lebanon': { latitude: 33.8886, longitude: 35.4955 },
-    'Malta': { latitude: 35.8989, longitude: 14.5146 },
-    'Cyprus': { latitude: 35.1264, longitude: 33.4299 },
-    'Albania': { latitude: 41.3275, longitude: 19.8187 },
-    'North Macedonia': { latitude: 41.9973, longitude: 21.4280 },
-    'Serbia': { latitude: 44.7866, longitude: 20.4489 },
-    'Bosnia and Herzegovina': { latitude: 43.8564, longitude: 18.4131 },
-    'Montenegro': { latitude: 42.4304, longitude: 19.2594 },
-    'Uruguay': { latitude: -34.9011, longitude: -56.1645 },
-    'Paraguay': { latitude: -25.2637, longitude: -57.5759 },
-    'Bolivia': { latitude: -16.5000, longitude: -68.1500 },
-    'Ecuador': { latitude: -0.1807, longitude: -78.4678 },
-    'Panama': { latitude: 8.9824, longitude: -79.5199 },
-    'Guatemala': { latitude: 14.6349, longitude: -90.5069 },
-    'Nicaragua': { latitude: 12.1150, longitude: -86.2362 },
-    'El Salvador': { latitude: 13.6929, longitude: -89.2182 },
-    'Honduras': { latitude: 14.0723, longitude: -87.1921 },
-    'Belize': { latitude: 17.1899, longitude: -88.4976 },
-    'Fiji': { latitude: -17.7134, longitude: 178.0650 },
-    'Papua New Guinea': { latitude: -9.4438, longitude: 147.1803 },
-    'Madagascar': { latitude: -18.8792, longitude: 47.5079 },
-    'Zimbabwe': { latitude: -17.8252, longitude: 31.0335 },
-    'Zambia': { latitude: -15.4167, longitude: 28.2833 },
-  };
+  if (!trip) {
+    return (
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <Text style={[styles.errorText, { color: theme.danger }]}>Trip not found</Text>
+      </View>
+    );
+  }
 
   // Format date helper
   const formatDate = (date) => {
@@ -119,24 +28,79 @@ export default function TripDetailScreen({ route, navigation }) {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
+  // Calculate distance between two coordinates using Haversine formula
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 3959; // Earth's radius in miles
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const miles = R * c;
+    const km = miles * 1.60934;
+    return { miles: Math.round(miles), km: Math.round(km) };
+  };
+
+  // Calculate travel time for different modes
+  const calculateTravelTime = (miles) => {
+    const planeSpeed = 550; // mph average commercial flight
+    const carSpeed = 60; // mph average driving speed
+    const trainSpeed = 100; // mph average train speed
+
+    const formatTime = (hours) => {
+      const h = Math.floor(hours);
+      const m = Math.round((hours - h) * 60);
+      if (h === 0) return `${m} min`;
+      if (m === 0) return `${h} hr`;
+      return `${h} hr ${m} min`;
+    };
+
+    return {
+      plane: formatTime(miles / planeSpeed),
+      car: formatTime(miles / carSpeed),
+      train: formatTime(miles / trainSpeed),
+    };
+  };
+
+  // Calculate overall trip dates
+  const getOverallTripDates = () => {
+    const dates = trip.countries
+      .filter(c => c.startDate && c.endDate)
+      .flatMap(c => [c.startDate, c.endDate]);
+
+    if (dates.length === 0) return null;
+
+    const sortedDates = dates.map(d => typeof d === 'string' ? new Date(d) : d).sort((a, b) => a - b);
+    const start = sortedDates[0];
+    const end = sortedDates[sortedDates.length - 1];
+
+    // Calculate days and nights
+    const timeDiff = end - start;
+    const days = Math.ceil(timeDiff / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end days
+    const nights = days - 1;
+
+    return {
+      start,
+      end,
+      days,
+      nights,
+    };
+  };
+
+  const overallDates = getOverallTripDates();
+
   // Save trip function
   const handleSaveTrip = () => {
-    const updatedTrips = [...trips, trip];
     setIsSaved(true);
-    Alert.alert('Success', 'Trip saved successfully!', [
-      {
-        text: 'OK',
-        onPress: () => navigation.navigate('MyTrips', { trips: updatedTrips })
-      }
-    ]);
+    Alert.alert('Success', 'Trip saved successfully!');
   };
 
   // Edit trip function
   const handleEditTrip = () => {
     navigation.navigate('CreateTrip', {
-      trips,
       editMode: true,
-      editTrip: trip,
       editIndex: tripIndex
     });
   };
@@ -191,21 +155,49 @@ export default function TripDetailScreen({ route, navigation }) {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.header}>
-        <Text style={styles.tripName}>{trip.name}</Text>
-        <View style={styles.budgetCard}>
-          <Ionicons name="wallet" size={24} color="#4ade80" />
-          <Text style={styles.budgetAmount}>${trip.budget}</Text>
+        <Text style={[styles.tripName, { color: theme.text }]}>{trip.name}</Text>
+        <View style={[styles.budgetCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+          <Ionicons name="wallet" size={24} color={theme.primary} />
+          <View style={styles.budgetTextContainer}>
+            <Text style={[styles.budgetLabel, { color: theme.textSecondary }]}>Total Budget</Text>
+            <Text style={[styles.budgetAmount, { color: theme.primary }]}>${trip.budget}</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Trip Breakdown */}
+      <View style={styles.breakdownSection}>
+        <View style={[styles.breakdownCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+          <View style={styles.breakdownItem}>
+            <Ionicons name="map-outline" size={20} color={theme.secondary} />
+            <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>Countries:</Text>
+            <Text style={[styles.breakdownValue, { color: theme.text }]}>{trip.countries.length}</Text>
+          </View>
+          {overallDates && (
+            <View style={styles.breakdownItem}>
+              <Ionicons name="calendar-outline" size={20} color={theme.pink} />
+              <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>Duration:</Text>
+              <View style={styles.durationContainer}>
+                <Text style={[styles.breakdownValue, { color: theme.text }]}>
+                  {formatDate(overallDates.start)} - {formatDate(overallDates.end)}
+                </Text>
+                <Text style={[styles.durationDaysNights, { color: theme.textSecondary }]}>
+                  ({overallDates.days} {overallDates.days === 1 ? 'day' : 'days'}, {overallDates.nights} {overallDates.nights === 1 ? 'night' : 'nights'})
+                </Text>
+              </View>
+            </View>
+          )}
         </View>
       </View>
 
       {/* Trip Route Map */}
-      {markers.length > 0 && (
+      {markers.length > 0 ? (
         <View style={styles.mapSection}>
-          <Text style={styles.sectionTitle}>Trip Overview</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Trip Route Map</Text>
           <MapView
-            style={styles.map}
+            style={[styles.map, { borderColor: theme.border }]}
             initialRegion={initialRegion}
             showsUserLocation={false}
             showsMyLocationButton={false}
@@ -221,9 +213,9 @@ export default function TripDetailScreen({ route, navigation }) {
                 description={marker.description}
               >
                 <View style={styles.markerContainer}>
-                  <Ionicons name="location" size={40} color="#4ade80" />
-                  <View style={styles.markerNumber}>
-                    <Text style={styles.markerNumberText}>{idx + 1}</Text>
+                  <Ionicons name="location" size={40} color={theme.primary} />
+                  <View style={[styles.markerNumber, { backgroundColor: theme.background, borderColor: theme.primary }]}>
+                    <Text style={[styles.markerNumberText, { color: theme.primary }]}>{idx + 1}</Text>
                   </View>
                 </View>
               </Marker>
@@ -231,46 +223,151 @@ export default function TripDetailScreen({ route, navigation }) {
             {routeCoordinates.length > 1 && (
               <Polyline
                 coordinates={routeCoordinates}
-                strokeColor="#4ade80"
+                strokeColor={theme.primary}
                 strokeWidth={3}
                 lineDashPattern={[10, 5]}
               />
             )}
           </MapView>
         </View>
+      ) : (
+        <View style={[styles.noMapSection, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+          <Ionicons name="map-outline" size={40} color={theme.textSecondary} />
+          <Text style={[styles.noMapText, { color: theme.textSecondary }]}>
+            Map unavailable - some countries may be missing coordinates
+          </Text>
+        </View>
       )}
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Countries ({trip.countries.length})</Text>
-        {trip.countries.map((country, index) => (
-          <View key={index} style={styles.countryCard}>
-            <View style={styles.countryHeader}>
-              <Ionicons name="location" size={20} color="#4ade80" />
-              <Text style={styles.countryName}>{country.name}</Text>
-            </View>
-            {country.startDate && country.endDate && (
-              <View style={styles.dateContainer}>
-                <Ionicons name="calendar-outline" size={16} color="#888" />
-                <Text style={styles.dateText}>
-                  {formatDate(country.startDate)} - {formatDate(country.endDate)}
-                </Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Countries ({trip.countries.length})</Text>
+        {trip.countries.map((country, index) => {
+          const currentCoords = countryCoordinates[country.name];
+          const nextCountry = trip.countries[index + 1];
+          const nextCoords = nextCountry ? countryCoordinates[nextCountry.name] : null;
+
+          let distance = null;
+          let travelTimes = null;
+
+          if (currentCoords && nextCoords) {
+            distance = calculateDistance(
+              currentCoords.latitude,
+              currentCoords.longitude,
+              nextCoords.latitude,
+              nextCoords.longitude
+            );
+            travelTimes = calculateTravelTime(distance.miles);
+          }
+
+          // Calculate days and nights for this country
+          let countryDays = null;
+          let countryNights = null;
+          if (country.startDate && country.endDate) {
+            const start = typeof country.startDate === 'string' ? new Date(country.startDate) : country.startDate;
+            const end = typeof country.endDate === 'string' ? new Date(country.endDate) : country.endDate;
+            const timeDiff = end - start;
+            countryDays = Math.ceil(timeDiff / (1000 * 60 * 60 * 24)) + 1;
+            countryNights = countryDays - 1;
+          }
+
+          return (
+            <React.Fragment key={`country-${index}-${country.name}`}>
+              <View style={[styles.countryCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+                <View style={styles.countryHeader}>
+                  <Ionicons name="location" size={20} color={theme.primary} />
+                  <Text style={[styles.countryName, { color: theme.text }]}>{country.name}</Text>
+                </View>
+                {country.startDate && country.endDate && (
+                  <View style={styles.dateContainer}>
+                    <Ionicons name="calendar-outline" size={16} color={theme.textSecondary} />
+                    <View style={styles.countryDateInfo}>
+                      <Text style={[styles.dateText, { color: theme.textSecondary }]}>
+                        {formatDate(country.startDate)} - {formatDate(country.endDate)}
+                      </Text>
+                      <Text style={[styles.countryDaysNights, { color: theme.textSecondary }]}>
+                        ({countryDays} {countryDays === 1 ? 'day' : 'days'}, {countryNights} {countryNights === 1 ? 'night' : 'nights'})
+                      </Text>
+                    </View>
+                  </View>
+                )}
               </View>
-            )}
-          </View>
-        ))}
+
+              {/* Distance Calculator between countries */}
+              {distance && nextCountry && (
+                <View style={[styles.distanceCard, { backgroundColor: theme.cardBackground, borderColor: theme.border, borderLeftColor: theme.secondary }]}>
+                  <View style={styles.distanceHeader}>
+                    <Ionicons name="arrow-down" size={20} color={theme.secondary} />
+                    <Text style={[styles.distanceTitle, { color: theme.secondary }]}>
+                      To {nextCountry.name}
+                    </Text>
+                  </View>
+                  <View style={styles.distanceInfo}>
+                    <View style={styles.distanceRow}>
+                      <Ionicons name="navigate-outline" size={16} color={theme.textSecondary} />
+                      <Text style={[styles.distanceText, { color: theme.text }]}>
+                        {distance.miles.toLocaleString()} mi / {distance.km.toLocaleString()} km
+                      </Text>
+                    </View>
+                    <View style={styles.travelModes}>
+                      <View style={styles.modeItem}>
+                        <Ionicons name="airplane-outline" size={16} color={theme.primary} />
+                        <Text style={[styles.modeLabel, { color: theme.textSecondary }]}>Plane:</Text>
+                        <Text style={[styles.modeTime, { color: theme.text }]}>{travelTimes.plane}</Text>
+                      </View>
+                      <View style={styles.modeItem}>
+                        <Ionicons name="train-outline" size={16} color={theme.secondary} />
+                        <Text style={[styles.modeLabel, { color: theme.textSecondary }]}>Train:</Text>
+                        <Text style={[styles.modeTime, { color: theme.text }]}>{travelTimes.train}</Text>
+                      </View>
+                      <View style={styles.modeItem}>
+                        <Ionicons name="car-outline" size={16} color={theme.pink} />
+                        <Text style={[styles.modeLabel, { color: theme.textSecondary }]}>Car:</Text>
+                        <Text style={[styles.modeTime, { color: theme.text }]}>{travelTimes.car}</Text>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              )}
+            </React.Fragment>
+          );
+        })}
       </View>
 
       {/* Action Buttons */}
       <View style={styles.buttonContainer}>
         {isSaved ? (
-          <TouchableOpacity style={styles.editButton} onPress={handleEditTrip}>
-            <Ionicons name="create-outline" size={24} color="#0a0a0a" />
-            <Text style={styles.buttonText}>Edit Trip</Text>
-          </TouchableOpacity>
+          <>
+            <TouchableOpacity style={[styles.editButton, { backgroundColor: theme.primary }]} onPress={handleEditTrip}>
+              <Ionicons name="create-outline" size={24} color={theme.background} />
+              <Text style={[styles.buttonText, { color: theme.background }]}>Edit Trip</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.createBudgetButton, { backgroundColor: theme.secondary, borderColor: theme.secondary }]}
+              onPress={() => navigation.navigate('BudgetMaker', {
+                fromTrip: true,
+                tripData: {
+                  tripId: trip.id,
+                  name: trip.name,
+                  countries: trip.countries,
+                  budget: trip.budget,
+                }
+              })}
+            >
+              <Ionicons name="wallet-outline" size={24} color={theme.background} />
+              <Text style={[styles.buttonText, { color: theme.background }]}>Create Budget</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.doneButton, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+              onPress={() => navigation.navigate('MyTrips')}
+            >
+              <Ionicons name="checkmark-circle-outline" size={24} color={theme.text} />
+              <Text style={[styles.doneButtonText, { color: theme.text }]}>Done</Text>
+            </TouchableOpacity>
+          </>
         ) : (
-          <TouchableOpacity style={styles.saveButton} onPress={handleSaveTrip}>
-            <Ionicons name="save-outline" size={24} color="#0a0a0a" />
-            <Text style={styles.buttonText}>Save Trip</Text>
+          <TouchableOpacity style={[styles.saveButton, { backgroundColor: theme.primary }]} onPress={handleSaveTrip}>
+            <Ionicons name="save-outline" size={24} color={theme.background} />
+            <Text style={[styles.buttonText, { color: theme.background }]}>Save Trip</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -281,7 +378,11 @@ export default function TripDetailScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0a',
+  },
+  errorText: {
+    fontSize: 18,
+    textAlign: 'center',
+    marginTop: 50,
   },
   header: {
     padding: 20,
@@ -290,23 +391,59 @@ const styles = StyleSheet.create({
   tripName: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#ffffff',
     marginBottom: 20,
   },
   budgetCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1a1a1a',
     padding: 20,
     borderRadius: 15,
     borderWidth: 1,
-    borderColor: '#2a2a2a',
     gap: 15,
+  },
+  budgetTextContainer: {
+    flexDirection: 'column',
+    gap: 4,
+  },
+  budgetLabel: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   budgetAmount: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#4ade80',
+  },
+  breakdownSection: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 20,
+  },
+  breakdownCard: {
+    borderRadius: 15,
+    padding: 20,
+    borderWidth: 1,
+    gap: 15,
+  },
+  breakdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  breakdownLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  breakdownValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    flex: 1,
+  },
+  durationContainer: {
+    flex: 1,
+  },
+  durationDaysNights: {
+    fontSize: 14,
+    marginTop: 2,
   },
   mapSection: {
     paddingHorizontal: 20,
@@ -318,7 +455,20 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#2a2a2a',
+  },
+  noMapSection: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    padding: 40,
+    borderRadius: 15,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  noMapText: {
+    fontSize: 14,
+    marginTop: 12,
+    textAlign: 'center',
   },
   section: {
     padding: 20,
@@ -326,16 +476,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#ffffff',
     marginBottom: 15,
   },
   countryCard: {
-    backgroundColor: '#1a1a1a',
     padding: 15,
     borderRadius: 10,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#2a2a2a',
   },
   countryHeader: {
     flexDirection: 'row',
@@ -346,17 +493,22 @@ const styles = StyleSheet.create({
   countryName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#ffffff',
   },
   dateContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 8,
     marginLeft: 30,
   },
+  countryDateInfo: {
+    flex: 1,
+  },
   dateText: {
     fontSize: 14,
-    color: '#888',
+  },
+  countryDaysNights: {
+    fontSize: 12,
+    marginTop: 2,
   },
   markerContainer: {
     alignItems: 'center',
@@ -365,26 +517,23 @@ const styles = StyleSheet.create({
   markerNumber: {
     position: 'absolute',
     top: 8,
-    backgroundColor: '#0a0a0a',
     borderRadius: 10,
     width: 20,
     height: 20,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#4ade80',
   },
   markerNumberText: {
-    color: '#4ade80',
     fontSize: 12,
     fontWeight: 'bold',
   },
   buttonContainer: {
     padding: 20,
     paddingBottom: 30,
+    gap: 15,
   },
   saveButton: {
-    backgroundColor: '#4ade80',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -393,7 +542,6 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   editButton: {
-    backgroundColor: '#4ade80',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -401,9 +549,77 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     gap: 10,
   },
+  createBudgetButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 18,
+    borderRadius: 15,
+    gap: 10,
+  },
+  doneButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 18,
+    borderRadius: 15,
+    gap: 10,
+    borderWidth: 1,
+  },
   buttonText: {
-    color: '#0a0a0a',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  doneButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  distanceCard: {
+    borderRadius: 10,
+    padding: 15,
+    marginTop: 10,
+    marginBottom: 10,
+    marginHorizontal: 10,
+    borderWidth: 1,
+    borderLeftWidth: 3,
+  },
+  distanceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  distanceTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  distanceInfo: {
+    gap: 12,
+  },
+  distanceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  distanceText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  travelModes: {
+    gap: 8,
+    paddingLeft: 24,
+  },
+  modeItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  modeLabel: {
+    fontSize: 14,
+    width: 50,
+  },
+  modeTime: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

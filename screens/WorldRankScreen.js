@@ -1,916 +1,1538 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../context/ThemeContext';
 
 export default function WorldRankScreen({ navigation }) {
+  const { theme } = useTheme();
   const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('visitors');
 
-  // Real-world tourism data based on UNWTO statistics
-  const allCountries = [
+  // Categories available
+  const categories = [
+    { id: 'visitors', name: 'Most Visited', icon: 'people' },
+    { id: 'safety', name: 'Safety', icon: 'shield-checkmark' },
+    { id: 'affordability', name: 'Affordability', icon: 'cash' },
+    { id: 'food', name: 'Food', icon: 'restaurant' },
+    { id: 'beaches', name: 'Beaches', icon: 'water' },
+    { id: 'mountains', name: 'Mountains', icon: 'triangle' },
+    { id: 'outdoors', name: 'Outdoors', icon: 'leaf' },
+  ];
+
+  // Base country data with all rankings
+  const allCountriesData = [
     {
       name: 'France',
       flag: '🇫🇷',
-      rank: 1,
-      visitors: '89.4M',
       continent: 'Europe',
       highlights: ['Eiffel Tower', 'Louvre Museum', 'French Riviera', 'Mont Saint-Michel'],
-      rankings: { transportation: 9, food: 10, activities: 9, crowdedness: 5 },
+      rankings: {
+        visitors: { rank: 1, value: '89.4M', label: 'visitors' },
+        safety: { rank: 23, value: '8.1/10', label: 'safety score' },
+        affordability: { rank: 52, value: 'Moderate', label: 'cost level' },
+        food: { rank: 1, value: '10/10', label: 'food rating' },
+        beaches: { rank: 12, value: '8/10', label: 'beach quality' },
+        mountains: { rank: 8, value: '8.5/10', label: 'mountain rating' },
+        outdoors: { rank: 15, value: '8/10', label: 'outdoors score' },
+      },
     },
     {
       name: 'Spain',
       flag: '🇪🇸',
-      rank: 2,
-      visitors: '83.7M',
       continent: 'Europe',
       highlights: ['Sagrada Familia', 'Alhambra', 'Park Güell', 'Prado Museum'],
-      rankings: { transportation: 8, food: 10, activities: 9, crowdedness: 5 },
+      rankings: {
+        visitors: { rank: 2, value: '83.7M', label: 'visitors' },
+        safety: { rank: 18, value: '8.3/10', label: 'safety score' },
+        affordability: { rank: 38, value: 'Moderate', label: 'cost level' },
+        food: { rank: 2, value: '9.8/10', label: 'food rating' },
+        beaches: { rank: 3, value: '9.5/10', label: 'beach quality' },
+        mountains: { rank: 14, value: '7.8/10', label: 'mountain rating' },
+        outdoors: { rank: 10, value: '8.5/10', label: 'outdoors score' },
+      },
     },
     {
       name: 'United States',
       flag: '🇺🇸',
-      rank: 3,
-      visitors: '79.3M',
       continent: 'North America',
       highlights: ['Grand Canyon', 'Statue of Liberty', 'Golden Gate Bridge', 'Times Square'],
-      rankings: { transportation: 7, food: 8, activities: 10, crowdedness: 6 },
+      rankings: {
+        visitors: { rank: 3, value: '79.3M', label: 'visitors' },
+        safety: { rank: 58, value: '6.9/10', label: 'safety score' },
+        affordability: { rank: 68, value: 'Expensive', label: 'cost level' },
+        food: { rank: 15, value: '8.2/10', label: 'food rating' },
+        beaches: { rank: 8, value: '8.8/10', label: 'beach quality' },
+        mountains: { rank: 4, value: '9.2/10', label: 'mountain rating' },
+        outdoors: { rank: 2, value: '9.5/10', label: 'outdoors score' },
+      },
     },
     {
       name: 'China',
       flag: '🇨🇳',
-      rank: 4,
-      visitors: '65.7M',
       continent: 'Asia',
       highlights: ['Great Wall', 'Forbidden City', 'Terracotta Army', 'Li River'],
-      rankings: { transportation: 8, food: 9, activities: 9, crowdedness: 4 },
+      rankings: {
+        visitors: { rank: 4, value: '65.7M', label: 'visitors' },
+        safety: { rank: 45, value: '7.3/10', label: 'safety score' },
+        affordability: { rank: 22, value: 'Affordable', label: 'cost level' },
+        food: { rank: 3, value: '9.7/10', label: 'food rating' },
+        beaches: { rank: 35, value: '6.5/10', label: 'beach quality' },
+        mountains: { rank: 3, value: '9.3/10', label: 'mountain rating' },
+        outdoors: { rank: 6, value: '9/10', label: 'outdoors score' },
+      },
     },
     {
       name: 'Italy',
       flag: '🇮🇹',
-      rank: 5,
-      visitors: '64.5M',
       continent: 'Europe',
       highlights: ['Colosseum', 'Venice Canals', 'Vatican City', 'Tuscany'],
-      rankings: { transportation: 7, food: 10, activities: 9, crowdedness: 4 },
+      rankings: {
+        visitors: { rank: 5, value: '64.5M', label: 'visitors' },
+        safety: { rank: 31, value: '7.8/10', label: 'safety score' },
+        affordability: { rank: 48, value: 'Moderate', label: 'cost level' },
+        food: { rank: 4, value: '9.6/10', label: 'food rating' },
+        beaches: { rank: 6, value: '9/10', label: 'beach quality' },
+        mountains: { rank: 9, value: '8.4/10', label: 'mountain rating' },
+        outdoors: { rank: 18, value: '7.8/10', label: 'outdoors score' },
+      },
     },
     {
       name: 'Turkey',
       flag: '🇹🇷',
-      rank: 6,
-      visitors: '51.2M',
       continent: 'Asia/Europe',
       highlights: ['Hagia Sophia', 'Cappadocia', 'Pamukkale', 'Blue Mosque'],
-      rankings: { transportation: 6, food: 9, activities: 8, crowdedness: 6 },
+      rankings: {
+        visitors: { rank: 6, value: '51.2M', label: 'visitors' },
+        safety: { rank: 72, value: '6.2/10', label: 'safety score' },
+        affordability: { rank: 12, value: 'Very Affordable', label: 'cost level' },
+        food: { rank: 8, value: '9.1/10', label: 'food rating' },
+        beaches: { rank: 9, value: '8.7/10', label: 'beach quality' },
+        mountains: { rank: 20, value: '7.2/10', label: 'mountain rating' },
+        outdoors: { rank: 12, value: '8.3/10', label: 'outdoors score' },
+      },
     },
     {
       name: 'Mexico',
       flag: '🇲🇽',
-      rank: 7,
-      visitors: '45.0M',
       continent: 'North America',
       highlights: ['Chichen Itza', 'Cancun Beaches', 'Mexico City', 'Tulum'],
-      rankings: { transportation: 6, food: 9, activities: 9, crowdedness: 6 },
+      rankings: {
+        visitors: { rank: 7, value: '45.0M', label: 'visitors' },
+        safety: { rank: 78, value: '5.8/10', label: 'safety score' },
+        affordability: { rank: 18, value: 'Very Affordable', label: 'cost level' },
+        food: { rank: 7, value: '9.2/10', label: 'food rating' },
+        beaches: { rank: 2, value: '9.7/10', label: 'beach quality' },
+        mountains: { rank: 16, value: '7.5/10', label: 'mountain rating' },
+        outdoors: { rank: 11, value: '8.4/10', label: 'outdoors score' },
+      },
     },
     {
       name: 'Thailand',
       flag: '🇹🇭',
-      rank: 8,
-      visitors: '39.8M',
       continent: 'Asia',
       highlights: ['Grand Palace', 'Phi Phi Islands', 'Temples of Bangkok', 'Phuket'],
-      rankings: { transportation: 6, food: 9, activities: 9, crowdedness: 5 },
+      rankings: {
+        visitors: { rank: 8, value: '39.8M', label: 'visitors' },
+        safety: { rank: 42, value: '7.4/10', label: 'safety score' },
+        affordability: { rank: 6, value: 'Very Affordable', label: 'cost level' },
+        food: { rank: 5, value: '9.5/10', label: 'food rating' },
+        beaches: { rank: 1, value: '10/10', label: 'beach quality' },
+        mountains: { rank: 32, value: '6.2/10', label: 'mountain rating' },
+        outdoors: { rank: 8, value: '8.8/10', label: 'outdoors score' },
+      },
     },
     {
       name: 'Germany',
       flag: '🇩🇪',
-      rank: 9,
-      visitors: '39.6M',
       continent: 'Europe',
       highlights: ['Brandenburg Gate', 'Neuschwanstein Castle', 'Berlin Wall', 'Oktoberfest'],
-      rankings: { transportation: 10, food: 7, activities: 8, crowdedness: 7 },
+      rankings: {
+        visitors: { rank: 9, value: '39.6M', label: 'visitors' },
+        safety: { rank: 8, value: '8.8/10', label: 'safety score' },
+        affordability: { rank: 55, value: 'Moderate', label: 'cost level' },
+        food: { rank: 28, value: '7.5/10', label: 'food rating' },
+        beaches: { rank: 62, value: '4.2/10', label: 'beach quality' },
+        mountains: { rank: 17, value: '7.4/10', label: 'mountain rating' },
+        outdoors: { rank: 22, value: '7.5/10', label: 'outdoors score' },
+      },
     },
     {
-      name: 'United Kingdom',
-      flag: '🇬🇧',
-      rank: 10,
-      visitors: '39.4M',
+      name: 'England',
+      flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
       continent: 'Europe',
       highlights: ['Big Ben', 'Buckingham Palace', 'Stonehenge', 'Tower of London'],
-      rankings: { transportation: 8, food: 7, activities: 9, crowdedness: 6 },
+      rankings: {
+        visitors: { rank: 10, value: '39.4M', label: 'visitors' },
+        safety: { rank: 22, value: '8.1/10', label: 'safety score' },
+        affordability: { rank: 72, value: 'Expensive', label: 'cost level' },
+        food: { rank: 42, value: '6.8/10', label: 'food rating' },
+        beaches: { rank: 58, value: '4.8/10', label: 'beach quality' },
+        mountains: { rank: 68, value: '3.5/10', label: 'mountain rating' },
+        outdoors: { rank: 35, value: '7/10', label: 'outdoors score' },
+      },
     },
     {
       name: 'Japan',
       flag: '🇯🇵',
-      rank: 11,
-      visitors: '32.2M',
       continent: 'Asia',
       highlights: ['Mount Fuji', 'Tokyo Tower', 'Kyoto Temples', 'Cherry Blossoms'],
-      rankings: { transportation: 10, food: 10, activities: 9, crowdedness: 5 },
+      rankings: {
+        visitors: { rank: 11, value: '32.2M', label: 'visitors' },
+        safety: { rank: 1, value: '9.8/10', label: 'safety score' },
+        affordability: { rank: 62, value: 'Expensive', label: 'cost level' },
+        food: { rank: 6, value: '9.4/10', label: 'food rating' },
+        beaches: { rank: 28, value: '7.2/10', label: 'beach quality' },
+        mountains: { rank: 6, value: '8.9/10', label: 'mountain rating' },
+        outdoors: { rank: 17, value: '7.9/10', label: 'outdoors score' },
+      },
     },
     {
       name: 'Greece',
       flag: '🇬🇷',
-      rank: 12,
-      visitors: '31.3M',
       continent: 'Europe',
       highlights: ['Acropolis', 'Santorini', 'Delphi', 'Mykonos'],
-      rankings: { transportation: 6, food: 9, activities: 8, crowdedness: 6 },
+      rankings: {
+        visitors: { rank: 12, value: '31.3M', label: 'visitors' },
+        safety: { rank: 35, value: '7.7/10', label: 'safety score' },
+        affordability: { rank: 32, value: 'Affordable', label: 'cost level' },
+        food: { rank: 11, value: '8.8/10', label: 'food rating' },
+        beaches: { rank: 4, value: '9.4/10', label: 'beach quality' },
+        mountains: { rank: 24, value: '6.9/10', label: 'mountain rating' },
+        outdoors: { rank: 20, value: '7.7/10', label: 'outdoors score' },
+      },
     },
     {
       name: 'Austria',
       flag: '🇦🇹',
-      rank: 13,
-      visitors: '31.9M',
       continent: 'Europe',
       highlights: ['Schönbrunn Palace', 'Vienna Opera', 'Austrian Alps', 'Salzburg'],
-      rankings: { transportation: 9, food: 8, activities: 8, crowdedness: 7 },
+      rankings: {
+        visitors: { rank: 13, value: '31.9M', label: 'visitors' },
+        safety: { rank: 5, value: '9.1/10', label: 'safety score' },
+        affordability: { rank: 58, value: 'Expensive', label: 'cost level' },
+        food: { rank: 18, value: '8/10', label: 'food rating' },
+        beaches: { rank: 92, value: '1.5/10', label: 'beach quality' },
+        mountains: { rank: 5, value: '9.1/10', label: 'mountain rating' },
+        outdoors: { rank: 7, value: '8.9/10', label: 'outdoors score' },
+      },
     },
     {
       name: 'Malaysia',
       flag: '🇲🇾',
-      rank: 14,
-      visitors: '26.1M',
       continent: 'Asia',
       highlights: ['Petronas Towers', 'Langkawi', 'Penang', 'Cameron Highlands'],
-      rankings: { transportation: 7, food: 9, activities: 8, crowdedness: 6 },
+      rankings: {
+        visitors: { rank: 14, value: '26.1M', label: 'visitors' },
+        safety: { rank: 28, value: '7.9/10', label: 'safety score' },
+        affordability: { rank: 8, value: 'Very Affordable', label: 'cost level' },
+        food: { rank: 10, value: '8.9/10', label: 'food rating' },
+        beaches: { rank: 7, value: '8.9/10', label: 'beach quality' },
+        mountains: { rank: 42, value: '5.5/10', label: 'mountain rating' },
+        outdoors: { rank: 14, value: '8.2/10', label: 'outdoors score' },
+      },
     },
     {
       name: 'Portugal',
       flag: '🇵🇹',
-      rank: 15,
-      visitors: '27.0M',
       continent: 'Europe',
       highlights: ['Belém Tower', 'Porto Wine Cellars', 'Algarve Beaches', 'Lisbon Trams'],
-      rankings: { transportation: 7, food: 9, activities: 8, crowdedness: 7 },
+      rankings: {
+        visitors: { rank: 15, value: '27.0M', label: 'visitors' },
+        safety: { rank: 12, value: '8.6/10', label: 'safety score' },
+        affordability: { rank: 28, value: 'Affordable', label: 'cost level' },
+        food: { rank: 13, value: '8.6/10', label: 'food rating' },
+        beaches: { rank: 5, value: '9.2/10', label: 'beach quality' },
+        mountains: { rank: 52, value: '4.8/10', label: 'mountain rating' },
+        outdoors: { rank: 26, value: '7.4/10', label: 'outdoors score' },
+      },
     },
     {
       name: 'Canada',
       flag: '🇨🇦',
-      rank: 16,
-      visitors: '25.0M',
       continent: 'North America',
       highlights: ['Niagara Falls', 'Banff National Park', 'CN Tower', 'Quebec City'],
-      rankings: { transportation: 8, food: 7, activities: 9, crowdedness: 8 },
+      rankings: {
+        visitors: { rank: 16, value: '25.0M', label: 'visitors' },
+        safety: { rank: 2, value: '9.7/10', label: 'safety score' },
+        affordability: { rank: 65, value: 'Expensive', label: 'cost level' },
+        food: { rank: 32, value: '7.2/10', label: 'food rating' },
+        beaches: { rank: 52, value: '5.2/10', label: 'beach quality' },
+        mountains: { rank: 1, value: '10/10', label: 'mountain rating' },
+        outdoors: { rank: 1, value: '10/10', label: 'outdoors score' },
+      },
     },
     {
       name: 'Poland',
       flag: '🇵🇱',
-      rank: 17,
-      visitors: '21.2M',
       continent: 'Europe',
       highlights: ['Wawel Castle', 'Auschwitz Museum', 'Old Town Warsaw', 'Krakow Square'],
-      rankings: { transportation: 7, food: 7, activities: 7, crowdedness: 7 },
+      rankings: {
+        visitors: { rank: 17, value: '21.2M', label: 'visitors' },
+        safety: { rank: 25, value: '8/10', label: 'safety score' },
+        affordability: { rank: 14, value: 'Very Affordable', label: 'cost level' },
+        food: { rank: 36, value: '7/10', label: 'food rating' },
+        beaches: { rank: 72, value: '3.5/10', label: 'beach quality' },
+        mountains: { rank: 28, value: '6.5/10', label: 'mountain rating' },
+        outdoors: { rank: 38, value: '6.8/10', label: 'outdoors score' },
+      },
     },
     {
       name: 'Netherlands',
       flag: '🇳🇱',
-      rank: 18,
-      visitors: '20.1M',
       continent: 'Europe',
       highlights: ['Amsterdam Canals', 'Keukenhof Gardens', 'Windmills', 'Anne Frank House'],
-      rankings: { transportation: 9, food: 7, activities: 8, crowdedness: 6 },
+      rankings: {
+        visitors: { rank: 18, value: '20.1M', label: 'visitors' },
+        safety: { rank: 6, value: '9/10', label: 'safety score' },
+        affordability: { rank: 64, value: 'Expensive', label: 'cost level' },
+        food: { rank: 38, value: '6.9/10', label: 'food rating' },
+        beaches: { rank: 65, value: '4/10', label: 'beach quality' },
+        mountains: { rank: 98, value: '1/10', label: 'mountain rating' },
+        outdoors: { rank: 42, value: '6.5/10', label: 'outdoors score' },
+      },
     },
     {
       name: 'South Korea',
       flag: '🇰🇷',
-      rank: 19,
-      visitors: '17.5M',
       continent: 'Asia',
       highlights: ['Gyeongbokgung Palace', 'Jeju Island', 'DMZ', 'Seoul Tower'],
-      rankings: { transportation: 10, food: 9, activities: 8, crowdedness: 6 },
+      rankings: {
+        visitors: { rank: 19, value: '17.5M', label: 'visitors' },
+        safety: { rank: 4, value: '9.2/10', label: 'safety score' },
+        affordability: { rank: 42, value: 'Moderate', label: 'cost level' },
+        food: { rank: 9, value: '9/10', label: 'food rating' },
+        beaches: { rank: 38, value: '6.2/10', label: 'beach quality' },
+        mountains: { rank: 22, value: '7.1/10', label: 'mountain rating' },
+        outdoors: { rank: 28, value: '7.3/10', label: 'outdoors score' },
+      },
     },
     {
       name: 'Vietnam',
       flag: '🇻🇳',
-      rank: 20,
-      visitors: '18.0M',
       continent: 'Asia',
       highlights: ['Ha Long Bay', 'Hoi An Ancient Town', 'Cu Chi Tunnels', 'Mekong Delta'],
-      rankings: { transportation: 6, food: 9, activities: 9, crowdedness: 5 },
-    },
-    {
-      name: 'Russia',
-      flag: '🇷🇺',
-      rank: 21,
-      visitors: '24.6M',
-      continent: 'Europe/Asia',
-      highlights: ['Red Square', 'Hermitage Museum', 'Trans-Siberian Railway', 'St. Basil\'s Cathedral'],
-      rankings: { transportation: 6, food: 7, activities: 8, crowdedness: 7 },
-    },
-    {
-      name: 'Hong Kong',
-      flag: '🇭🇰',
-      rank: 22,
-      visitors: '26.1M',
-      continent: 'Asia',
-      highlights: ['Victoria Peak', 'Hong Kong Disneyland', 'Big Buddha', 'Night Markets'],
-      rankings: { transportation: 10, food: 9, activities: 9, crowdedness: 3 },
-    },
-    {
-      name: 'Croatia',
-      flag: '🇭🇷',
-      rank: 23,
-      visitors: '19.6M',
-      continent: 'Europe',
-      highlights: ['Dubrovnik Old Town', 'Plitvice Lakes', 'Split Palace', 'Hvar Island'],
-      rankings: { transportation: 7, food: 8, activities: 8, crowdedness: 6 },
-    },
-    {
-      name: 'Hungary',
-      flag: '🇭🇺',
-      rank: 24,
-      visitors: '15.8M',
-      continent: 'Europe',
-      highlights: ['Parliament Building', 'Thermal Baths', 'Fisherman\'s Bastion', 'Danube River'],
-      rankings: { transportation: 8, food: 8, activities: 7, crowdedness: 7 },
-    },
-    {
-      name: 'Morocco',
-      flag: '🇲🇦',
-      rank: 25,
-      visitors: '13.0M',
-      continent: 'Africa',
-      highlights: ['Marrakech Souks', 'Sahara Desert', 'Fes Medina', 'Casablanca'],
-      rankings: { transportation: 5, food: 8, activities: 9, crowdedness: 6 },
-    },
-    {
-      name: 'Czech Republic',
-      flag: '🇨🇿',
-      rank: 26,
-      visitors: '14.3M',
-      continent: 'Europe',
-      highlights: ['Prague Castle', 'Charles Bridge', 'Old Town Square', 'Czech Beer'],
-      rankings: { transportation: 8, food: 8, activities: 8, crowdedness: 6 },
-    },
-    {
-      name: 'United Arab Emirates',
-      flag: '🇦🇪',
-      rank: 27,
-      visitors: '16.7M',
-      continent: 'Asia',
-      highlights: ['Burj Khalifa', 'Palm Islands', 'Dubai Mall', 'Sheikh Zayed Mosque'],
-      rankings: { transportation: 9, food: 8, activities: 9, crowdedness: 6 },
+      rankings: {
+        visitors: { rank: 20, value: '18.0M', label: 'visitors' },
+        safety: { rank: 38, value: '7.6/10', label: 'safety score' },
+        affordability: { rank: 2, value: 'Very Affordable', label: 'cost level' },
+        food: { rank: 12, value: '8.7/10', label: 'food rating' },
+        beaches: { rank: 11, value: '8.6/10', label: 'beach quality' },
+        mountains: { rank: 15, value: '7.7/10', label: 'mountain rating' },
+        outdoors: { rank: 13, value: '8.3/10', label: 'outdoors score' },
+      },
     },
     {
       name: 'Indonesia',
       flag: '🇮🇩',
-      rank: 28,
-      visitors: '15.5M',
       continent: 'Asia',
       highlights: ['Bali Beaches', 'Borobudur Temple', 'Komodo Island', 'Jakarta'],
-      rankings: { transportation: 5, food: 8, activities: 9, crowdedness: 5 },
-    },
-    {
-      name: 'Saudi Arabia',
-      flag: '🇸🇦',
-      rank: 29,
-      visitors: '17.5M',
-      continent: 'Asia',
-      highlights: ['Mecca', 'Medina', 'Al-Ula', 'Riyadh'],
-      rankings: { transportation: 7, food: 7, activities: 7, crowdedness: 6 },
-    },
-    {
-      name: 'India',
-      flag: '🇮🇳',
-      rank: 30,
-      visitors: '17.9M',
-      continent: 'Asia',
-      highlights: ['Taj Mahal', 'Golden Temple', 'Kerala Backwaters', 'Rajasthan Palaces'],
-      rankings: { transportation: 5, food: 9, activities: 10, crowdedness: 3 },
-    },
-    {
-      name: 'Singapore',
-      flag: '🇸🇬',
-      rank: 31,
-      visitors: '14.7M',
-      continent: 'Asia',
-      highlights: ['Marina Bay Sands', 'Gardens by the Bay', 'Sentosa', 'Hawker Centers'],
-      rankings: { transportation: 10, food: 9, activities: 8, crowdedness: 5 },
+      rankings: {
+        visitors: { rank: 21, value: '15.5M', label: 'visitors' },
+        safety: { rank: 52, value: '7.1/10', label: 'safety score' },
+        affordability: { rank: 4, value: 'Very Affordable', label: 'cost level' },
+        food: { rank: 14, value: '8.4/10', label: 'food rating' },
+        beaches: { rank: 10, value: '8.7/10', label: 'beach quality' },
+        mountains: { rank: 12, value: '8.1/10', label: 'mountain rating' },
+        outdoors: { rank: 5, value: '9.2/10', label: 'outdoors score' },
+      },
     },
     {
       name: 'Switzerland',
       flag: '🇨🇭',
-      rank: 32,
-      visitors: '11.7M',
       continent: 'Europe',
       highlights: ['Swiss Alps', 'Lake Geneva', 'Matterhorn', 'Zurich'],
-      rankings: { transportation: 10, food: 8, activities: 9, crowdedness: 8 },
-    },
-    {
-      name: 'Ireland',
-      flag: '🇮🇪',
-      rank: 33,
-      visitors: '11.2M',
-      continent: 'Europe',
-      highlights: ['Cliffs of Moher', 'Dublin Pubs', 'Ring of Kerry', 'Giant\'s Causeway'],
-      rankings: { transportation: 7, food: 7, activities: 8, crowdedness: 7 },
-    },
-    {
-      name: 'Belgium',
-      flag: '🇧🇪',
-      rank: 34,
-      visitors: '9.2M',
-      continent: 'Europe',
-      highlights: ['Grand Place', 'Bruges Canals', 'Atomium', 'Belgian Chocolate'],
-      rankings: { transportation: 9, food: 9, activities: 7, crowdedness: 7 },
-    },
-    {
-      name: 'Denmark',
-      flag: '🇩🇰',
-      rank: 35,
-      visitors: '10.4M',
-      continent: 'Europe',
-      highlights: ['Tivoli Gardens', 'Nyhavn', 'Little Mermaid', 'LEGO House'],
-      rankings: { transportation: 9, food: 7, activities: 7, crowdedness: 8 },
-    },
-    {
-      name: 'Sweden',
-      flag: '🇸🇪',
-      rank: 36,
-      visitors: '7.6M',
-      continent: 'Europe',
-      highlights: ['Stockholm Archipelago', 'Vasa Museum', 'Ice Hotel', 'Northern Lights'],
-      rankings: { transportation: 9, food: 7, activities: 8, crowdedness: 8 },
-    },
-    {
-      name: 'Norway',
-      flag: '🇳🇴',
-      rank: 37,
-      visitors: '6.3M',
-      continent: 'Europe',
-      highlights: ['Norwegian Fjords', 'Northern Lights', 'Bergen', 'Midnight Sun'],
-      rankings: { transportation: 8, food: 7, activities: 9, crowdedness: 9 },
-    },
-    {
-      name: 'Finland',
-      flag: '🇫🇮',
-      rank: 38,
-      visitors: '5.8M',
-      continent: 'Europe',
-      highlights: ['Helsinki', 'Lapland', 'Santa Claus Village', 'Northern Lights'],
-      rankings: { transportation: 8, food: 6, activities: 8, crowdedness: 9 },
-    },
-    {
-      name: 'Brazil',
-      flag: '🇧🇷',
-      rank: 39,
-      visitors: '6.6M',
-      continent: 'South America',
-      highlights: ['Christ the Redeemer', 'Amazon Rainforest', 'Iguazu Falls', 'Copacabana Beach'],
-      rankings: { transportation: 5, food: 8, activities: 9, crowdedness: 6 },
-    },
-    {
-      name: 'Egypt',
-      flag: '🇪🇬',
-      rank: 40,
-      visitors: '13.0M',
-      continent: 'Africa',
-      highlights: ['Pyramids of Giza', 'Sphinx', 'Valley of the Kings', 'Nile River'],
-      rankings: { transportation: 5, food: 7, activities: 9, crowdedness: 5 },
-    },
-    {
-      name: 'South Africa',
-      flag: '🇿🇦',
-      rank: 41,
-      visitors: '10.2M',
-      continent: 'Africa',
-      highlights: ['Table Mountain', 'Kruger National Park', 'Cape of Good Hope', 'Robben Island'],
-      rankings: { transportation: 6, food: 8, activities: 9, crowdedness: 7 },
+      rankings: {
+        visitors: { rank: 22, value: '11.7M', label: 'visitors' },
+        safety: { rank: 3, value: '9.5/10', label: 'safety score' },
+        affordability: { rank: 95, value: 'Very Expensive', label: 'cost level' },
+        food: { rank: 22, value: '7.8/10', label: 'food rating' },
+        beaches: { rank: 95, value: '1.2/10', label: 'beach quality' },
+        mountains: { rank: 2, value: '9.8/10', label: 'mountain rating' },
+        outdoors: { rank: 4, value: '9.3/10', label: 'outdoors score' },
+      },
     },
     {
       name: 'New Zealand',
       flag: '🇳🇿',
-      rank: 42,
-      visitors: '3.9M',
       continent: 'Oceania',
       highlights: ['Milford Sound', 'Hobbiton', 'Tongariro Crossing', 'Queenstown'],
-      rankings: { transportation: 7, food: 7, activities: 10, crowdedness: 9 },
+      rankings: {
+        visitors: { rank: 23, value: '3.9M', label: 'visitors' },
+        safety: { rank: 7, value: '8.9/10', label: 'safety score' },
+        affordability: { rank: 70, value: 'Expensive', label: 'cost level' },
+        food: { rank: 35, value: '7.1/10', label: 'food rating' },
+        beaches: { rank: 18, value: '8/10', label: 'beach quality' },
+        mountains: { rank: 7, value: '8.7/10', label: 'mountain rating' },
+        outdoors: { rank: 3, value: '9.4/10', label: 'outdoors score' },
+      },
     },
     {
-      name: 'Australia',
-      flag: '🇦🇺',
-      rank: 43,
-      visitors: '9.5M',
-      continent: 'Oceania',
-      highlights: ['Sydney Opera House', 'Great Barrier Reef', 'Uluru', 'Bondi Beach'],
-      rankings: { transportation: 7, food: 8, activities: 9, crowdedness: 8 },
-    },
-    {
-      name: 'Argentina',
-      flag: '🇦🇷',
-      rank: 44,
-      visitors: '7.4M',
-      continent: 'South America',
-      highlights: ['Iguazu Falls', 'Buenos Aires', 'Patagonia', 'Mendoza Wine Region'],
-      rankings: { transportation: 6, food: 8, activities: 8, crowdedness: 7 },
-    },
-    {
-      name: 'Chile',
-      flag: '🇨🇱',
-      rank: 45,
-      visitors: '5.7M',
-      continent: 'South America',
-      highlights: ['Easter Island', 'Atacama Desert', 'Torres del Paine', 'Valparaiso'],
-      rankings: { transportation: 6, food: 7, activities: 9, crowdedness: 8 },
-    },
-    {
-      name: 'Peru',
-      flag: '🇵🇪',
-      rank: 46,
-      visitors: '4.4M',
-      continent: 'South America',
-      highlights: ['Machu Picchu', 'Nazca Lines', 'Lake Titicaca', 'Cusco'],
-      rankings: { transportation: 5, food: 8, activities: 9, crowdedness: 6 },
-    },
-    {
-      name: 'Colombia',
-      flag: '🇨🇴',
-      rank: 47,
-      visitors: '4.5M',
-      continent: 'South America',
-      highlights: ['Cartagena', 'Bogotá', 'Coffee Region', 'Tayrona National Park'],
-      rankings: { transportation: 5, food: 8, activities: 8, crowdedness: 7 },
-    },
-    {
-      name: 'Philippines',
-      flag: '🇵🇭',
-      rank: 48,
-      visitors: '8.3M',
-      continent: 'Asia',
-      highlights: ['Boracay', 'Palawan', 'Chocolate Hills', 'Manila'],
-      rankings: { transportation: 5, food: 8, activities: 9, crowdedness: 6 },
-    },
-    {
-      name: 'Cambodia',
-      flag: '🇰🇭',
-      rank: 49,
-      visitors: '6.6M',
-      continent: 'Asia',
-      highlights: ['Angkor Wat', 'Phnom Penh', 'Tonle Sap Lake', 'Siem Reap'],
-      rankings: { transportation: 4, food: 7, activities: 9, crowdedness: 6 },
-    },
-    {
-      name: 'Jordan',
-      flag: '🇯🇴',
-      rank: 50,
-      visitors: '5.4M',
-      continent: 'Asia',
-      highlights: ['Petra', 'Dead Sea', 'Wadi Rum', 'Jerash'],
-      rankings: { transportation: 6, food: 7, activities: 9, crowdedness: 7 },
+      name: 'Norway',
+      flag: '🇳🇴',
+      continent: 'Europe',
+      highlights: ['Norwegian Fjords', 'Northern Lights', 'Bergen', 'Midnight Sun'],
+      rankings: {
+        visitors: { rank: 24, value: '6.3M', label: 'visitors' },
+        safety: { rank: 9, value: '8.7/10', label: 'safety score' },
+        affordability: { rank: 92, value: 'Very Expensive', label: 'cost level' },
+        food: { rank: 45, value: '6.5/10', label: 'food rating' },
+        beaches: { rank: 82, value: '2.5/10', label: 'beach quality' },
+        mountains: { rank: 10, value: '8.3/10', label: 'mountain rating' },
+        outdoors: { rank: 9, value: '8.6/10', label: 'outdoors score' },
+      },
     },
     {
       name: 'Iceland',
       flag: '🇮🇸',
-      rank: 51,
-      visitors: '2.3M',
       continent: 'Europe',
       highlights: ['Blue Lagoon', 'Northern Lights', 'Golden Circle', 'Glacier Hiking'],
-      rankings: { transportation: 7, food: 6, activities: 9, crowdedness: 9 },
+      rankings: {
+        visitors: { rank: 25, value: '2.3M', label: 'visitors' },
+        safety: { rank: 10, value: '8.7/10', label: 'safety score' },
+        affordability: { rank: 88, value: 'Very Expensive', label: 'cost level' },
+        food: { rank: 52, value: '6.2/10', label: 'food rating' },
+        beaches: { rank: 88, value: '2/10', label: 'beach quality' },
+        mountains: { rank: 18, value: '7.3/10', label: 'mountain rating' },
+        outdoors: { rank: 16, value: '8/10', label: 'outdoors score' },
+      },
     },
     {
-      name: 'Luxembourg',
-      flag: '🇱🇺',
-      rank: 52,
-      visitors: '2.1M',
-      continent: 'Europe',
-      highlights: ['Luxembourg City', 'Vianden Castle', 'Mullerthal Trail', 'Moselle Valley'],
-      rankings: { transportation: 9, food: 7, activities: 6, crowdedness: 8 },
-    },
-    {
-      name: 'Romania',
-      flag: '🇷🇴',
-      rank: 53,
-      visitors: '12.9M',
-      continent: 'Europe',
-      highlights: ['Bran Castle', 'Transylvania', 'Peles Castle', 'Bucharest'],
-      rankings: { transportation: 6, food: 7, activities: 7, crowdedness: 7 },
-    },
-    {
-      name: 'Bulgaria',
-      flag: '🇧🇬',
-      rank: 54,
-      visitors: '9.3M',
-      continent: 'Europe',
-      highlights: ['Sofia', 'Rila Monastery', 'Black Sea Coast', 'Plovdiv'],
-      rankings: { transportation: 6, food: 7, activities: 7, crowdedness: 7 },
-    },
-    {
-      name: 'Slovakia',
-      flag: '🇸🇰',
-      rank: 55,
-      visitors: '6.0M',
-      continent: 'Europe',
-      highlights: ['Bratislava Castle', 'High Tatras', 'Spiš Castle', 'Slovak Paradise'],
-      rankings: { transportation: 7, food: 7, activities: 7, crowdedness: 8 },
-    },
-    {
-      name: 'Slovenia',
-      flag: '🇸🇮',
-      rank: 56,
-      visitors: '4.7M',
-      continent: 'Europe',
-      highlights: ['Lake Bled', 'Ljubljana', 'Postojna Cave', 'Triglav National Park'],
-      rankings: { transportation: 8, food: 8, activities: 8, crowdedness: 8 },
-    },
-    {
-      name: 'Estonia',
-      flag: '🇪🇪',
-      rank: 57,
-      visitors: '3.8M',
-      continent: 'Europe',
-      highlights: ['Tallinn Old Town', 'Lahemaa National Park', 'Saaremaa Island', 'Tartu'],
-      rankings: { transportation: 8, food: 6, activities: 7, crowdedness: 8 },
-    },
-    {
-      name: 'Latvia',
-      flag: '🇱🇻',
-      rank: 58,
-      visitors: '3.4M',
-      continent: 'Europe',
-      highlights: ['Riga Old Town', 'Gauja National Park', 'Jurmala Beach', 'Rundale Palace'],
-      rankings: { transportation: 7, food: 6, activities: 7, crowdedness: 8 },
-    },
-    {
-      name: 'Lithuania',
-      flag: '🇱🇹',
-      rank: 59,
-      visitors: '3.6M',
-      continent: 'Europe',
-      highlights: ['Vilnius Old Town', 'Trakai Castle', 'Curonian Spit', 'Hill of Crosses'],
-      rankings: { transportation: 7, food: 6, activities: 7, crowdedness: 8 },
-    },
-    {
-      name: 'Tunisia',
-      flag: '🇹🇳',
-      rank: 60,
-      visitors: '9.5M',
-      continent: 'Africa',
-      highlights: ['Carthage Ruins', 'Sahara Desert', 'Sidi Bou Said', 'El Djem Amphitheatre'],
-      rankings: { transportation: 5, food: 7, activities: 8, crowdedness: 6 },
-    },
-    {
-      name: 'Sri Lanka',
-      flag: '🇱🇰',
-      rank: 61,
-      visitors: '1.9M',
-      continent: 'Asia',
-      highlights: ['Sigiriya Rock', 'Ella', 'Kandy Temple', 'Tea Plantations'],
-      rankings: { transportation: 5, food: 8, activities: 9, crowdedness: 6 },
-    },
-    {
-      name: 'Maldives',
-      flag: '🇲🇻',
-      rank: 62,
-      visitors: '1.7M',
-      continent: 'Asia',
-      highlights: ['Private Islands', 'Coral Reefs', 'Water Villas', 'Underwater Restaurant'],
-      rankings: { transportation: 6, food: 7, activities: 8, crowdedness: 8 },
-    },
-    {
-      name: 'Cuba',
-      flag: '🇨🇺',
-      rank: 63,
-      visitors: '4.7M',
-      continent: 'North America',
-      highlights: ['Havana Old Town', 'Varadero Beach', 'Viñales Valley', 'Trinidad'],
-      rankings: { transportation: 4, food: 6, activities: 8, crowdedness: 6 },
-    },
-    {
-      name: 'Costa Rica',
-      flag: '🇨🇷',
-      rank: 64,
-      visitors: '3.1M',
-      continent: 'North America',
-      highlights: ['Arenal Volcano', 'Monteverde Cloud Forest', 'Manuel Antonio', 'Tortuguero'],
-      rankings: { transportation: 5, food: 7, activities: 9, crowdedness: 7 },
-    },
-    {
-      name: 'Dominican Republic',
-      flag: '🇩🇴',
-      rank: 65,
-      visitors: '7.4M',
-      continent: 'North America',
-      highlights: ['Punta Cana', 'Santo Domingo', 'Samaná Peninsula', 'Los Haitises'],
-      rankings: { transportation: 5, food: 7, activities: 8, crowdedness: 6 },
-    },
-    {
-      name: 'Jamaica',
-      flag: '🇯🇲',
-      rank: 66,
-      visitors: '4.3M',
-      continent: 'North America',
-      highlights: ['Dunn\'s River Falls', 'Montego Bay', 'Blue Mountains', 'Negril Beach'],
-      rankings: { transportation: 5, food: 8, activities: 8, crowdedness: 6 },
-    },
-    {
-      name: 'Kenya',
-      flag: '🇰🇪',
-      rank: 67,
-      visitors: '2.0M',
-      continent: 'Africa',
-      highlights: ['Masai Mara', 'Mount Kenya', 'Amboseli National Park', 'Lamu Island'],
-      rankings: { transportation: 5, food: 6, activities: 9, crowdedness: 7 },
-    },
-    {
-      name: 'Tanzania',
-      flag: '🇹🇿',
-      rank: 68,
-      visitors: '1.5M',
-      continent: 'Africa',
-      highlights: ['Serengeti', 'Mount Kilimanjaro', 'Zanzibar', 'Ngorongoro Crater'],
-      rankings: { transportation: 4, food: 6, activities: 10, crowdedness: 7 },
-    },
-    {
-      name: 'Ethiopia',
-      flag: '🇪🇹',
-      rank: 69,
-      visitors: '0.9M',
-      continent: 'Africa',
-      highlights: ['Lalibela Churches', 'Simien Mountains', 'Addis Ababa', 'Danakil Depression'],
-      rankings: { transportation: 4, food: 6, activities: 8, crowdedness: 7 },
+      name: 'Peru',
+      flag: '🇵🇪',
+      continent: 'South America',
+      highlights: ['Machu Picchu', 'Nazca Lines', 'Lake Titicaca', 'Cusco'],
+      rankings: {
+        visitors: { rank: 26, value: '4.4M', label: 'visitors' },
+        safety: { rank: 68, value: '6.5/10', label: 'safety score' },
+        affordability: { rank: 16, value: 'Very Affordable', label: 'cost level' },
+        food: { rank: 17, value: '8.1/10', label: 'food rating' },
+        beaches: { rank: 32, value: '6.8/10', label: 'beach quality' },
+        mountains: { rank: 11, value: '8.2/10', label: 'mountain rating' },
+        outdoors: { rank: 19, value: '7.8/10', label: 'outdoors score' },
+      },
     },
     {
       name: 'Nepal',
       flag: '🇳🇵',
-      rank: 70,
-      visitors: '1.2M',
       continent: 'Asia',
       highlights: ['Mount Everest', 'Kathmandu Temples', 'Pokhara', 'Annapurna Circuit'],
-      rankings: { transportation: 4, food: 7, activities: 10, crowdedness: 6 },
+      rankings: {
+        visitors: { rank: 27, value: '1.2M', label: 'visitors' },
+        safety: { rank: 62, value: '6.8/10', label: 'safety score' },
+        affordability: { rank: 1, value: 'Very Affordable', label: 'cost level' },
+        food: { rank: 30, value: '7.3/10', label: 'food rating' },
+        beaches: { rank: 100, value: '0/10', label: 'beach quality' },
+        mountains: { rank: 13, value: '8/10', label: 'mountain rating' },
+        outdoors: { rank: 21, value: '7.6/10', label: 'outdoors score' },
+      },
     },
     {
-      name: 'Bhutan',
-      flag: '🇧🇹',
-      rank: 71,
-      visitors: '0.3M',
-      continent: 'Asia',
-      highlights: ['Tiger\'s Nest', 'Punakha Dzong', 'Paro Valley', 'Buddhist Monasteries'],
-      rankings: { transportation: 4, food: 6, activities: 9, crowdedness: 9 },
+      name: 'Costa Rica',
+      flag: '🇨🇷',
+      continent: 'North America',
+      highlights: ['Arenal Volcano', 'Monteverde Cloud Forest', 'Manuel Antonio', 'Tortuguero'],
+      rankings: {
+        visitors: { rank: 28, value: '3.1M', label: 'visitors' },
+        safety: { rank: 48, value: '7.2/10', label: 'safety score' },
+        affordability: { rank: 45, value: 'Moderate', label: 'cost level' },
+        food: { rank: 40, value: '6.8/10', label: 'food rating' },
+        beaches: { rank: 14, value: '8.4/10', label: 'beach quality' },
+        mountains: { rank: 25, value: '6.8/10', label: 'mountain rating' },
+        outdoors: { rank: 23, value: '7.5/10', label: 'outdoors score' },
+      },
     },
     {
-      name: 'Myanmar',
-      flag: '🇲🇲',
-      rank: 72,
-      visitors: '4.4M',
+      name: 'Australia',
+      flag: '🇦🇺',
+      continent: 'Oceania',
+      highlights: ['Sydney Opera House', 'Great Barrier Reef', 'Uluru', 'Bondi Beach'],
+      rankings: {
+        visitors: { rank: 29, value: '9.5M', label: 'visitors' },
+        safety: { rank: 11, value: '8.7/10', label: 'safety score' },
+        affordability: { rank: 78, value: 'Expensive', label: 'cost level' },
+        food: { rank: 24, value: '7.7/10', label: 'food rating' },
+        beaches: { rank: 13, value: '8.5/10', label: 'beach quality' },
+        mountains: { rank: 42, value: '5.5/10', label: 'mountain rating' },
+        outdoors: { rank: 24, value: '7.5/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Singapore',
+      flag: '🇸🇬',
       continent: 'Asia',
-      highlights: ['Bagan Temples', 'Inle Lake', 'Shwedagon Pagoda', 'Mandalay'],
-      rankings: { transportation: 4, food: 7, activities: 9, crowdedness: 6 },
+      highlights: ['Marina Bay Sands', 'Gardens by the Bay', 'Sentosa', 'Hawker Centers'],
+      rankings: {
+        visitors: { rank: 30, value: '14.7M', label: 'visitors' },
+        safety: { rank: 13, value: '8.5/10', label: 'safety score' },
+        affordability: { rank: 82, value: 'Very Expensive', label: 'cost level' },
+        food: { rank: 16, value: '8.2/10', label: 'food rating' },
+        beaches: { rank: 48, value: '5.5/10', label: 'beach quality' },
+        mountains: { rank: 96, value: '1.2/10', label: 'mountain rating' },
+        outdoors: { rank: 58, value: '5.8/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'India',
+      flag: '🇮🇳',
+      continent: 'Asia',
+      highlights: ['Taj Mahal', 'Golden Temple', 'Kerala Backwaters', 'Goa Beaches'],
+      rankings: {
+        visitors: { rank: 31, value: '17.9M', label: 'visitors' },
+        safety: { rank: 74, value: '6.1/10', label: 'safety score' },
+        affordability: { rank: 3, value: 'Very Affordable', label: 'cost level' },
+        food: { rank: 19, value: '7.9/10', label: 'food rating' },
+        beaches: { rank: 22, value: '7.5/10', label: 'beach quality' },
+        mountains: { rank: 14, value: '7.9/10', label: 'mountain rating' },
+        outdoors: { rank: 25, value: '7.4/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Brazil',
+      flag: '🇧🇷',
+      continent: 'South America',
+      highlights: ['Christ the Redeemer', 'Amazon Rainforest', 'Iguazu Falls', 'Copacabana Beach'],
+      rankings: {
+        visitors: { rank: 32, value: '6.6M', label: 'visitors' },
+        safety: { rank: 82, value: '5.5/10', label: 'safety score' },
+        affordability: { rank: 35, value: 'Affordable', label: 'cost level' },
+        food: { rank: 20, value: '7.9/10', label: 'food rating' },
+        beaches: { rank: 15, value: '8.3/10', label: 'beach quality' },
+        mountains: { rank: 58, value: '4.2/10', label: 'mountain rating' },
+        outdoors: { rank: 27, value: '7.4/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Egypt',
+      flag: '🇪🇬',
+      continent: 'Africa',
+      highlights: ['Pyramids of Giza', 'Valley of the Kings', 'Karnak Temple', 'Luxor'],
+      rankings: {
+        visitors: { rank: 33, value: '13.0M', label: 'visitors' },
+        safety: { rank: 76, value: '6.0/10', label: 'safety score' },
+        affordability: { rank: 10, value: 'Very Affordable', label: 'cost level' },
+        food: { rank: 33, value: '7.2/10', label: 'food rating' },
+        beaches: { rank: 26, value: '7.3/10', label: 'beach quality' },
+        mountains: { rank: 72, value: '3.2/10', label: 'mountain rating' },
+        outdoors: { rank: 44, value: '6.4/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'South Africa',
+      flag: '🇿🇦',
+      continent: 'Africa',
+      highlights: ['Table Mountain', 'Kruger National Park', 'Cape of Good Hope', 'Garden Route'],
+      rankings: {
+        visitors: { rank: 34, value: '10.5M', label: 'visitors' },
+        safety: { rank: 86, value: '5.2/10', label: 'safety score' },
+        affordability: { rank: 26, value: 'Affordable', label: 'cost level' },
+        food: { rank: 26, value: '7.6/10', label: 'food rating' },
+        beaches: { rank: 20, value: '7.8/10', label: 'beach quality' },
+        mountains: { rank: 34, value: '6.1/10', label: 'mountain rating' },
+        outdoors: { rank: 29, value: '7.3/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Argentina',
+      flag: '🇦🇷',
+      continent: 'South America',
+      highlights: ['Iguazu Falls', 'Patagonia', 'Buenos Aires', 'Perito Moreno Glacier'],
+      rankings: {
+        visitors: { rank: 35, value: '7.4M', label: 'visitors' },
+        safety: { rank: 64, value: '6.7/10', label: 'safety score' },
+        affordability: { rank: 24, value: 'Affordable', label: 'cost level' },
+        food: { rank: 21, value: '7.8/10', label: 'food rating' },
+        beaches: { rank: 42, value: '6/10', label: 'beach quality' },
+        mountains: { rank: 19, value: '7.3/10', label: 'mountain rating' },
+        outdoors: { rank: 30, value: '7.2/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Morocco',
+      flag: '🇲🇦',
+      continent: 'Africa',
+      highlights: ['Marrakech Souks', 'Sahara Desert', 'Fes Medina', 'Chefchaouen'],
+      rankings: {
+        visitors: { rank: 36, value: '13.1M', label: 'visitors' },
+        safety: { rank: 55, value: '7.0/10', label: 'safety score' },
+        affordability: { rank: 20, value: 'Very Affordable', label: 'cost level' },
+        food: { rank: 23, value: '7.7/10', label: 'food rating' },
+        beaches: { rank: 36, value: '6.4/10', label: 'beach quality' },
+        mountains: { rank: 26, value: '6.7/10', label: 'mountain rating' },
+        outdoors: { rank: 36, value: '6.9/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Czech Republic',
+      flag: '🇨🇿',
+      continent: 'Europe',
+      highlights: ['Prague Castle', 'Charles Bridge', 'Bohemian Switzerland', 'Český Krumlov'],
+      rankings: {
+        visitors: { rank: 37, value: '10.0M', label: 'visitors' },
+        safety: { rank: 19, value: '8.2/10', label: 'safety score' },
+        affordability: { rank: 30, value: 'Affordable', label: 'cost level' },
+        food: { rank: 34, value: '7.1/10', label: 'food rating' },
+        beaches: { rank: 96, value: '0.8/10', label: 'beach quality' },
+        mountains: { rank: 45, value: '5.3/10', label: 'mountain rating' },
+        outdoors: { rank: 48, value: '6.2/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Ireland',
+      flag: '🇮🇪',
+      continent: 'Europe',
+      highlights: ['Cliffs of Moher', 'Trinity College', 'Ring of Kerry', 'Giant\'s Causeway'],
+      rankings: {
+        visitors: { rank: 38, value: '11.3M', label: 'visitors' },
+        safety: { rank: 14, value: '8.4/10', label: 'safety score' },
+        affordability: { rank: 66, value: 'Expensive', label: 'cost level' },
+        food: { rank: 44, value: '6.6/10', label: 'food rating' },
+        beaches: { rank: 55, value: '5/10', label: 'beach quality' },
+        mountains: { rank: 62, value: '4/10', label: 'mountain rating' },
+        outdoors: { rank: 31, value: '7.2/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Philippines',
+      flag: '🇵🇭',
+      continent: 'Asia',
+      highlights: ['Palawan', 'Boracay', 'Chocolate Hills', 'Mayon Volcano'],
+      rankings: {
+        visitors: { rank: 39, value: '8.3M', label: 'visitors' },
+        safety: { rank: 70, value: '6.4/10', label: 'safety score' },
+        affordability: { rank: 7, value: 'Very Affordable', label: 'cost level' },
+        food: { rank: 25, value: '7.6/10', label: 'food rating' },
+        beaches: { rank: 16, value: '8.2/10', label: 'beach quality' },
+        mountains: { rank: 29, value: '6.4/10', label: 'mountain rating' },
+        outdoors: { rank: 32, value: '7.1/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Croatia',
+      flag: '🇭🇷',
+      continent: 'Europe',
+      highlights: ['Dubrovnik Old Town', 'Plitvice Lakes', 'Split Palace', 'Hvar Island'],
+      rankings: {
+        visitors: { rank: 40, value: '20.0M', label: 'visitors' },
+        safety: { rank: 26, value: '8.0/10', label: 'safety score' },
+        affordability: { rank: 36, value: 'Moderate', label: 'cost level' },
+        food: { rank: 27, value: '7.5/10', label: 'food rating' },
+        beaches: { rank: 17, value: '8.1/10', label: 'beach quality' },
+        mountains: { rank: 38, value: '5.8/10', label: 'mountain rating' },
+        outdoors: { rank: 33, value: '7.1/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Sweden',
+      flag: '🇸🇪',
+      continent: 'Europe',
+      highlights: ['Stockholm Archipelago', 'Ice Hotel', 'Vasa Museum', 'Northern Lights'],
+      rankings: {
+        visitors: { rank: 41, value: '7.6M', label: 'visitors' },
+        safety: { rank: 15, value: '8.4/10', label: 'safety score' },
+        affordability: { rank: 85, value: 'Very Expensive', label: 'cost level' },
+        food: { rank: 48, value: '6.4/10', label: 'food rating' },
+        beaches: { rank: 78, value: '2.8/10', label: 'beach quality' },
+        mountains: { rank: 35, value: '6/10', label: 'mountain rating' },
+        outdoors: { rank: 34, value: '7/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Finland',
+      flag: '🇫🇮',
+      continent: 'Europe',
+      highlights: ['Lapland', 'Santa Claus Village', 'Northern Lights', 'Helsinki Cathedral'],
+      rankings: {
+        visitors: { rank: 42, value: '3.3M', label: 'visitors' },
+        safety: { rank: 16, value: '8.3/10', label: 'safety score' },
+        affordability: { rank: 80, value: 'Very Expensive', label: 'cost level' },
+        food: { rank: 58, value: '5.9/10', label: 'food rating' },
+        beaches: { rank: 90, value: '1.8/10', label: 'beach quality' },
+        mountains: { rank: 75, value: '3/10', label: 'mountain rating' },
+        outdoors: { rank: 37, value: '6.9/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Chile',
+      flag: '🇨🇱',
+      continent: 'South America',
+      highlights: ['Atacama Desert', 'Torres del Paine', 'Easter Island', 'Patagonia'],
+      rankings: {
+        visitors: { rank: 43, value: '5.7M', label: 'visitors' },
+        safety: { rank: 36, value: '7.7/10', label: 'safety score' },
+        affordability: { rank: 48, value: 'Moderate', label: 'cost level' },
+        food: { rank: 37, value: '6.9/10', label: 'food rating' },
+        beaches: { rank: 44, value: '5.8/10', label: 'beach quality' },
+        mountains: { rank: 21, value: '7.2/10', label: 'mountain rating' },
+        outdoors: { rank: 39, value: '6.8/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Colombia',
+      flag: '🇨🇴',
+      continent: 'South America',
+      highlights: ['Cartagena Old Town', 'Coffee Region', 'Tayrona National Park', 'Bogotá'],
+      rankings: {
+        visitors: { rank: 44, value: '4.5M', label: 'visitors' },
+        safety: { rank: 84, value: '5.4/10', label: 'safety score' },
+        affordability: { rank: 15, value: 'Very Affordable', label: 'cost level' },
+        food: { rank: 29, value: '7.4/10', label: 'food rating' },
+        beaches: { rank: 24, value: '7.4/10', label: 'beach quality' },
+        mountains: { rank: 30, value: '6.3/10', label: 'mountain rating' },
+        outdoors: { rank: 40, value: '6.7/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Israel',
+      flag: '🇮🇱',
+      continent: 'Middle East',
+      highlights: ['Western Wall', 'Dead Sea', 'Tel Aviv Beaches', 'Masada'],
+      rankings: {
+        visitors: { rank: 45, value: '4.6M', label: 'visitors' },
+        safety: { rank: 88, value: '5.1/10', label: 'safety score' },
+        affordability: { rank: 75, value: 'Expensive', label: 'cost level' },
+        food: { rank: 31, value: '7.3/10', label: 'food rating' },
+        beaches: { rank: 30, value: '7/10', label: 'beach quality' },
+        mountains: { rank: 64, value: '3.9/10', label: 'mountain rating' },
+        outdoors: { rank: 50, value: '6.1/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Belgium',
+      flag: '🇧🇪',
+      continent: 'Europe',
+      highlights: ['Grand Place', 'Bruges Canals', 'Atomium', 'Belgian Chocolate'],
+      rankings: {
+        visitors: { rank: 46, value: '9.2M', label: 'visitors' },
+        safety: { rank: 30, value: '7.8/10', label: 'safety score' },
+        affordability: { rank: 60, value: 'Expensive', label: 'cost level' },
+        food: { rank: 39, value: '6.8/10', label: 'food rating' },
+        beaches: { rank: 70, value: '3.8/10', label: 'beach quality' },
+        mountains: { rank: 88, value: '1.8/10', label: 'mountain rating' },
+        outdoors: { rank: 62, value: '5.5/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Scotland',
+      flag: '🏴󠁧󠁢󠁳󠁣󠁴󠁿',
+      continent: 'Europe',
+      highlights: ['Edinburgh Castle', 'Loch Ness', 'Isle of Skye', 'Highlands'],
+      rankings: {
+        visitors: { rank: 47, value: '3.5M', label: 'visitors' },
+        safety: { rank: 17, value: '8.3/10', label: 'safety score' },
+        affordability: { rank: 68, value: 'Expensive', label: 'cost level' },
+        food: { rank: 50, value: '6.3/10', label: 'food rating' },
+        beaches: { rank: 62, value: '4.4/10', label: 'beach quality' },
+        mountains: { rank: 31, value: '6.2/10', label: 'mountain rating' },
+        outdoors: { rank: 41, value: '6.6/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Denmark',
+      flag: '🇩🇰',
+      continent: 'Europe',
+      highlights: ['Tivoli Gardens', 'Nyhavn', 'Little Mermaid', 'Kronborg Castle'],
+      rankings: {
+        visitors: { rank: 48, value: '10.8M', label: 'visitors' },
+        safety: { rank: 20, value: '8.2/10', label: 'safety score' },
+        affordability: { rank: 90, value: 'Very Expensive', label: 'cost level' },
+        food: { rank: 46, value: '6.5/10', label: 'food rating' },
+        beaches: { rank: 68, value: '3.9/10', label: 'beach quality' },
+        mountains: { rank: 95, value: '1.3/10', label: 'mountain rating' },
+        outdoors: { rank: 56, value: '5.9/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Jordan',
+      flag: '🇯🇴',
+      continent: 'Middle East',
+      highlights: ['Petra', 'Wadi Rum', 'Dead Sea', 'Amman Citadel'],
+      rankings: {
+        visitors: { rank: 49, value: '5.4M', label: 'visitors' },
+        safety: { rank: 66, value: '6.6/10', label: 'safety score' },
+        affordability: { rank: 40, value: 'Moderate', label: 'cost level' },
+        food: { rank: 41, value: '6.7/10', label: 'food rating' },
+        beaches: { rank: 75, value: '3.2/10', label: 'beach quality' },
+        mountains: { rank: 50, value: '4.9/10', label: 'mountain rating' },
+        outdoors: { rank: 43, value: '6.5/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Hungary',
+      flag: '🇭🇺',
+      continent: 'Europe',
+      highlights: ['Parliament Building', 'Thermal Baths', 'Buda Castle', 'Danube River'],
+      rankings: {
+        visitors: { rank: 50, value: '15.8M', label: 'visitors' },
+        safety: { rank: 40, value: '7.5/10', label: 'safety score' },
+        affordability: { rank: 25, value: 'Affordable', label: 'cost level' },
+        food: { rank: 43, value: '6.7/10', label: 'food rating' },
+        beaches: { rank: 94, value: '1.3/10', label: 'beach quality' },
+        mountains: { rank: 70, value: '3.4/10', label: 'mountain rating' },
+        outdoors: { rank: 55, value: '6/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Romania',
+      flag: '🇷🇴',
+      continent: 'Europe',
+      highlights: ['Bran Castle', 'Transfăgărășan', 'Painted Monasteries', 'Transylvania'],
+      rankings: {
+        visitors: { rank: 51, value: '2.8M', label: 'visitors' },
+        safety: { rank: 50, value: '7.1/10', label: 'safety score' },
+        affordability: { rank: 11, value: 'Very Affordable', label: 'cost level' },
+        food: { rank: 47, value: '6.4/10', label: 'food rating' },
+        beaches: { rank: 60, value: '4.6/10', label: 'beach quality' },
+        mountains: { rank: 23, value: '7/10', label: 'mountain rating' },
+        outdoors: { rank: 45, value: '6.4/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Cambodia',
+      flag: '🇰🇭',
+      continent: 'Asia',
+      highlights: ['Angkor Wat', 'Tonle Sap Lake', 'Royal Palace', 'Koh Rong'],
+      rankings: {
+        visitors: { rank: 52, value: '6.6M', label: 'visitors' },
+        safety: { rank: 60, value: '6.9/10', label: 'safety score' },
+        affordability: { rank: 5, value: 'Very Affordable', label: 'cost level' },
+        food: { rank: 49, value: '6.4/10', label: 'food rating' },
+        beaches: { rank: 34, value: '6.6/10', label: 'beach quality' },
+        mountains: { rank: 55, value: '4.5/10', label: 'mountain rating' },
+        outdoors: { rank: 46, value: '6.3/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Taiwan',
+      flag: '🇹🇼',
+      continent: 'Asia',
+      highlights: ['Taipei 101', 'Taroko Gorge', 'Night Markets', 'Sun Moon Lake'],
+      rankings: {
+        visitors: { rank: 53, value: '11.9M', label: 'visitors' },
+        safety: { rank: 21, value: '8.2/10', label: 'safety score' },
+        affordability: { rank: 44, value: 'Moderate', label: 'cost level' },
+        food: { rank: 26, value: '7.6/10', label: 'food rating' },
+        beaches: { rank: 40, value: '6.1/10', label: 'beach quality' },
+        mountains: { rank: 27, value: '6.6/10', label: 'mountain rating' },
+        outdoors: { rank: 47, value: '6.3/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Hong Kong',
+      flag: '🇭🇰',
+      continent: 'Asia',
+      highlights: ['Victoria Peak', 'Tian Tan Buddha', 'Hong Kong Disneyland', 'Star Ferry'],
+      rankings: {
+        visitors: { rank: 54, value: '26.7M', label: 'visitors' },
+        safety: { rank: 24, value: '8.0/10', label: 'safety score' },
+        affordability: { rank: 85, value: 'Very Expensive', label: 'cost level' },
+        food: { rank: 24, value: '7.7/10', label: 'food rating' },
+        beaches: { rank: 50, value: '5.4/10', label: 'beach quality' },
+        mountains: { rank: 60, value: '4.1/10', label: 'mountain rating' },
+        outdoors: { rank: 65, value: '5.4/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Sri Lanka',
+      flag: '🇱🇰',
+      continent: 'Asia',
+      highlights: ['Sigiriya Rock', 'Tea Plantations', 'Yala National Park', 'Galle Fort'],
+      rankings: {
+        visitors: { rank: 55, value: '1.9M', label: 'visitors' },
+        safety: { rank: 71, value: '6.3/10', label: 'safety score' },
+        affordability: { rank: 9, value: 'Very Affordable', label: 'cost level' },
+        food: { rank: 51, value: '6.3/10', label: 'food rating' },
+        beaches: { rank: 19, value: '7.9/10', label: 'beach quality' },
+        mountains: { rank: 40, value: '5.7/10', label: 'mountain rating' },
+        outdoors: { rank: 49, value: '6.2/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'United Arab Emirates',
+      flag: '🇦🇪',
+      continent: 'Middle East',
+      highlights: ['Burj Khalifa', 'Palm Jumeirah', 'Sheikh Zayed Mosque', 'Dubai Mall'],
+      rankings: {
+        visitors: { rank: 56, value: '21.3M', label: 'visitors' },
+        safety: { rank: 27, value: '7.9/10', label: 'safety score' },
+        affordability: { rank: 74, value: 'Expensive', label: 'cost level' },
+        food: { rank: 53, value: '6.2/10', label: 'food rating' },
+        beaches: { rank: 46, value: '5.7/10', label: 'beach quality' },
+        mountains: { rank: 78, value: '2.8/10', label: 'mountain rating' },
+        outdoors: { rank: 72, value: '5/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Maldives',
+      flag: '🇲🇻',
+      continent: 'Asia',
+      highlights: ['Private Islands', 'Coral Reefs', 'Underwater Restaurant', 'Marine Life'],
+      rankings: {
+        visitors: { rank: 57, value: '1.7M', label: 'visitors' },
+        safety: { rank: 32, value: '7.8/10', label: 'safety score' },
+        affordability: { rank: 96, value: 'Very Expensive', label: 'cost level' },
+        food: { rank: 62, value: '5.8/10', label: 'food rating' },
+        beaches: { rank: 21, value: '7.7/10', label: 'beach quality' },
+        mountains: { rank: 100, value: '0/10', label: 'mountain rating' },
+        outdoors: { rank: 60, value: '5.7/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Russia',
+      flag: '🇷🇺',
+      continent: 'Europe/Asia',
+      highlights: ['Red Square', 'Trans-Siberian Railway', 'Hermitage Museum', 'Lake Baikal'],
+      rankings: {
+        visitors: { rank: 58, value: '24.6M', label: 'visitors' },
+        safety: { rank: 80, value: '5.7/10', label: 'safety score' },
+        affordability: { rank: 34, value: 'Affordable', label: 'cost level' },
+        food: { rank: 56, value: '6/10', label: 'food rating' },
+        beaches: { rank: 85, value: '2.3/10', label: 'beach quality' },
+        mountains: { rank: 33, value: '6.1/10', label: 'mountain rating' },
+        outdoors: { rank: 51, value: '6.1/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Kenya',
+      flag: '🇰🇪',
+      continent: 'Africa',
+      highlights: ['Masai Mara', 'Mount Kenya', 'Diani Beach', 'Amboseli National Park'],
+      rankings: {
+        visitors: { rank: 59, value: '2.0M', label: 'visitors' },
+        safety: { rank: 75, value: '6.1/10', label: 'safety score' },
+        affordability: { rank: 32, value: 'Affordable', label: 'cost level' },
+        food: { rank: 68, value: '5.5/10', label: 'food rating' },
+        beaches: { rank: 31, value: '6.9/10', label: 'beach quality' },
+        mountains: { rank: 36, value: '5.9/10', label: 'mountain rating' },
+        outdoors: { rank: 52, value: '6.1/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Tanzania',
+      flag: '🇹🇿',
+      continent: 'Africa',
+      highlights: ['Serengeti', 'Mount Kilimanjaro', 'Zanzibar', 'Ngorongoro Crater'],
+      rankings: {
+        visitors: { rank: 60, value: '1.5M', label: 'visitors' },
+        safety: { rank: 69, value: '6.5/10', label: 'safety score' },
+        affordability: { rank: 28, value: 'Affordable', label: 'cost level' },
+        food: { rank: 70, value: '5.4/10', label: 'food rating' },
+        beaches: { rank: 23, value: '7.5/10', label: 'beach quality' },
+        mountains: { rank: 37, value: '5.9/10', label: 'mountain rating' },
+        outdoors: { rank: 53, value: '6/10', label: 'outdoors score' },
+      },
     },
     {
       name: 'Laos',
       flag: '🇱🇦',
-      rank: 73,
-      visitors: '4.8M',
       continent: 'Asia',
       highlights: ['Luang Prabang', 'Kuang Si Falls', 'Vang Vieng', 'Plain of Jars'],
-      rankings: { transportation: 4, food: 7, activities: 8, crowdedness: 7 },
+      rankings: {
+        visitors: { rank: 61, value: '4.2M', label: 'visitors' },
+        safety: { rank: 44, value: '7.3/10', label: 'safety score' },
+        affordability: { rank: 13, value: 'Very Affordable', label: 'cost level' },
+        food: { rank: 60, value: '5.9/10', label: 'food rating' },
+        beaches: { rank: 93, value: '1.4/10', label: 'beach quality' },
+        mountains: { rank: 44, value: '5.4/10', label: 'mountain rating' },
+        outdoors: { rank: 54, value: '6/10', label: 'outdoors score' },
+      },
     },
     {
-      name: 'Oman',
-      flag: '🇴🇲',
-      rank: 74,
-      visitors: '3.5M',
+      name: 'Myanmar',
+      flag: '🇲🇲',
       continent: 'Asia',
-      highlights: ['Muscat', 'Wahiba Sands', 'Jebel Akhdar', 'Nizwa Fort'],
-      rankings: { transportation: 7, food: 7, activities: 8, crowdedness: 8 },
-    },
-    {
-      name: 'Qatar',
-      flag: '🇶🇦',
-      rank: 75,
-      visitors: '2.1M',
-      continent: 'Asia',
-      highlights: ['Museum of Islamic Art', 'Souq Waqif', 'Katara Cultural Village', 'The Pearl'],
-      rankings: { transportation: 9, food: 7, activities: 7, crowdedness: 7 },
-    },
-    {
-      name: 'Kuwait',
-      flag: '🇰🇼',
-      rank: 76,
-      visitors: '0.5M',
-      continent: 'Asia',
-      highlights: ['Kuwait Towers', 'Grand Mosque', 'Souq Al-Mubarakiya', 'Failaka Island'],
-      rankings: { transportation: 8, food: 7, activities: 6, crowdedness: 7 },
-    },
-    {
-      name: 'Bahrain',
-      flag: '🇧🇭',
-      rank: 77,
-      visitors: '11.0M',
-      continent: 'Asia',
-      highlights: ['Bahrain Fort', 'Manama Souq', 'Tree of Life', 'Bahrain National Museum'],
-      rankings: { transportation: 8, food: 7, activities: 6, crowdedness: 6 },
-    },
-    {
-      name: 'Lebanon',
-      flag: '🇱🇧',
-      rank: 78,
-      visitors: '1.9M',
-      continent: 'Asia',
-      highlights: ['Baalbek', 'Byblos', 'Beirut', 'Jeita Grotto'],
-      rankings: { transportation: 5, food: 9, activities: 8, crowdedness: 6 },
-    },
-    {
-      name: 'Malta',
-      flag: '🇲🇹',
-      rank: 79,
-      visitors: '2.8M',
-      continent: 'Europe',
-      highlights: ['Valletta', 'Blue Lagoon', 'Mdina', 'Megalithic Temples'],
-      rankings: { transportation: 7, food: 8, activities: 7, crowdedness: 6 },
-    },
-    {
-      name: 'Cyprus',
-      flag: '🇨🇾',
-      rank: 80,
-      visitors: '4.0M',
-      continent: 'Europe',
-      highlights: ['Paphos', 'Troodos Mountains', 'Kyrenia', 'Ayia Napa'],
-      rankings: { transportation: 7, food: 8, activities: 7, crowdedness: 7 },
-    },
-    {
-      name: 'Albania',
-      flag: '🇦🇱',
-      rank: 81,
-      visitors: '6.4M',
-      continent: 'Europe',
-      highlights: ['Albanian Riviera', 'Berat', 'Gjirokastër', 'Tirana'],
-      rankings: { transportation: 5, food: 7, activities: 7, crowdedness: 7 },
-    },
-    {
-      name: 'North Macedonia',
-      flag: '🇲🇰',
-      rank: 82,
-      visitors: '1.2M',
-      continent: 'Europe',
-      highlights: ['Lake Ohrid', 'Skopje', 'Matka Canyon', 'Bitola'],
-      rankings: { transportation: 6, food: 7, activities: 7, crowdedness: 8 },
-    },
-    {
-      name: 'Serbia',
-      flag: '🇷🇸',
-      rank: 83,
-      visitors: '1.8M',
-      continent: 'Europe',
-      highlights: ['Belgrade', 'Novi Sad', 'Đavolja Varoš', 'Studenica Monastery'],
-      rankings: { transportation: 6, food: 7, activities: 7, crowdedness: 7 },
-    },
-    {
-      name: 'Bosnia and Herzegovina',
-      flag: '🇧🇦',
-      rank: 84,
-      visitors: '1.6M',
-      continent: 'Europe',
-      highlights: ['Mostar Bridge', 'Sarajevo', 'Kravica Waterfalls', 'Blagaj Tekke'],
-      rankings: { transportation: 5, food: 7, activities: 7, crowdedness: 7 },
-    },
-    {
-      name: 'Montenegro',
-      flag: '🇲🇪',
-      rank: 85,
-      visitors: '2.5M',
-      continent: 'Europe',
-      highlights: ['Kotor Bay', 'Budva', 'Durmitor National Park', 'Perast'],
-      rankings: { transportation: 6, food: 7, activities: 8, crowdedness: 7 },
-    },
-    {
-      name: 'Uruguay',
-      flag: '🇺🇾',
-      rank: 86,
-      visitors: '3.0M',
-      continent: 'South America',
-      highlights: ['Montevideo', 'Punta del Este', 'Colonia del Sacramento', 'Cabo Polonio'],
-      rankings: { transportation: 6, food: 8, activities: 7, crowdedness: 8 },
-    },
-    {
-      name: 'Paraguay',
-      flag: '🇵🇾',
-      rank: 87,
-      visitors: '1.3M',
-      continent: 'South America',
-      highlights: ['Asunción', 'Itaipu Dam', 'Jesuit Missions', 'Ybycuí National Park'],
-      rankings: { transportation: 5, food: 6, activities: 6, crowdedness: 8 },
+      highlights: ['Bagan Temples', 'Inle Lake', 'Shwedagon Pagoda', 'Golden Rock'],
+      rankings: {
+        visitors: { rank: 62, value: '4.4M', label: 'visitors' },
+        safety: { rank: 92, value: '4.8/10', label: 'safety score' },
+        affordability: { rank: 17, value: 'Very Affordable', label: 'cost level' },
+        food: { rank: 54, value: '6.1/10', label: 'food rating' },
+        beaches: { rank: 45, value: '5.8/10', label: 'beach quality' },
+        mountains: { rank: 48, value: '5.1/10', label: 'mountain rating' },
+        outdoors: { rank: 57, value: '5.9/10', label: 'outdoors score' },
+      },
     },
     {
       name: 'Bolivia',
       flag: '🇧🇴',
-      rank: 88,
-      visitors: '1.1M',
       continent: 'South America',
       highlights: ['Salar de Uyuni', 'La Paz', 'Lake Titicaca', 'Death Road'],
-      rankings: { transportation: 4, food: 6, activities: 9, crowdedness: 7 },
+      rankings: {
+        visitors: { rank: 63, value: '1.1M', label: 'visitors' },
+        safety: { rank: 85, value: '5.3/10', label: 'safety score' },
+        affordability: { rank: 19, value: 'Very Affordable', label: 'cost level' },
+        food: { rank: 64, value: '5.7/10', label: 'food rating' },
+        beaches: { rank: 97, value: '0.5/10', label: 'beach quality' },
+        mountains: { rank: 39, value: '5.7/10', label: 'mountain rating' },
+        outdoors: { rank: 59, value: '5.8/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Slovenia',
+      flag: '🇸🇮',
+      continent: 'Europe',
+      highlights: ['Lake Bled', 'Ljubljana Castle', 'Postojna Cave', 'Triglav National Park'],
+      rankings: {
+        visitors: { rank: 64, value: '6.2M', label: 'visitors' },
+        safety: { rank: 29, value: '7.9/10', label: 'safety score' },
+        affordability: { rank: 46, value: 'Moderate', label: 'cost level' },
+        food: { rank: 55, value: '6/10', label: 'food rating' },
+        beaches: { rank: 66, value: '4/10', label: 'beach quality' },
+        mountains: { rank: 41, value: '5.6/10', label: 'mountain rating' },
+        outdoors: { rank: 61, value: '5.6/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Bulgaria',
+      flag: '🇧🇬',
+      continent: 'Europe',
+      highlights: ['Rila Monastery', 'Plovdiv Old Town', 'Black Sea Coast', 'Sofia'],
+      rankings: {
+        visitors: { rank: 65, value: '9.3M', label: 'visitors' },
+        safety: { rank: 46, value: '7.2/10', label: 'safety score' },
+        affordability: { rank: 21, value: 'Very Affordable', label: 'cost level' },
+        food: { rank: 59, value: '5.9/10', label: 'food rating' },
+        beaches: { rank: 52, value: '5.2/10', label: 'beach quality' },
+        mountains: { rank: 46, value: '5.2/10', label: 'mountain rating' },
+        outdoors: { rank: 63, value: '5.5/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Georgia',
+      flag: '🇬🇪',
+      continent: 'Asia/Europe',
+      highlights: ['Tbilisi Old Town', 'Kazbegi', 'Wine Region', 'Uplistsikhe'],
+      rankings: {
+        visitors: { rank: 66, value: '9.4M', label: 'visitors' },
+        safety: { rank: 54, value: '7.0/10', label: 'safety score' },
+        affordability: { rank: 23, value: 'Affordable', label: 'cost level' },
+        food: { rank: 57, value: '6/10', label: 'food rating' },
+        beaches: { rank: 64, value: '4.1/10', label: 'beach quality' },
+        mountains: { rank: 43, value: '5.5/10', label: 'mountain rating' },
+        outdoors: { rank: 64, value: '5.5/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Mongolia',
+      flag: '🇲🇳',
+      continent: 'Asia',
+      highlights: ['Gobi Desert', 'Genghis Khan Statue', 'Hustai National Park', 'Ulaanbaatar'],
+      rankings: {
+        visitors: { rank: 67, value: '0.5M', label: 'visitors' },
+        safety: { rank: 53, value: '7.1/10', label: 'safety score' },
+        affordability: { rank: 27, value: 'Affordable', label: 'cost level' },
+        food: { rank: 78, value: '4.8/10', label: 'food rating' },
+        beaches: { rank: 99, value: '0.1/10', label: 'beach quality' },
+        mountains: { rank: 47, value: '5.2/10', label: 'mountain rating' },
+        outdoors: { rank: 66, value: '5.4/10', label: 'outdoors score' },
+      },
     },
     {
       name: 'Ecuador',
       flag: '🇪🇨',
-      rank: 89,
-      visitors: '2.4M',
       continent: 'South America',
-      highlights: ['Galápagos Islands', 'Quito', 'Amazon Rainforest', 'Cotopaxi'],
-      rankings: { transportation: 5, food: 7, activities: 9, crowdedness: 7 },
+      highlights: ['Galápagos Islands', 'Quito', 'Cotopaxi', 'Amazon Rainforest'],
+      rankings: {
+        visitors: { rank: 68, value: '2.4M', label: 'visitors' },
+        safety: { rank: 79, value: '5.8/10', label: 'safety score' },
+        affordability: { rank: 29, value: 'Affordable', label: 'cost level' },
+        food: { rank: 61, value: '5.8/10', label: 'food rating' },
+        beaches: { rank: 37, value: '6.3/10', label: 'beach quality' },
+        mountains: { rank: 49, value: '5/10', label: 'mountain rating' },
+        outdoors: { rank: 67, value: '5.3/10', label: 'outdoors score' },
+      },
     },
     {
-      name: 'Panama',
-      flag: '🇵🇦',
-      rank: 90,
-      visitors: '2.5M',
-      continent: 'North America',
-      highlights: ['Panama Canal', 'Casco Viejo', 'San Blas Islands', 'Bocas del Toro'],
-      rankings: { transportation: 6, food: 7, activities: 8, crowdedness: 7 },
-    },
-    {
-      name: 'Guatemala',
-      flag: '🇬🇹',
-      rank: 91,
-      visitors: '2.6M',
-      continent: 'North America',
-      highlights: ['Tikal', 'Lake Atitlán', 'Antigua', 'Semuc Champey'],
-      rankings: { transportation: 4, food: 7, activities: 9, crowdedness: 6 },
+      name: 'Uruguay',
+      flag: '🇺🇾',
+      continent: 'South America',
+      highlights: ['Montevideo', 'Punta del Este', 'Colonia del Sacramento', 'Wine Region'],
+      rankings: {
+        visitors: { rank: 69, value: '3.5M', label: 'visitors' },
+        safety: { rank: 33, value: '7.8/10', label: 'safety score' },
+        affordability: { rank: 56, value: 'Moderate', label: 'cost level' },
+        food: { rank: 63, value: '5.8/10', label: 'food rating' },
+        beaches: { rank: 54, value: '5.1/10', label: 'beach quality' },
+        mountains: { rank: 82, value: '2.3/10', label: 'mountain rating' },
+        outdoors: { rank: 68, value: '5.3/10', label: 'outdoors score' },
+      },
     },
     {
       name: 'Nicaragua',
       flag: '🇳🇮',
-      rank: 92,
-      visitors: '1.8M',
       continent: 'North America',
-      highlights: ['Granada', 'León', 'Ometepe Island', 'Corn Islands'],
-      rankings: { transportation: 4, food: 6, activities: 8, crowdedness: 7 },
+      highlights: ['Granada', 'Ometepe Island', 'León', 'Corn Islands'],
+      rankings: {
+        visitors: { rank: 70, value: '1.5M', label: 'visitors' },
+        safety: { rank: 87, value: '5.2/10', label: 'safety score' },
+        affordability: { rank: 33, value: 'Affordable', label: 'cost level' },
+        food: { rank: 66, value: '5.6/10', label: 'food rating' },
+        beaches: { rank: 41, value: '6.1/10', label: 'beach quality' },
+        mountains: { rank: 56, value: '4.4/10', label: 'mountain rating' },
+        outdoors: { rank: 69, value: '5.2/10', label: 'outdoors score' },
+      },
     },
     {
-      name: 'El Salvador',
-      flag: '🇸🇻',
-      rank: 93,
-      visitors: '2.7M',
+      name: 'Guatemala',
+      flag: '🇬🇹',
       continent: 'North America',
-      highlights: ['El Tunco Beach', 'Joya de Cerén', 'Santa Ana Volcano', 'Suchitoto'],
-      rankings: { transportation: 5, food: 7, activities: 7, crowdedness: 7 },
+      highlights: ['Tikal', 'Antigua Guatemala', 'Lake Atitlán', 'Semuc Champey'],
+      rankings: {
+        visitors: { rank: 71, value: '2.4M', label: 'visitors' },
+        safety: { rank: 89, value: '5.0/10', label: 'safety score' },
+        affordability: { rank: 31, value: 'Affordable', label: 'cost level' },
+        food: { rank: 65, value: '5.7/10', label: 'food rating' },
+        beaches: { rank: 56, value: '4.9/10', label: 'beach quality' },
+        mountains: { rank: 51, value: '4.8/10', label: 'mountain rating' },
+        outdoors: { rank: 70, value: '5.2/10', label: 'outdoors score' },
+      },
     },
     {
-      name: 'Honduras',
-      flag: '🇭🇳',
-      rank: 94,
-      visitors: '1.1M',
-      continent: 'North America',
-      highlights: ['Roatán', 'Copán Ruins', 'Utila', 'La Ceiba'],
-      rankings: { transportation: 4, food: 6, activities: 8, crowdedness: 7 },
-    },
-    {
-      name: 'Belize',
-      flag: '🇧🇿',
-      rank: 95,
-      visitors: '0.5M',
-      continent: 'North America',
-      highlights: ['Great Blue Hole', 'Mayan Ruins', 'Barrier Reef', 'Caye Caulker'],
-      rankings: { transportation: 5, food: 6, activities: 9, crowdedness: 8 },
-    },
-    {
-      name: 'Fiji',
-      flag: '🇫🇯',
-      rank: 96,
-      visitors: '0.9M',
-      continent: 'Oceania',
-      highlights: ['Coral Coast', 'Mamanuca Islands', 'Suva', 'Yasawa Islands'],
-      rankings: { transportation: 5, food: 7, activities: 9, crowdedness: 8 },
-    },
-    {
-      name: 'Papua New Guinea',
-      flag: '🇵🇬',
-      rank: 97,
-      visitors: '0.2M',
-      continent: 'Oceania',
-      highlights: ['Kokoda Track', 'Port Moresby', 'Sepik River', 'Mount Hagen'],
-      rankings: { transportation: 3, food: 5, activities: 9, crowdedness: 9 },
+      name: 'Ethiopia',
+      flag: '🇪🇹',
+      continent: 'Africa',
+      highlights: ['Lalibela Churches', 'Simien Mountains', 'Danakil Depression', 'Addis Ababa'],
+      rankings: {
+        visitors: { rank: 72, value: '0.9M', label: 'visitors' },
+        safety: { rank: 90, value: '4.9/10', label: 'safety score' },
+        affordability: { rank: 37, value: 'Moderate', label: 'cost level' },
+        food: { rank: 72, value: '5.3/10', label: 'food rating' },
+        beaches: { rank: 98, value: '0.3/10', label: 'beach quality' },
+        mountains: { rank: 53, value: '4.7/10', label: 'mountain rating' },
+        outdoors: { rank: 71, value: '5.1/10', label: 'outdoors score' },
+      },
     },
     {
       name: 'Madagascar',
       flag: '🇲🇬',
-      rank: 98,
-      visitors: '0.4M',
       continent: 'Africa',
-      highlights: ['Avenue of Baobabs', 'Tsingy de Bemaraha', 'Nosy Be', 'Lemurs'],
-      rankings: { transportation: 3, food: 5, activities: 9, crowdedness: 8 },
+      highlights: ['Avenue of the Baobabs', 'Tsingy de Bemaraha', 'Lemurs', 'Nosy Be'],
+      rankings: {
+        visitors: { rank: 73, value: '0.3M', label: 'visitors' },
+        safety: { rank: 73, value: '6.2/10', label: 'safety score' },
+        affordability: { rank: 41, value: 'Moderate', label: 'cost level' },
+        food: { rank: 74, value: '5.2/10', label: 'food rating' },
+        beaches: { rank: 33, value: '6.7/10', label: 'beach quality' },
+        mountains: { rank: 59, value: '4.2/10', label: 'mountain rating' },
+        outdoors: { rank: 73, value: '5/10', label: 'outdoors score' },
+      },
     },
     {
-      name: 'Zimbabwe',
-      flag: '🇿🇼',
-      rank: 99,
-      visitors: '2.6M',
+      name: 'Bhutan',
+      flag: '🇧🇹',
+      continent: 'Asia',
+      highlights: ['Tiger\'s Nest', 'Punakha Dzong', 'Thimphu', 'Dochula Pass'],
+      rankings: {
+        visitors: { rank: 74, value: '0.3M', label: 'visitors' },
+        safety: { rank: 34, value: '7.7/10', label: 'safety score' },
+        affordability: { rank: 86, value: 'Very Expensive', label: 'cost level' },
+        food: { rank: 76, value: '5/10', label: 'food rating' },
+        beaches: { rank: 101, value: '0/10', label: 'beach quality' },
+        mountains: { rank: 54, value: '4.6/10', label: 'mountain rating' },
+        outdoors: { rank: 74, value: '4.9/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Albania',
+      flag: '🇦🇱',
+      continent: 'Europe',
+      highlights: ['Albanian Riviera', 'Berat', 'Gjirokastër', 'Butrint'],
+      rankings: {
+        visitors: { rank: 75, value: '7.5M', label: 'visitors' },
+        safety: { rank: 63, value: '6.7/10', label: 'safety score' },
+        affordability: { rank: 39, value: 'Moderate', label: 'cost level' },
+        food: { rank: 67, value: '5.5/10', label: 'food rating' },
+        beaches: { rank: 29, value: '7.1/10', label: 'beach quality' },
+        mountains: { rank: 57, value: '4.3/10', label: 'mountain rating' },
+        outdoors: { rank: 75, value: '4.8/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Cuba',
+      flag: '🇨🇺',
+      continent: 'North America',
+      highlights: ['Old Havana', 'Varadero Beach', 'Viñales Valley', 'Trinidad'],
+      rankings: {
+        visitors: { rank: 76, value: '4.7M', label: 'visitors' },
+        safety: { rank: 48, value: '7.2/10', label: 'safety score' },
+        affordability: { rank: 50, value: 'Moderate', label: 'cost level' },
+        food: { rank: 69, value: '5.5/10', label: 'food rating' },
+        beaches: { rank: 25, value: '7.4/10', label: 'beach quality' },
+        mountains: { rank: 74, value: '3.1/10', label: 'mountain rating' },
+        outdoors: { rank: 76, value: '4.7/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Uganda',
+      flag: '🇺🇬',
       continent: 'Africa',
-      highlights: ['Victoria Falls', 'Great Zimbabwe', 'Hwange National Park', 'Matobo Hills'],
-      rankings: { transportation: 4, food: 6, activities: 9, crowdedness: 7 },
+      highlights: ['Mountain Gorillas', 'Murchison Falls', 'Queen Elizabeth Park', 'Lake Victoria'],
+      rankings: {
+        visitors: { rank: 77, value: '1.5M', label: 'visitors' },
+        safety: { rank: 77, value: '6.0/10', label: 'safety score' },
+        affordability: { rank: 43, value: 'Moderate', label: 'cost level' },
+        food: { rank: 80, value: '4.6/10', label: 'food rating' },
+        beaches: { rank: 87, value: '2.1/10', label: 'beach quality' },
+        mountains: { rank: 61, value: '4.1/10', label: 'mountain rating' },
+        outdoors: { rank: 77, value: '4.6/10', label: 'outdoors score' },
+      },
     },
     {
       name: 'Zambia',
       flag: '🇿🇲',
-      rank: 100,
-      visitors: '1.1M',
       continent: 'Africa',
-      highlights: ['Victoria Falls', 'South Luangwa', 'Lower Zambezi', 'Devil\'s Pool'],
-      rankings: { transportation: 4, food: 6, activities: 9, crowdedness: 8 },
+      highlights: ['Victoria Falls', 'South Luangwa', 'Lower Zambezi', 'Kafue National Park'],
+      rankings: {
+        visitors: { rank: 78, value: '1.1M', label: 'visitors' },
+        safety: { rank: 65, value: '6.7/10', label: 'safety score' },
+        affordability: { rank: 47, value: 'Moderate', label: 'cost level' },
+        food: { rank: 82, value: '4.4/10', label: 'food rating' },
+        beaches: { rank: 91, value: '1.7/10', label: 'beach quality' },
+        mountains: { rank: 76, value: '2.9/10', label: 'mountain rating' },
+        outdoors: { rank: 78, value: '4.5/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Namibia',
+      flag: '🇳🇦',
+      continent: 'Africa',
+      highlights: ['Sossusvlei Dunes', 'Etosha National Park', 'Skeleton Coast', 'Fish River Canyon'],
+      rankings: {
+        visitors: { rank: 79, value: '1.6M', label: 'visitors' },
+        safety: { rank: 37, value: '7.6/10', label: 'safety score' },
+        affordability: { rank: 54, value: 'Moderate', label: 'cost level' },
+        food: { rank: 84, value: '4.2/10', label: 'food rating' },
+        beaches: { rank: 76, value: '3.1/10', label: 'beach quality' },
+        mountains: { rank: 65, value: '3.8/10', label: 'mountain rating' },
+        outdoors: { rank: 79, value: '4.4/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Botswana',
+      flag: '🇧🇼',
+      continent: 'Africa',
+      highlights: ['Okavango Delta', 'Chobe National Park', 'Makgadikgadi Pans', 'Kalahari Desert'],
+      rankings: {
+        visitors: { rank: 80, value: '2.5M', label: 'visitors' },
+        safety: { rank: 39, value: '7.5/10', label: 'safety score' },
+        affordability: { rank: 76, value: 'Expensive', label: 'cost level' },
+        food: { rank: 86, value: '4/10', label: 'food rating' },
+        beaches: { rank: 102, value: '0/10', label: 'beach quality' },
+        mountains: { rank: 90, value: '1.6/10', label: 'mountain rating' },
+        outdoors: { rank: 80, value: '4.3/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Rwanda',
+      flag: '🇷🇼',
+      continent: 'Africa',
+      highlights: ['Mountain Gorillas', 'Volcanoes National Park', 'Lake Kivu', 'Kigali Genocide Memorial'],
+      rankings: {
+        visitors: { rank: 81, value: '1.3M', label: 'visitors' },
+        safety: { rank: 41, value: '7.4/10', label: 'safety score' },
+        affordability: { rank: 58, value: 'Moderate', label: 'cost level' },
+        food: { rank: 88, value: '3.8/10', label: 'food rating' },
+        beaches: { rank: 103, value: '0/10', label: 'beach quality' },
+        mountains: { rank: 63, value: '3.9/10', label: 'mountain rating' },
+        outdoors: { rank: 81, value: '4.2/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Mozambique',
+      flag: '🇲🇿',
+      continent: 'Africa',
+      highlights: ['Bazaruto Archipelago', 'Gorongosa National Park', 'Tofo Beach', 'Ilha de Mozambique'],
+      rankings: {
+        visitors: { rank: 82, value: '2.7M', label: 'visitors' },
+        safety: { rank: 81, value: '5.6/10', label: 'safety score' },
+        affordability: { rank: 49, value: 'Moderate', label: 'cost level' },
+        food: { rank: 85, value: '4.1/10', label: 'food rating' },
+        beaches: { rank: 27, value: '7.2/10', label: 'beach quality' },
+        mountains: { rank: 80, value: '2.5/10', label: 'mountain rating' },
+        outdoors: { rank: 82, value: '4.1/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Zimbabwe',
+      flag: '🇿🇼',
+      continent: 'Africa',
+      highlights: ['Victoria Falls', 'Great Zimbabwe Ruins', 'Hwange National Park', 'Matobo Hills'],
+      rankings: {
+        visitors: { rank: 83, value: '2.6M', label: 'visitors' },
+        safety: { rank: 83, value: '5.5/10', label: 'safety score' },
+        affordability: { rank: 51, value: 'Moderate', label: 'cost level' },
+        food: { rank: 90, value: '3.6/10', label: 'food rating' },
+        beaches: { rank: 104, value: '0/10', label: 'beach quality' },
+        mountains: { rank: 69, value: '3.4/10', label: 'mountain rating' },
+        outdoors: { rank: 83, value: '4/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Panama',
+      flag: '🇵🇦',
+      continent: 'North America',
+      highlights: ['Panama Canal', 'Bocas del Toro', 'Casco Viejo', 'San Blas Islands'],
+      rankings: {
+        visitors: { rank: 84, value: '2.5M', label: 'visitors' },
+        safety: { rank: 59, value: '6.9/10', label: 'safety score' },
+        affordability: { rank: 53, value: 'Moderate', label: 'cost level' },
+        food: { rank: 71, value: '5.4/10', label: 'food rating' },
+        beaches: { rank: 39, value: '6.2/10', label: 'beach quality' },
+        mountains: { rank: 66, value: '3.7/10', label: 'mountain rating' },
+        outdoors: { rank: 84, value: '3.9/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Belize',
+      flag: '🇧🇿',
+      continent: 'North America',
+      highlights: ['Great Blue Hole', 'Mayan Ruins', 'Barrier Reef', 'Caye Caulker'],
+      rankings: {
+        visitors: { rank: 85, value: '0.5M', label: 'visitors' },
+        safety: { rank: 67, value: '6.6/10', label: 'safety score' },
+        affordability: { rank: 67, value: 'Expensive', label: 'cost level' },
+        food: { rank: 73, value: '5.3/10', label: 'food rating' },
+        beaches: { rank: 43, value: '5.9/10', label: 'beach quality' },
+        mountains: { rank: 79, value: '2.7/10', label: 'mountain rating' },
+        outdoors: { rank: 85, value: '3.8/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'El Salvador',
+      flag: '🇸🇻',
+      continent: 'North America',
+      highlights: ['Surf Beaches', 'Mayan Ruins', 'Ruta de las Flores', 'Santa Ana Volcano'],
+      rankings: {
+        visitors: { rank: 86, value: '2.6M', label: 'visitors' },
+        safety: { rank: 96, value: '4.2/10', label: 'safety score' },
+        affordability: { rank: 38, value: 'Moderate', label: 'cost level' },
+        food: { rank: 75, value: '5.1/10', label: 'food rating' },
+        beaches: { rank: 49, value: '5.5/10', label: 'beach quality' },
+        mountains: { rank: 67, value: '3.6/10', label: 'mountain rating' },
+        outdoors: { rank: 86, value: '3.7/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Honduras',
+      flag: '🇭🇳',
+      continent: 'North America',
+      highlights: ['Roatán', 'Copán Ruins', 'Bay Islands', 'Lake Yojoa'],
+      rankings: {
+        visitors: { rank: 87, value: '2.8M', label: 'visitors' },
+        safety: { rank: 94, value: '4.5/10', label: 'safety score' },
+        affordability: { rank: 42, value: 'Moderate', label: 'cost level' },
+        food: { rank: 77, value: '4.9/10', label: 'food rating' },
+        beaches: { rank: 47, value: '5.6/10', label: 'beach quality' },
+        mountains: { rank: 71, value: '3.3/10', label: 'mountain rating' },
+        outdoors: { rank: 87, value: '3.6/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Fiji',
+      flag: '🇫🇯',
+      continent: 'Oceania',
+      highlights: ['Yasawa Islands', 'Cloud 9', 'Coral Coast', 'Nadi'],
+      rankings: {
+        visitors: { rank: 88, value: '0.9M', label: 'visitors' },
+        safety: { rank: 43, value: '7.4/10', label: 'safety score' },
+        affordability: { rank: 71, value: 'Expensive', label: 'cost level' },
+        food: { rank: 79, value: '4.7/10', label: 'food rating' },
+        beaches: { rank: 35, value: '6.5/10', label: 'beach quality' },
+        mountains: { rank: 84, value: '2.1/10', label: 'mountain rating' },
+        outdoors: { rank: 88, value: '3.5/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Seychelles',
+      flag: '🇸🇨',
+      continent: 'Africa',
+      highlights: ['Anse Source d\'Argent', 'Vallée de Mai', 'La Digue', 'Praslin'],
+      rankings: {
+        visitors: { rank: 89, value: '0.4M', label: 'visitors' },
+        safety: { rank: 47, value: '7.2/10', label: 'safety score' },
+        affordability: { rank: 94, value: 'Very Expensive', label: 'cost level' },
+        food: { rank: 81, value: '4.5/10', label: 'food rating' },
+        beaches: { rank: 51, value: '5.3/10', label: 'beach quality' },
+        mountains: { rank: 86, value: '1.9/10', label: 'mountain rating' },
+        outdoors: { rank: 89, value: '3.4/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Mauritius',
+      flag: '🇲🇺',
+      continent: 'Africa',
+      highlights: ['Le Morne Beach', 'Black River Gorges', 'Chamarel', 'Port Louis'],
+      rankings: {
+        visitors: { rank: 90, value: '1.4M', label: 'visitors' },
+        safety: { rank: 49, value: '7.1/10', label: 'safety score' },
+        affordability: { rank: 77, value: 'Expensive', label: 'cost level' },
+        food: { rank: 83, value: '4.3/10', label: 'food rating' },
+        beaches: { rank: 53, value: '5.2/10', label: 'beach quality' },
+        mountains: { rank: 77, value: '2.8/10', label: 'mountain rating' },
+        outdoors: { rank: 90, value: '3.3/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Senegal',
+      flag: '🇸🇳',
+      continent: 'Africa',
+      highlights: ['Gorée Island', 'Pink Lake', 'Saint-Louis', 'Niokolo-Koba National Park'],
+      rankings: {
+        visitors: { rank: 91, value: '1.9M', label: 'visitors' },
+        safety: { rank: 61, value: '6.8/10', label: 'safety score' },
+        affordability: { rank: 45, value: 'Moderate', label: 'cost level' },
+        food: { rank: 87, value: '3.9/10', label: 'food rating' },
+        beaches: { rank: 59, value: '4.7/10', label: 'beach quality' },
+        mountains: { rank: 92, value: '1.5/10', label: 'mountain rating' },
+        outdoors: { rank: 91, value: '3.2/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Ghana',
+      flag: '🇬🇭',
+      continent: 'Africa',
+      highlights: ['Cape Coast Castle', 'Kakum National Park', 'Mole National Park', 'Accra'],
+      rankings: {
+        visitors: { rank: 92, value: '1.1M', label: 'visitors' },
+        safety: { rank: 56, value: '7.0/10', label: 'safety score' },
+        affordability: { rank: 52, value: 'Moderate', label: 'cost level' },
+        food: { rank: 89, value: '3.7/10', label: 'food rating' },
+        beaches: { rank: 63, value: '4.3/10', label: 'beach quality' },
+        mountains: { rank: 85, value: '2/10', label: 'mountain rating' },
+        outdoors: { rank: 92, value: '3.1/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Pakistan',
+      flag: '🇵🇰',
+      continent: 'Asia',
+      highlights: ['K2', 'Hunza Valley', 'Lahore Fort', 'Skardu'],
+      rankings: {
+        visitors: { rank: 93, value: '0.9M', label: 'visitors' },
+        safety: { rank: 98, value: '3.8/10', label: 'safety score' },
+        affordability: { rank: 57, value: 'Moderate', label: 'cost level' },
+        food: { rank: 91, value: '3.5/10', label: 'food rating' },
+        beaches: { rank: 74, value: '3.3/10', label: 'beach quality' },
+        mountains: { rank: 73, value: '3.2/10', label: 'mountain rating' },
+        outdoors: { rank: 93, value: '3/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Tunisia',
+      flag: '🇹🇳',
+      continent: 'Africa',
+      highlights: ['Carthage', 'Sahara Desert', 'Sidi Bou Said', 'El Djem Amphitheatre'],
+      rankings: {
+        visitors: { rank: 94, value: '9.5M', label: 'visitors' },
+        safety: { rank: 78, value: '5.9/10', label: 'safety score' },
+        affordability: { rank: 59, value: 'Moderate', label: 'cost level' },
+        food: { rank: 92, value: '3.4/10', label: 'food rating' },
+        beaches: { rank: 57, value: '4.8/10', label: 'beach quality' },
+        mountains: { rank: 81, value: '2.4/10', label: 'mountain rating' },
+        outdoors: { rank: 94, value: '2.9/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Algeria',
+      flag: '🇩🇿',
+      continent: 'Africa',
+      highlights: ['Sahara Desert', 'Algiers Casbah', 'Tassili n\'Ajjer', 'Timgad Ruins'],
+      rankings: {
+        visitors: { rank: 95, value: '2.4M', label: 'visitors' },
+        safety: { rank: 91, value: '4.8/10', label: 'safety score' },
+        affordability: { rank: 61, value: 'Moderate', label: 'cost level' },
+        food: { rank: 93, value: '3.3/10', label: 'food rating' },
+        beaches: { rank: 71, value: '3.6/10', label: 'beach quality' },
+        mountains: { rank: 83, value: '2.2/10', label: 'mountain rating' },
+        outdoors: { rank: 95, value: '2.8/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Bangladesh',
+      flag: '🇧🇩',
+      continent: 'Asia',
+      highlights: ['Sundarbans', 'Cox\'s Bazar', 'Dhaka', 'Srimangal'],
+      rankings: {
+        visitors: { rank: 96, value: '0.3M', label: 'visitors' },
+        safety: { rank: 93, value: '4.6/10', label: 'safety score' },
+        affordability: { rank: 63, value: 'Moderate', label: 'cost level' },
+        food: { rank: 94, value: '3.2/10', label: 'food rating' },
+        beaches: { rank: 67, value: '3.9/10', label: 'beach quality' },
+        mountains: { rank: 87, value: '1.9/10', label: 'mountain rating' },
+        outdoors: { rank: 96, value: '2.7/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Libya',
+      flag: '🇱🇾',
+      continent: 'Africa',
+      highlights: ['Leptis Magna', 'Sahara Desert', 'Ghadames', 'Cyrene'],
+      rankings: {
+        visitors: { rank: 97, value: '0.1M', label: 'visitors' },
+        safety: { rank: 100, value: '2.5/10', label: 'safety score' },
+        affordability: { rank: 69, value: 'Expensive', label: 'cost level' },
+        food: { rank: 95, value: '3.1/10', label: 'food rating' },
+        beaches: { rank: 80, value: '2.6/10', label: 'beach quality' },
+        mountains: { rank: 91, value: '1.5/10', label: 'mountain rating' },
+        outdoors: { rank: 97, value: '2.6/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Iraq',
+      flag: '🇮🇶',
+      continent: 'Middle East',
+      highlights: ['Babylon', 'Erbil Citadel', 'Ziggurat of Ur', 'Marsh Arabs'],
+      rankings: {
+        visitors: { rank: 98, value: '0.1M', label: 'visitors' },
+        safety: { rank: 99, value: '3.2/10', label: 'safety score' },
+        affordability: { rank: 73, value: 'Expensive', label: 'cost level' },
+        food: { rank: 96, value: '3/10', label: 'food rating' },
+        beaches: { rank: 84, value: '2.4/10', label: 'beach quality' },
+        mountains: { rank: 89, value: '1.7/10', label: 'mountain rating' },
+        outdoors: { rank: 98, value: '2.5/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Yemen',
+      flag: '🇾🇪',
+      continent: 'Middle East',
+      highlights: ['Sana\'a Old City', 'Socotra Island', 'Shibam', 'Marib'],
+      rankings: {
+        visitors: { rank: 99, value: '0.05M', label: 'visitors' },
+        safety: { rank: 97, value: '4.0/10', label: 'safety score' },
+        affordability: { rank: 79, value: 'Expensive', label: 'cost level' },
+        food: { rank: 97, value: '2.9/10', label: 'food rating' },
+        beaches: { rank: 79, value: '2.7/10', label: 'beach quality' },
+        mountains: { rank: 93, value: '1.4/10', label: 'mountain rating' },
+        outdoors: { rank: 99, value: '2.4/10', label: 'outdoors score' },
+      },
+    },
+    {
+      name: 'Afghanistan',
+      flag: '🇦🇫',
+      continent: 'Asia',
+      highlights: ['Band-e Amir', 'Bamiyan Buddhas', 'Hindu Kush', 'Herat'],
+      rankings: {
+        visitors: { rank: 100, value: '0.02M', label: 'visitors' },
+        safety: { rank: 95, value: '4.3/10', label: 'safety score' },
+        affordability: { rank: 81, value: 'Very Expensive', label: 'cost level' },
+        food: { rank: 98, value: '2.8/10', label: 'food rating' },
+        beaches: { rank: 105, value: '0/10', label: 'beach quality' },
+        mountains: { rank: 94, value: '1.4/10', label: 'mountain rating' },
+        outdoors: { rank: 100, value: '2.3/10', label: 'outdoors score' },
+      },
     },
   ];
 
-  const topTen = allCountries.slice(0, 10);
-  const remainingCountries = allCountries.slice(10);
+  // Get sorted countries based on selected category
+  const getSortedCountries = () => {
+    return [...allCountriesData].sort((a, b) => {
+      return a.rankings[selectedCategory].rank - b.rankings[selectedCategory].rank;
+    });
+  };
+
+  const sortedCountries = getSortedCountries();
+  const topTen = sortedCountries.slice(0, 10);
+  const remainingCountries = sortedCountries.slice(10);
 
   const getRankColor = (rank) => {
     if (rank === 1) return '#fbbf24';
@@ -919,85 +1541,183 @@ export default function WorldRankScreen({ navigation }) {
     return '#4ade80';
   };
 
+  const getCategoryTitle = () => {
+    const category = categories.find(c => c.id === selectedCategory);
+    return category ? category.name : 'Rankings';
+  };
+
+  const getCategorySubtitle = () => {
+    const subtitles = {
+      visitors: 'Most visited countries worldwide',
+      safety: 'Safest countries for travelers',
+      affordability: 'Most affordable travel destinations',
+      food: 'Countries with the best food',
+      beaches: 'Best beach destinations',
+      mountains: 'Best mountain destinations',
+      outdoors: 'Best for outdoor adventures',
+    };
+    return subtitles[selectedCategory] || '';
+  };
+
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>World Rank</Text>
-        <Text style={styles.headerSubtitle}>Most visited countries worldwide</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>{getCategoryTitle()}</Text>
+        <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>{getCategorySubtitle()}</Text>
       </View>
 
-      <View style={styles.topSection}>
-        <Text style={styles.sectionTitle}>Top 10 Countries</Text>
-        {topTen.map((country, index) => (
+      {/* Category Selector */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.categoryScroll}
+        contentContainerStyle={styles.categoryScrollContent}
+      >
+        {categories.map((category) => (
           <TouchableOpacity
-            key={index}
-            style={styles.countryCard}
-            onPress={() => navigation.navigate('CountryDetail', { country })}
+            key={category.id}
+            style={[
+              styles.categoryChip,
+              {
+                backgroundColor: selectedCategory === category.id ? theme.primary : theme.cardBackground,
+                borderColor: selectedCategory === category.id ? theme.primary : theme.border,
+              }
+            ]}
+            onPress={() => {
+              setSelectedCategory(category.id);
+              setDropdownVisible(false);
+            }}
           >
-            <View style={styles.rankContainer}>
-              <View style={[styles.rankBadge, { backgroundColor: getRankColor(country.rank) }]}>
-                <Text style={styles.rankText}>#{country.rank}</Text>
-              </View>
-            </View>
-
-            <Text style={styles.flagEmoji}>{country.flag}</Text>
-
-            <View style={styles.countryInfo}>
-              <Text style={styles.countryName}>{country.name}</Text>
-              <View style={styles.infoRow}>
-                <Ionicons name="people" size={16} color="#888" />
-                <Text style={styles.infoText}>{country.visitors} annual visitors</Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Ionicons name="location" size={16} color="#888" />
-                <Text style={styles.infoText}>{country.continent}</Text>
-              </View>
-            </View>
-
-            <Ionicons name="chevron-forward" size={24} color="#888" />
+            <Ionicons
+              name={category.icon}
+              size={18}
+              color={selectedCategory === category.id ? theme.background : theme.text}
+            />
+            <Text style={[
+              styles.categoryChipText,
+              { color: selectedCategory === category.id ? theme.background : theme.text }
+            ]}>
+              {category.name}
+            </Text>
           </TouchableOpacity>
         ))}
+      </ScrollView>
+
+      <View style={styles.topSection}>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Top 10 Countries</Text>
+        {topTen.map((country, index) => {
+          const rankData = country.rankings[selectedCategory];
+          return (
+            <TouchableOpacity
+              key={index}
+              style={[styles.countryCard, {
+                backgroundColor: theme.cardBackground,
+                borderColor: theme.border
+              }]}
+              onPress={() => navigation.navigate('CountryDetail', {
+                country: {
+                  ...country,
+                  rank: rankData.rank,
+                  visitors: rankData.value,
+                  rankings: {
+                    transportation: 8,
+                    food: 8,
+                    activities: 8,
+                    crowdedness: 7
+                  }
+                }
+              })}
+            >
+              <View style={styles.rankContainer}>
+                <View style={[styles.rankBadge, { backgroundColor: getRankColor(rankData.rank) }]}>
+                  <Text style={[styles.rankText, { color: theme.background }]}>#{rankData.rank}</Text>
+                </View>
+              </View>
+
+              <Text style={styles.flagEmoji}>{country.flag}</Text>
+
+              <View style={styles.countryInfo}>
+                <Text style={[styles.countryName, { color: theme.text }]}>{country.name}</Text>
+                <View style={styles.infoRow}>
+                  <Ionicons name={categories.find(c => c.id === selectedCategory)?.icon || 'star'} size={16} color={theme.textSecondary} />
+                  <Text style={[styles.infoText, { color: theme.textSecondary }]}>
+                    {rankData.value} {rankData.label}
+                  </Text>
+                </View>
+                <View style={styles.infoRow}>
+                  <Ionicons name="location" size={16} color={theme.textSecondary} />
+                  <Text style={[styles.infoText, { color: theme.textSecondary }]}>{country.continent}</Text>
+                </View>
+              </View>
+
+              <Ionicons name="chevron-forward" size={24} color={theme.textSecondary} />
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       <View style={styles.dropdownSection}>
-        <Text style={styles.sectionTitle}>More Countries</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>More Countries</Text>
         <TouchableOpacity
-          style={styles.dropdownButton}
+          style={[styles.dropdownButton, {
+            backgroundColor: theme.cardBackground,
+            borderColor: theme.border
+          }]}
           onPress={() => setDropdownVisible(!dropdownVisible)}
         >
-          <Ionicons name="search" size={20} color="#4ade80" />
-          <Text style={styles.dropdownButtonText}>
-            Browse Countries #11-#100
+          <Ionicons name="search" size={20} color={theme.primary} />
+          <Text style={[styles.dropdownButtonText, { color: theme.text }]}>
+            Browse Countries #11-#{sortedCountries.length}
           </Text>
           <Ionicons
             name={dropdownVisible ? 'chevron-up' : 'chevron-down'}
             size={20}
-            color="#4ade80"
+            color={theme.primary}
           />
         </TouchableOpacity>
 
         {dropdownVisible && (
           <View style={styles.dropdownList}>
-            {remainingCountries.map((country, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.dropdownItem}
-                onPress={() => {
-                  setDropdownVisible(false);
-                  navigation.navigate('CountryDetail', { country });
-                }}
-              >
-                <View style={[styles.smallRankBadge, { backgroundColor: getRankColor(country.rank) }]}>
-                  <Text style={styles.smallRankText}>#{country.rank}</Text>
-                </View>
-                <Text style={styles.dropdownFlag}>{country.flag}</Text>
-                <View style={styles.dropdownCountryInfo}>
-                  <Text style={styles.dropdownCountryName}>{country.name}</Text>
-                  <Text style={styles.dropdownCountryVisitors}>{country.visitors} visitors</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#888" />
-              </TouchableOpacity>
-            ))}
+            {remainingCountries.map((country, index) => {
+              const rankData = country.rankings[selectedCategory];
+              return (
+                <TouchableOpacity
+                  key={index}
+                  style={[styles.dropdownItem, {
+                    backgroundColor: theme.cardBackground,
+                    borderColor: theme.border
+                  }]}
+                  onPress={() => {
+                    setDropdownVisible(false);
+                    navigation.navigate('CountryDetail', {
+                      country: {
+                        ...country,
+                        rank: rankData.rank,
+                        visitors: rankData.value,
+                        rankings: {
+                          transportation: 8,
+                          food: 8,
+                          activities: 8,
+                          crowdedness: 7
+                        }
+                      }
+                    });
+                  }}
+                >
+                  <View style={[styles.smallRankBadge, { backgroundColor: getRankColor(rankData.rank) }]}>
+                    <Text style={[styles.smallRankText, { color: theme.background }]}>#{rankData.rank}</Text>
+                  </View>
+                  <Text style={styles.dropdownFlag}>{country.flag}</Text>
+                  <View style={styles.dropdownCountryInfo}>
+                    <Text style={[styles.dropdownCountryName, { color: theme.text }]}>{country.name}</Text>
+                    <Text style={[styles.dropdownCountryVisitors, { color: theme.textSecondary }]}>
+                      {rankData.value} {rankData.label}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
+                </TouchableOpacity>
+              );
+            })}
           </View>
         )}
       </View>
@@ -1008,7 +1728,6 @@ export default function WorldRankScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0a',
   },
   header: {
     padding: 20,
@@ -1017,12 +1736,31 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#ffffff',
     marginBottom: 5,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: '#888888',
+  },
+  categoryScroll: {
+    marginBottom: 15,
+  },
+  categoryScrollContent: {
+    paddingHorizontal: 20,
+    gap: 10,
+  },
+  categoryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 8,
+    marginRight: 10,
+  },
+  categoryChipText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   topSection: {
     marginBottom: 20,
@@ -1030,20 +1768,17 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#ffffff',
     marginBottom: 15,
     paddingHorizontal: 20,
   },
   countryCard: {
     flexDirection: 'row',
-    backgroundColor: '#1a1a1a',
     marginHorizontal: 20,
     marginBottom: 15,
     padding: 15,
     borderRadius: 15,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#2a2a2a',
   },
   rankContainer: {
     marginRight: 12,
@@ -1058,7 +1793,6 @@ const styles = StyleSheet.create({
   rankText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#0a0a0a',
   },
   flagEmoji: {
     fontSize: 32,
@@ -1070,7 +1804,6 @@ const styles = StyleSheet.create({
   countryName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#ffffff',
     marginBottom: 5,
   },
   infoRow: {
@@ -1081,7 +1814,6 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 14,
-    color: '#888',
   },
   dropdownSection: {
     padding: 20,
@@ -1091,31 +1823,26 @@ const styles = StyleSheet.create({
   dropdownButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1a1a1a',
     padding: 16,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#2a2a2a',
     gap: 12,
   },
   dropdownButtonText: {
     flex: 1,
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#ffffff',
   },
   dropdownList: {
     marginTop: 10,
   },
   dropdownItem: {
     flexDirection: 'row',
-    backgroundColor: '#1a1a1a',
     padding: 12,
     borderRadius: 10,
     marginBottom: 10,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#2a2a2a',
   },
   smallRankBadge: {
     width: 40,
@@ -1128,7 +1855,6 @@ const styles = StyleSheet.create({
   smallRankText: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#0a0a0a',
   },
   dropdownFlag: {
     fontSize: 28,
@@ -1140,11 +1866,9 @@ const styles = StyleSheet.create({
   dropdownCountryName: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#ffffff',
     marginBottom: 3,
   },
   dropdownCountryVisitors: {
     fontSize: 13,
-    color: '#888',
   },
 });

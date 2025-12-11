@@ -2,8 +2,11 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
-import { TouchableOpacity } from 'react-native';
+import { TouchableOpacity, View, Image, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { AppProvider, useAppContext } from './context/AppContext';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { presetAvatars } from './utils/presetAvatars';
 
 // Import all screens
 import HomeScreen from './screens/HomeScreen';
@@ -21,37 +24,122 @@ import CountryDetailScreen from './screens/CountryDetailScreen';
 import ManageCountriesScreen from './screens/ManageCountriesScreen';
 import ManageCitiesScreen from './screens/ManageCitiesScreen';
 import WorldMapScreen from './screens/WorldMapScreen';
+import CompletedTripsScreen from './screens/CompletedTripsScreen';
+import PublicProfileScreen from './screens/PublicProfileScreen';
+import EditProfileScreen from './screens/EditProfileScreen';
+import SearchScreen from './screens/SearchScreen';
+import LeaderboardScreen from './screens/LeaderboardScreen';
+import TravelBuddiesScreen from './screens/TravelBuddiesScreen';
 
 const Stack = createNativeStackNavigator();
 
-export default function App() {
-  const getDashboardButton = (navigation) => ({
+// Profile Avatar Component
+function ProfileAvatar() {
+  const { theme } = useTheme();
+  const { profile } = useAppContext();
+
+  if (profile.avatarType === 'custom' && profile.avatar) {
+    // Custom uploaded image
+    return (
+      <Image
+        source={{ uri: profile.avatar }}
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: 14,
+          borderWidth: 1,
+          borderColor: theme.primary,
+        }}
+      />
+    );
+  } else if (profile.avatarType === 'preset' && profile.avatar) {
+    // Preset emoji avatar
+    const presetAvatar = presetAvatars.find(a => a.id === profile.avatar);
+    if (presetAvatar) {
+      return (
+        <View
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 14,
+            backgroundColor: theme.cardBackground,
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderWidth: 1,
+            borderColor: theme.primary,
+          }}
+        >
+          <Text style={{ fontSize: 16 }}>{presetAvatar.value}</Text>
+        </View>
+      );
+    }
+  }
+  // Default icon
+  return (
+    <Ionicons
+      name="person-circle"
+      size={28}
+      color={theme.primary}
+    />
+  );
+}
+
+function Navigation() {
+  const { theme, isDarkMode, toggleTheme } = useTheme();
+
+  const getDashboardHeaderButtons = (navigation) => ({
     headerRight: () => (
-      <TouchableOpacity
-        onPress={() => navigation.navigate('Dashboard')}
-        style={{ marginRight: 10 }}
-      >
-        <Ionicons name="home" size={24} color="#4ade80" />
-      </TouchableOpacity>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 15, marginRight: 10 }}>
+        <TouchableOpacity onPress={toggleTheme}>
+          <Ionicons
+            name={isDarkMode ? "sunny" : "moon"}
+            size={24}
+            color={theme.primary}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate('Search')}>
+          <Ionicons
+            name="search"
+            size={24}
+            color={theme.primary}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+          <ProfileAvatar />
+        </TouchableOpacity>
+      </View>
+    ),
+  });
+
+  const getHeaderButtons = (navigation) => ({
+    headerRight: () => (
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 15, marginRight: 10 }}>
+        <TouchableOpacity onPress={() => navigation.navigate('Dashboard')}>
+          <Ionicons name="home" size={24} color={theme.primary} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+          <ProfileAvatar />
+        </TouchableOpacity>
+      </View>
     ),
   });
 
   return (
-    <>
-      <StatusBar style="light" />
+    <AppProvider>
+      <StatusBar style={isDarkMode ? "light" : "dark"} />
       <NavigationContainer>
         <Stack.Navigator
           initialRouteName="Home"
           screenOptions={{
             headerStyle: {
-              backgroundColor: '#0a0a0a',
+              backgroundColor: theme.background,
             },
-            headerTintColor: '#4ade80',
+            headerTintColor: theme.primary,
             headerTitleStyle: {
               fontWeight: 'bold',
             },
             contentStyle: {
-              backgroundColor: '#0a0a0a',
+              backgroundColor: theme.background,
             },
           }}
         >
@@ -63,14 +151,17 @@ export default function App() {
           <Stack.Screen
             name="Dashboard"
             component={DashboardScreen}
-            options={{ title: 'Dashboard' }}
+            options={({ navigation }) => ({
+              title: 'Dashboard',
+              ...getDashboardHeaderButtons(navigation),
+            })}
           />
           <Stack.Screen
             name="MyTrips"
             component={MyTripsScreen}
             options={({ navigation }) => ({
               title: 'My Trips',
-              ...getDashboardButton(navigation),
+              ...getHeaderButtons(navigation),
             })}
           />
           <Stack.Screen
@@ -78,7 +169,7 @@ export default function App() {
             component={CreateTripScreen}
             options={({ navigation }) => ({
               title: 'Create Trip',
-              ...getDashboardButton(navigation),
+              ...getHeaderButtons(navigation),
             })}
           />
           <Stack.Screen
@@ -86,7 +177,7 @@ export default function App() {
             component={TripDetailScreen}
             options={({ navigation }) => ({
               title: 'Trip Details',
-              ...getDashboardButton(navigation),
+              ...getHeaderButtons(navigation),
             })}
           />
           <Stack.Screen
@@ -94,15 +185,15 @@ export default function App() {
             component={BudgetMakerScreen}
             options={({ navigation }) => ({
               title: 'Budget Maker',
-              ...getDashboardButton(navigation),
+              ...getHeaderButtons(navigation),
             })}
           />
           <Stack.Screen
             name="MyBudget"
             component={MyBudgetScreen}
             options={({ navigation }) => ({
-              title: 'My Budget',
-              ...getDashboardButton(navigation),
+              title: 'My Budgets',
+              ...getHeaderButtons(navigation),
             })}
           />
           <Stack.Screen
@@ -110,7 +201,7 @@ export default function App() {
             component={TravelMapperScreen}
             options={({ navigation }) => ({
               title: 'Travel Mapper',
-              ...getDashboardButton(navigation),
+              ...getHeaderButtons(navigation),
             })}
           />
           <Stack.Screen
@@ -118,7 +209,7 @@ export default function App() {
             component={AddCompletedTripScreen}
             options={({ navigation }) => ({
               title: 'Add Completed Trip',
-              ...getDashboardButton(navigation),
+              ...getHeaderButtons(navigation),
             })}
           />
           <Stack.Screen
@@ -126,7 +217,7 @@ export default function App() {
             component={YourStatsScreen}
             options={({ navigation }) => ({
               title: 'Your Stats',
-              ...getDashboardButton(navigation),
+              ...getHeaderButtons(navigation),
             })}
           />
           <Stack.Screen
@@ -134,7 +225,7 @@ export default function App() {
             component={WorldRankScreen}
             options={({ navigation }) => ({
               title: 'World Rank',
-              ...getDashboardButton(navigation),
+              ...getHeaderButtons(navigation),
             })}
           />
           <Stack.Screen
@@ -142,7 +233,7 @@ export default function App() {
             component={CountryDetailScreen}
             options={({ navigation }) => ({
               title: 'Country Details',
-              ...getDashboardButton(navigation),
+              ...getHeaderButtons(navigation),
             })}
           />
           <Stack.Screen
@@ -150,7 +241,7 @@ export default function App() {
             component={ManageCountriesScreen}
             options={({ navigation }) => ({
               title: 'Manage Countries',
-              ...getDashboardButton(navigation),
+              ...getHeaderButtons(navigation),
             })}
           />
           <Stack.Screen
@@ -158,7 +249,7 @@ export default function App() {
             component={ManageCitiesScreen}
             options={({ navigation }) => ({
               title: 'Manage Cities',
-              ...getDashboardButton(navigation),
+              ...getHeaderButtons(navigation),
             })}
           />
           <Stack.Screen
@@ -166,11 +257,84 @@ export default function App() {
             component={WorldMapScreen}
             options={({ navigation }) => ({
               title: 'World Map',
-              ...getDashboardButton(navigation),
+              ...getHeaderButtons(navigation),
+            })}
+          />
+          <Stack.Screen
+            name="CompletedTrips"
+            component={CompletedTripsScreen}
+            options={({ navigation }) => ({
+              title: 'Completed Trips',
+              ...getHeaderButtons(navigation),
+            })}
+          />
+          <Stack.Screen
+            name="Profile"
+            component={PublicProfileScreen}
+            options={({ navigation }) => ({
+              title: 'Profile',
+              headerRight: () => (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 15, marginRight: 10 }}>
+                  <TouchableOpacity onPress={() => navigation.navigate('EditProfile')}>
+                    <Ionicons name="create" size={24} color={theme.primary} />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => navigation.navigate('Dashboard')}>
+                    <Ionicons name="home" size={24} color={theme.primary} />
+                  </TouchableOpacity>
+                </View>
+              ),
+            })}
+          />
+          <Stack.Screen
+            name="EditProfile"
+            component={EditProfileScreen}
+            options={({ navigation }) => ({
+              title: 'Edit Profile',
+              ...getHeaderButtons(navigation),
+            })}
+          />
+          <Stack.Screen
+            name="Search"
+            component={SearchScreen}
+            options={({ navigation }) => ({
+              title: 'Search Travelers',
+              ...getHeaderButtons(navigation),
+            })}
+          />
+          <Stack.Screen
+            name="Leaderboard"
+            component={LeaderboardScreen}
+            options={({ navigation }) => ({
+              title: 'Leaderboard',
+              ...getHeaderButtons(navigation),
+            })}
+          />
+          <Stack.Screen
+            name="TravelBuddies"
+            component={TravelBuddiesScreen}
+            options={({ navigation }) => ({
+              title: 'Travel Buddies',
+              ...getHeaderButtons(navigation),
+            })}
+          />
+          <Stack.Screen
+            name="PublicProfile"
+            component={PublicProfileScreen}
+            options={({ navigation }) => ({
+              title: 'Profile',
+              ...getHeaderButtons(navigation),
             })}
           />
         </Stack.Navigator>
       </NavigationContainer>
-    </>
+    </AppProvider>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <Navigation />
+    </ThemeProvider>
   );
 }

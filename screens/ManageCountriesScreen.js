@@ -7,74 +7,84 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAppContext } from '../context/AppContext';
+import { useTheme } from '../context/ThemeContext';
+import { countryCoordinates } from '../utils/coordinates';
 
 export default function ManageCountriesScreen({ navigation, route }) {
-  const [completedTrips, setCompletedTrips] = useState(route.params?.completedTrips || []);
+  const { completedTrips, addCompletedTrip, deleteCompletedTrip } = useAppContext();
+  const { theme } = useTheme();
   const [newCountry, setNewCountry] = useState('');
   const [newYear, setNewYear] = useState('');
+  const [newMonth, setNewMonth] = useState('');
   const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [monthDropdownVisible, setMonthDropdownVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const returnScreen = route.params?.returnScreen || 'YourStats';
 
   // List of all countries (simplified version from WorldRankScreen)
-  const allCountries = [
-    'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Argentina', 'Armenia', 'Australia',
-    'Austria', 'Azerbaijan', 'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium',
-    'Belize', 'Benin', 'Bhutan', 'Bolivia', 'Bosnia and Herzegovina', 'Botswana', 'Brazil', 'Brunei',
-    'Bulgaria', 'Burkina Faso', 'Burundi', 'Cambodia', 'Cameroon', 'Canada', 'Cape Verde',
-    'Central African Republic', 'Chad', 'Chile', 'China', 'Colombia', 'Comoros', 'Congo',
-    'Costa Rica', 'Croatia', 'Cuba', 'Cyprus', 'Czech Republic', 'Denmark', 'Djibouti',
-    'Dominica', 'Dominican Republic', 'East Timor', 'Ecuador', 'Egypt', 'El Salvador',
-    'Equatorial Guinea', 'Eritrea', 'Estonia', 'Ethiopia', 'Fiji', 'Finland', 'France',
-    'Gabon', 'Gambia', 'Georgia', 'Germany', 'Ghana', 'Greece', 'Grenada', 'Guatemala',
-    'Guinea', 'Guinea-Bissau', 'Guyana', 'Haiti', 'Honduras', 'Hong Kong', 'Hungary', 'Iceland',
-    'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland', 'Israel', 'Italy', 'Jamaica', 'Japan',
-    'Jordan', 'Kazakhstan', 'Kenya', 'Kiribati', 'Kosovo', 'Kuwait', 'Kyrgyzstan', 'Laos',
-    'Latvia', 'Lebanon', 'Lesotho', 'Liberia', 'Libya', 'Liechtenstein', 'Lithuania', 'Luxembourg',
-    'Macedonia', 'Madagascar', 'Malawi', 'Malaysia', 'Maldives', 'Mali', 'Malta', 'Marshall Islands',
-    'Mauritania', 'Mauritius', 'Mexico', 'Micronesia', 'Moldova', 'Monaco', 'Mongolia', 'Montenegro',
-    'Morocco', 'Mozambique', 'Myanmar', 'Namibia', 'Nauru', 'Nepal', 'Netherlands', 'New Zealand',
-    'Nicaragua', 'Niger', 'Nigeria', 'North Korea', 'North Macedonia', 'Norway', 'Oman', 'Pakistan',
-    'Palau', 'Palestine', 'Panama', 'Papua New Guinea', 'Paraguay', 'Peru', 'Philippines', 'Poland',
-    'Portugal', 'Qatar', 'Romania', 'Russia', 'Rwanda', 'Saint Kitts and Nevis', 'Saint Lucia',
-    'Saint Vincent and the Grenadines', 'Samoa', 'San Marino', 'Sao Tome and Principe', 'Saudi Arabia',
-    'Senegal', 'Serbia', 'Seychelles', 'Sierra Leone', 'Singapore', 'Slovakia', 'Slovenia',
-    'Solomon Islands', 'Somalia', 'South Africa', 'South Korea', 'South Sudan', 'Spain', 'Sri Lanka',
-    'Sudan', 'Suriname', 'Swaziland', 'Sweden', 'Switzerland', 'Syria', 'Taiwan', 'Tajikistan',
-    'Tanzania', 'Thailand', 'Togo', 'Tonga', 'Trinidad and Tobago', 'Tunisia', 'Turkey',
-    'Turkmenistan', 'Tuvalu', 'Uganda', 'Ukraine', 'United Arab Emirates', 'United Kingdom',
-    'United States', 'Uruguay', 'Uzbekistan', 'Vanuatu', 'Vatican City', 'Venezuela', 'Vietnam',
-    'Yemen', 'Zambia', 'Zimbabwe',
-  ].sort();
+  const allCountries = Object.keys(countryCoordinates).sort();
+
+  // List of months
+  const months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
 
   const selectCountry = (country) => {
     setNewCountry(country);
     setDropdownVisible(false);
+    setSearchQuery('');
+  };
+
+  const selectMonth = (month) => {
+    setNewMonth(month);
+    setMonthDropdownVisible(false);
+  };
+
+  const getFilteredCountries = () => {
+    if (!searchQuery) return allCountries;
+    return allCountries.filter(country =>
+      country.toLowerCase().includes(searchQuery.toLowerCase())
+    );
   };
 
   const addCountry = () => {
     if (!newCountry.trim()) {
-      Alert.alert('Error', 'Please enter a country name');
+      Alert.alert('Error', 'Please select a country');
       return;
+    }
+
+    const coordinates = countryCoordinates[newCountry] || { latitude: 0, longitude: 0 };
+
+    // Build date string with month and year
+    let dateString = newYear.trim() || new Date().getFullYear().toString();
+    if (newMonth.trim()) {
+      dateString = `${newMonth} ${dateString}`;
     }
 
     const newTrip = {
       country: newCountry.trim(),
-      date: newYear.trim() || new Date().getFullYear().toString(),
+      date: dateString,
+      month: newMonth.trim(),
+      year: newYear.trim() || new Date().getFullYear().toString(),
+      latitude: coordinates.latitude,
+      longitude: coordinates.longitude,
+      name: newCountry.trim(),
+      type: 'country', // Mark as country for globe rendering
     };
 
-    const updatedTrips = [...completedTrips, newTrip];
-    setCompletedTrips(updatedTrips);
+    addCompletedTrip(newTrip);
     setNewCountry('');
     setNewYear('');
+    setNewMonth('');
 
-    // Navigate back with updated data
-    navigation.navigate(returnScreen, {
-      completedTrips: updatedTrips,
-      visitedCities: route.params?.visitedCities || [],
-    });
+    Alert.alert('Success', `${newTrip.country} added to your visited countries!`);
   };
 
   const deleteCountry = (index) => {
@@ -87,9 +97,7 @@ export default function ManageCountriesScreen({ navigation, route }) {
           text: 'Delete',
           style: 'destructive',
           onPress: () => {
-            const updatedTrips = completedTrips.filter((_, i) => i !== index);
-            setCompletedTrips(updatedTrips);
-            navigation.setParams({ completedTrips: updatedTrips });
+            deleteCompletedTrip(index);
           },
         },
       ]
@@ -97,91 +105,137 @@ export default function ManageCountriesScreen({ navigation, route }) {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Manage Countries</Text>
-        <Text style={styles.headerSubtitle}>Add countries you've visited in the past</Text>
-      </View>
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: theme.background }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    >
+      <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
+        <View style={styles.header}>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>Manage Countries</Text>
+          <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>Add countries you've visited in the past</Text>
+        </View>
 
       <View style={styles.addSection}>
-        <Text style={styles.sectionTitle}>Add New Country</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Add New Country</Text>
 
         <TouchableOpacity
-          style={styles.dropdownButton}
+          style={[styles.dropdownButton, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder }]}
           onPress={() => setDropdownVisible(!dropdownVisible)}
         >
-          <Text style={newCountry ? styles.dropdownButtonTextSelected : styles.dropdownButtonTextPlaceholder}>
+          <Text style={newCountry ? [styles.dropdownButtonTextSelected, { color: theme.text }] : [styles.dropdownButtonTextPlaceholder, { color: theme.textSecondary }]}>
             {newCountry || 'Select a country'}
           </Text>
           <Ionicons
             name={dropdownVisible ? 'chevron-up' : 'chevron-down'}
             size={20}
-            color="#4ade80"
+            color={theme.primary}
           />
         </TouchableOpacity>
 
         {dropdownVisible && (
-          <ScrollView style={styles.dropdownList} nestedScrollEnabled={true}>
-            {allCountries.map((country, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.dropdownItem}
-                onPress={() => selectCountry(country)}
-              >
-                <Text style={styles.dropdownItemText}>{country}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+          <View style={[styles.dropdownContainer, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder }]}>
+            <TextInput
+              style={[styles.searchInput, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text }]}
+              placeholder="Search countries..."
+              placeholderTextColor={theme.textSecondary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoFocus={true}
+            />
+            <ScrollView style={styles.dropdownList} nestedScrollEnabled={true}>
+              {getFilteredCountries().map((country, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[styles.dropdownItem, { borderBottomColor: theme.border }]}
+                  onPress={() => selectCountry(country)}
+                >
+                  <Text style={[styles.dropdownItemText, { color: theme.text }]}>{country}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
         )}
 
         <TextInput
-          style={styles.input}
+          style={[styles.input, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
           placeholder="Year visited (optional)"
-          placeholderTextColor="#666"
+          placeholderTextColor={theme.textSecondary}
           keyboardType="numeric"
           value={newYear}
           onChangeText={setNewYear}
         />
-        <TouchableOpacity style={styles.addButton} onPress={addCountry}>
-          <Ionicons name="add-circle" size={24} color="#0a0a0a" />
-          <Text style={styles.addButtonText}>Add Country</Text>
+
+        <TouchableOpacity
+          style={[styles.dropdownButton, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder }]}
+          onPress={() => setMonthDropdownVisible(!monthDropdownVisible)}
+        >
+          <Text style={newMonth ? [styles.dropdownButtonTextSelected, { color: theme.text }] : [styles.dropdownButtonTextPlaceholder, { color: theme.textSecondary }]}>
+            {newMonth || 'Month visited (optional)'}
+          </Text>
+          <Ionicons
+            name={monthDropdownVisible ? 'chevron-up' : 'chevron-down'}
+            size={20}
+            color={theme.primary}
+          />
+        </TouchableOpacity>
+
+        {monthDropdownVisible && (
+          <View style={[styles.dropdownContainer, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder }]}>
+            <ScrollView style={styles.dropdownList} nestedScrollEnabled={true}>
+              {months.map((month, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[styles.dropdownItem, { borderBottomColor: theme.border }]}
+                  onPress={() => selectMonth(month)}
+                >
+                  <Text style={[styles.dropdownItemText, { color: theme.text }]}>{month}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        <TouchableOpacity style={[styles.addButton, { backgroundColor: theme.primary }]} onPress={addCountry}>
+          <Ionicons name="add-circle" size={24} color={theme.background} />
+          <Text style={[styles.addButtonText, { color: theme.background }]}>Add Country</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.listSection}>
-        <Text style={styles.sectionTitle}>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>
           Your Countries ({completedTrips.length})
         </Text>
         {completedTrips.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="map-outline" size={60} color="#888" />
-            <Text style={styles.emptyText}>No countries added yet</Text>
+            <Ionicons name="map-outline" size={60} color={theme.textSecondary} />
+            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>No countries added yet</Text>
           </View>
         ) : (
           completedTrips.map((trip, index) => (
-            <View key={index} style={styles.countryCard}>
+            <View key={index} style={[styles.countryCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
               <View style={styles.countryInfo}>
-                <Ionicons name="location" size={24} color="#4ade80" />
+                <Ionicons name="location" size={24} color="#ff4444" />
                 <View style={styles.countryDetails}>
-                  <Text style={styles.countryName}>{trip.country}</Text>
-                  <Text style={styles.countryDate}>{trip.date}</Text>
+                  <Text style={[styles.countryName, { color: theme.text }]}>{trip.country}</Text>
+                  <Text style={[styles.countryDate, { color: theme.textSecondary }]}>{trip.date}</Text>
                 </View>
               </View>
               <TouchableOpacity onPress={() => deleteCountry(index)}>
-                <Ionicons name="trash-outline" size={24} color="#ef4444" />
+                <Ionicons name="trash-outline" size={24} color={theme.danger} />
               </TouchableOpacity>
             </View>
           ))
         )}
       </View>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0a',
   },
   header: {
     padding: 20,
@@ -190,12 +244,10 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#ffffff',
     marginBottom: 5,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: '#888888',
   },
   addSection: {
     padding: 20,
@@ -204,21 +256,16 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#ffffff',
     marginBottom: 15,
   },
   input: {
-    backgroundColor: '#1a1a1a',
     borderWidth: 1,
-    borderColor: '#2a2a2a',
     borderRadius: 10,
     padding: 15,
-    color: '#ffffff',
     fontSize: 16,
     marginBottom: 15,
   },
   addButton: {
-    backgroundColor: '#4ade80',
     padding: 15,
     borderRadius: 10,
     flexDirection: 'row',
@@ -227,7 +274,6 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   addButtonText: {
-    color: '#0a0a0a',
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -241,12 +287,10 @@ const styles = StyleSheet.create({
     padding: 40,
   },
   emptyText: {
-    color: '#888',
     fontSize: 16,
     marginTop: 10,
   },
   countryCard: {
-    backgroundColor: '#1a1a1a',
     borderRadius: 10,
     padding: 15,
     marginBottom: 10,
@@ -254,7 +298,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: '#2a2a2a',
   },
   countryInfo: {
     flexDirection: 'row',
@@ -268,17 +311,13 @@ const styles = StyleSheet.create({
   countryName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#ffffff',
     marginBottom: 3,
   },
   countryDate: {
     fontSize: 14,
-    color: '#888',
   },
   dropdownButton: {
-    backgroundColor: '#1a1a1a',
     borderWidth: 1,
-    borderColor: '#2a2a2a',
     borderRadius: 10,
     padding: 15,
     flexDirection: 'row',
@@ -288,27 +327,29 @@ const styles = StyleSheet.create({
   },
   dropdownButtonTextPlaceholder: {
     fontSize: 16,
-    color: '#666',
   },
   dropdownButtonTextSelected: {
     fontSize: 16,
-    color: '#ffffff',
+  },
+  dropdownContainer: {
+    borderWidth: 1,
+    borderRadius: 10,
+    marginBottom: 15,
+    overflow: 'hidden',
+  },
+  searchInput: {
+    borderBottomWidth: 1,
+    padding: 15,
+    fontSize: 16,
   },
   dropdownList: {
     maxHeight: 200,
-    backgroundColor: '#1a1a1a',
-    borderWidth: 1,
-    borderColor: '#2a2a2a',
-    borderRadius: 10,
-    marginBottom: 15,
   },
   dropdownItem: {
     padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#2a2a2a',
   },
   dropdownItemText: {
     fontSize: 16,
-    color: '#ffffff',
   },
 });

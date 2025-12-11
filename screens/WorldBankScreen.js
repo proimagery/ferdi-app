@@ -68,7 +68,7 @@ export default function WorldBankScreen({ navigation }) {
       highlights: ['Brandenburg Gate', 'Neuschwanstein Castle', 'Berlin Wall'],
     },
     {
-      name: 'United Kingdom',
+      name: 'England',
       rank: 10,
       visitors: '39.4M',
       continent: 'Europe',

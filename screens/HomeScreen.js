@@ -1,8 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../context/ThemeContext';
 
 export default function HomeScreen({ navigation }) {
+  const { theme } = useTheme();
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
 
@@ -44,7 +46,7 @@ export default function HomeScreen({ navigation }) {
   });
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <Animated.View
         style={[
           styles.globeContainer,
@@ -53,18 +55,18 @@ export default function HomeScreen({ navigation }) {
           },
         ]}
       >
-        <Ionicons name="earth" size={120} color="#4ade80" />
+        <Ionicons name="earth" size={120} color={theme.primary} />
       </Animated.View>
 
-      <Text style={styles.title}>Travel Planner</Text>
-      <Text style={styles.subtitle}>Plan Your Next Adventure</Text>
+      <Text style={[styles.title, { color: theme.text }]}>Travel Planner</Text>
+      <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Plan Your Next Adventure</Text>
 
       <TouchableOpacity
-        style={styles.button}
+        style={[styles.button, { backgroundColor: theme.primary }]}
         onPress={() => navigation.navigate('Dashboard')}
       >
-        <Text style={styles.buttonText}>Get Started</Text>
-        <Ionicons name="arrow-forward" size={20} color="#0a0a0a" />
+        <Text style={[styles.buttonText, { color: theme.background }]}>Get Started</Text>
+        <Ionicons name="arrow-forward" size={20} color={theme.background} />
       </TouchableOpacity>
     </View>
   );
@@ -73,7 +75,6 @@ export default function HomeScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0a',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
@@ -84,16 +85,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: '#ffffff',
     marginBottom: 10,
   },
   subtitle: {
     fontSize: 18,
-    color: '#888888',
     marginBottom: 60,
   },
   button: {
-    backgroundColor: '#4ade80',
     paddingHorizontal: 40,
     paddingVertical: 15,
     borderRadius: 30,
@@ -102,7 +100,6 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   buttonText: {
-    color: '#0a0a0a',
     fontSize: 18,
     fontWeight: 'bold',
   },

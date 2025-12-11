@@ -7,44 +7,68 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAppContext } from '../context/AppContext';
+import { getCityCoordinates, countryCoordinates } from '../utils/coordinates';
+import { useTheme } from '../context/ThemeContext';
 
 export default function ManageCitiesScreen({ navigation, route }) {
-  const [visitedCities, setVisitedCities] = useState(route.params?.visitedCities || []);
+  const { theme } = useTheme();
+  const { visitedCities, addVisitedCity, deleteVisitedCity } = useAppContext();
   const [newCity, setNewCity] = useState('');
   const [newCountry, setNewCountry] = useState('');
   const [newYear, setNewYear] = useState('');
+  const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [countrySearch, setCountrySearch] = useState('');
 
   const returnScreen = route.params?.returnScreen || 'YourStats';
 
-  const addCity = () => {
+  // List of all countries for dropdown
+  const allCountries = Object.keys(countryCoordinates).sort();
+
+  // Filter countries based on search
+  const filteredCountries = allCountries.filter(country =>
+    country.toLowerCase().includes(countrySearch.toLowerCase())
+  );
+
+  const selectCountry = (country) => {
+    setNewCountry(country);
+    setDropdownVisible(false);
+    setCountrySearch('');
+  };
+
+  const addCity = async () => {
     if (!newCity.trim()) {
       Alert.alert('Error', 'Please enter a city name');
       return;
     }
     if (!newCountry.trim()) {
-      Alert.alert('Error', 'Please enter a country name');
+      Alert.alert('Error', 'Please select a country');
       return;
     }
+
+    // Get approximate coordinates (use country center for now)
+    const coordinates = await getCityCoordinates(newCity.trim(), newCountry);
 
     const newCityData = {
       city: newCity.trim(),
       country: newCountry.trim(),
       date: newYear.trim() || new Date().getFullYear().toString(),
+      latitude: coordinates.latitude,
+      longitude: coordinates.longitude,
+      name: `${newCity.trim()}, ${newCountry.trim()}`,
+      type: 'city', // Mark as city for globe rendering
     };
 
-    const updatedCities = [...visitedCities, newCityData];
-    setVisitedCities(updatedCities);
+    addVisitedCity(newCityData);
     setNewCity('');
     setNewCountry('');
     setNewYear('');
 
-    // Navigate back with updated data
-    navigation.navigate(returnScreen, {
-      visitedCities: updatedCities,
-      completedTrips: route.params?.completedTrips || [],
-    });
+    Alert.alert('Success', `${newCityData.city} added to your visited cities!`);
   };
 
   const deleteCity = (index) => {
@@ -57,9 +81,7 @@ export default function ManageCitiesScreen({ navigation, route }) {
           text: 'Delete',
           style: 'destructive',
           onPress: () => {
-            const updatedCities = visitedCities.filter((_, i) => i !== index);
-            setVisitedCities(updatedCities);
-            navigation.setParams({ visitedCities: updatedCities });
+            deleteVisitedCity(index);
           },
         },
       ]
@@ -67,70 +89,128 @@ export default function ManageCitiesScreen({ navigation, route }) {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Manage Cities</Text>
-        <Text style={styles.headerSubtitle}>Add cities you've visited in the past</Text>
-      </View>
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: theme.background }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    >
+      <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
+        <View style={styles.header}>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>Manage Cities</Text>
+          <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>Add cities you've visited in the past</Text>
+        </View>
 
       <View style={styles.addSection}>
-        <Text style={styles.sectionTitle}>Add New City</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Add New City</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, {
+            backgroundColor: theme.inputBackground,
+            borderColor: theme.inputBorder,
+            color: theme.text
+          }]}
           placeholder="City name"
-          placeholderTextColor="#666"
+          placeholderTextColor={theme.textSecondary}
           value={newCity}
           onChangeText={setNewCity}
         />
+
+        <TouchableOpacity
+          style={[styles.dropdownButton, {
+            backgroundColor: theme.cardBackground,
+            borderColor: theme.border
+          }]}
+          onPress={() => setDropdownVisible(!dropdownVisible)}
+        >
+          <Text style={newCountry ? [styles.dropdownButtonTextSelected, { color: theme.text }] : [styles.dropdownButtonTextPlaceholder, { color: theme.textSecondary }]}>
+            {newCountry || 'Select a country'}
+          </Text>
+          <Ionicons
+            name={dropdownVisible ? 'chevron-up' : 'chevron-down'}
+            size={20}
+            color={theme.primary}
+          />
+        </TouchableOpacity>
+
+        {dropdownVisible && (
+          <View style={[styles.dropdownContainer, {
+            backgroundColor: theme.cardBackground,
+            borderColor: theme.border
+          }]}>
+            <TextInput
+              style={[styles.searchInput, {
+                backgroundColor: theme.inputBackground,
+                borderColor: theme.inputBorder,
+                color: theme.text
+              }]}
+              placeholder="Search countries..."
+              placeholderTextColor={theme.textSecondary}
+              value={countrySearch}
+              onChangeText={setCountrySearch}
+            />
+            <ScrollView style={styles.dropdownList} nestedScrollEnabled={true}>
+              {filteredCountries.map((country, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[styles.dropdownItem, { borderBottomColor: theme.border }]}
+                  onPress={() => selectCountry(country)}
+                >
+                  <Text style={[styles.dropdownItemText, { color: theme.text }]}>{country}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
         <TextInput
-          style={styles.input}
-          placeholder="Country"
-          placeholderTextColor="#666"
-          value={newCountry}
-          onChangeText={setNewCountry}
-        />
-        <TextInput
-          style={styles.input}
+          style={[styles.input, {
+            backgroundColor: theme.inputBackground,
+            borderColor: theme.inputBorder,
+            color: theme.text
+          }]}
           placeholder="Year visited (optional)"
-          placeholderTextColor="#666"
+          placeholderTextColor={theme.textSecondary}
           keyboardType="numeric"
           value={newYear}
           onChangeText={setNewYear}
         />
-        <TouchableOpacity style={styles.addButton} onPress={addCity}>
-          <Ionicons name="add-circle" size={24} color="#0a0a0a" />
-          <Text style={styles.addButtonText}>Add City</Text>
+        <TouchableOpacity style={[styles.addButton, { backgroundColor: theme.primary }]} onPress={addCity}>
+          <Ionicons name="add-circle" size={24} color={theme.background} />
+          <Text style={[styles.addButtonText, { color: theme.background }]}>Add City</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.listSection}>
-        <Text style={styles.sectionTitle}>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>
           Your Cities ({visitedCities.length})
         </Text>
         {visitedCities.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="business-outline" size={60} color="#888" />
-            <Text style={styles.emptyText}>No cities added yet</Text>
+            <Ionicons name="business-outline" size={60} color={theme.textSecondary} />
+            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>No cities added yet</Text>
           </View>
         ) : (
           visitedCities.map((city, index) => (
-            <View key={index} style={styles.cityCard}>
+            <View key={index} style={[styles.cityCard, {
+              backgroundColor: theme.cardBackground,
+              borderColor: theme.border
+            }]}>
               <View style={styles.cityInfo}>
-                <Ionicons name="business" size={24} color="#fb923c" />
+                <Ionicons name="business" size={24} color="#3b82f6" />
                 <View style={styles.cityDetails}>
-                  <Text style={styles.cityName}>{city.city}</Text>
-                  <Text style={styles.cityCountry}>{city.country}</Text>
-                  <Text style={styles.cityDate}>{city.date}</Text>
+                  <Text style={[styles.cityName, { color: theme.text }]}>{city.city}</Text>
+                  <Text style={[styles.cityCountry, { color: theme.primary }]}>{city.country}</Text>
+                  <Text style={[styles.cityDate, { color: theme.textSecondary }]}>{city.date}</Text>
                 </View>
               </View>
               <TouchableOpacity onPress={() => deleteCity(index)}>
-                <Ionicons name="trash-outline" size={24} color="#ef4444" />
+                <Ionicons name="trash-outline" size={24} color={theme.danger} />
               </TouchableOpacity>
             </View>
           ))
         )}
       </View>
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -235,5 +315,52 @@ const styles = StyleSheet.create({
   cityDate: {
     fontSize: 14,
     color: '#888',
+  },
+  dropdownButton: {
+    backgroundColor: '#1a1a1a',
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+    borderRadius: 10,
+    padding: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+  },
+  dropdownButtonTextPlaceholder: {
+    fontSize: 16,
+    color: '#666',
+  },
+  dropdownButtonTextSelected: {
+    fontSize: 16,
+    color: '#ffffff',
+  },
+  dropdownContainer: {
+    backgroundColor: '#1a1a1a',
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+    borderRadius: 10,
+    marginBottom: 15,
+    overflow: 'hidden',
+  },
+  searchInput: {
+    backgroundColor: '#0a0a0a',
+    borderBottomWidth: 1,
+    borderColor: '#2a2a2a',
+    padding: 15,
+    color: '#ffffff',
+    fontSize: 16,
+  },
+  dropdownList: {
+    maxHeight: 200,
+  },
+  dropdownItem: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2a2a2a',
+  },
+  dropdownItemText: {
+    fontSize: 16,
+    color: '#ffffff',
   },
 });

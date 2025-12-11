@@ -1,20 +1,12 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAppContext } from '../context/AppContext';
+import { useTheme } from '../context/ThemeContext';
 
-export default function YourStatsScreen({ route, navigation }) {
-  const [completedTrips, setCompletedTrips] = useState(route.params?.completedTrips || []);
-  const [visitedCities, setVisitedCities] = useState(route.params?.visitedCities || []);
-  const trips = route.params?.trips || [];
-
-  React.useEffect(() => {
-    if (route.params?.completedTrips) {
-      setCompletedTrips(route.params.completedTrips);
-    }
-    if (route.params?.visitedCities) {
-      setVisitedCities(route.params.visitedCities);
-    }
-  }, [route.params?.completedTrips, route.params?.visitedCities]);
+export default function YourStatsScreen({ navigation }) {
+  const { completedTrips, visitedCities, trips } = useAppContext();
+  const { theme } = useTheme();
 
   // Calculate statistics - merge completed trips from all sources
   const allCountries = [
@@ -49,12 +41,10 @@ export default function YourStatsScreen({ route, navigation }) {
     {
       icon: 'map',
       label: 'Countries Visited',
-      value: totalCountriesVisited,
+      value: completedTrips.length,
       color: '#f472b6',
       clickable: true,
       onPress: () => navigation.navigate('ManageCountries', {
-        completedTrips,
-        visitedCities,
         returnScreen: 'YourStats'
       }),
     },
@@ -65,8 +55,6 @@ export default function YourStatsScreen({ route, navigation }) {
       color: '#fb923c',
       clickable: true,
       onPress: () => navigation.navigate('ManageCities', {
-        visitedCities,
-        completedTrips,
         returnScreen: 'YourStats'
       }),
     },
@@ -76,10 +64,7 @@ export default function YourStatsScreen({ route, navigation }) {
       value: `${worldCoverage}%`,
       color: '#a78bfa',
       clickable: true,
-      onPress: () => navigation.navigate('WorldMap', {
-        completedTrips,
-        visitedCities,
-      }),
+      onPress: () => navigation.navigate('WorldMap'),
     },
   ];
 
@@ -93,7 +78,7 @@ export default function YourStatsScreen({ route, navigation }) {
     'El Salvador': 'North America', 'Dominican Republic': 'North America',
     // Europe
     'France': 'Europe', 'Italy': 'Europe', 'Spain': 'Europe', 'Germany': 'Europe',
-    'UK': 'Europe', 'United Kingdom': 'Europe', 'Netherlands': 'Europe', 'Belgium': 'Europe',
+    'UK': 'Europe', 'England': 'Europe', 'Scotland': 'Europe', 'Wales': 'Europe', 'Northern Ireland': 'Europe', 'Netherlands': 'Europe', 'Belgium': 'Europe',
     'Switzerland': 'Europe', 'Austria': 'Europe', 'Greece': 'Europe', 'Portugal': 'Europe',
     'Poland': 'Europe', 'Sweden': 'Europe', 'Norway': 'Europe', 'Denmark': 'Europe',
     'Finland': 'Europe', 'Iceland': 'Europe', 'Ireland': 'Europe', 'Croatia': 'Europe',
@@ -180,10 +165,10 @@ export default function YourStatsScreen({ route, navigation }) {
   const avgTripLengthDisplay = avgTripLength > 0 ? `${avgTripLength} days` : 'Not enough data';
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Your Travel Stats</Text>
-        <Text style={styles.headerSubtitle}>Track your journey around the world</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>Your Travel Stats</Text>
+        <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>Track your journey around the world</Text>
       </View>
 
       <View style={styles.statsGrid}>
@@ -192,15 +177,15 @@ export default function YourStatsScreen({ route, navigation }) {
           return (
             <CardComponent
               key={index}
-              style={styles.statCard}
+              style={[styles.statCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
               onPress={stat.clickable ? stat.onPress : undefined}
               activeOpacity={stat.clickable ? 0.7 : 1}
             >
               <View style={[styles.iconContainer, { backgroundColor: stat.color + '20' }]}>
                 <Ionicons name={stat.icon} size={32} color={stat.color} />
               </View>
-              <Text style={styles.statValue}>{stat.value}</Text>
-              <Text style={styles.statLabel}>{stat.label}</Text>
+              <Text style={[styles.statValue, { color: theme.text }]}>{stat.value}</Text>
+              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{stat.label}</Text>
               {stat.clickable && (
                 <View style={styles.clickableIndicator}>
                   <Ionicons name="add-circle" size={20} color={stat.color} />
@@ -213,12 +198,12 @@ export default function YourStatsScreen({ route, navigation }) {
 
       {visitedContinents.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Continents Visited</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Continents Visited</Text>
           <View style={styles.continentsList}>
             {visitedContinents.map((continent, index) => (
-              <View key={index} style={styles.continentChip}>
-                <Ionicons name="location" size={16} color="#4ade80" />
-                <Text style={styles.continentText}>{continent}</Text>
+              <View key={index} style={[styles.continentChip, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+                <Ionicons name="location" size={16} color={theme.primary} />
+                <Text style={[styles.continentText, { color: theme.text }]}>{continent}</Text>
               </View>
             ))}
           </View>
@@ -226,41 +211,41 @@ export default function YourStatsScreen({ route, navigation }) {
       )}
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Travel Trends</Text>
-        <View style={styles.trendsCard}>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Travel Trends</Text>
+        <View style={[styles.trendsCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
           <View style={styles.trendItem}>
-            <Text style={styles.trendLabel}>Most Visited Continent</Text>
+            <Text style={[styles.trendLabel, { color: theme.textSecondary }]}>Most Visited Continent</Text>
             <View style={styles.trendValueContainer}>
-              <Text style={styles.trendValue}>{mostVisitedContinent}</Text>
+              <Text style={[styles.trendValue, { color: theme.text }]}>{mostVisitedContinent}</Text>
               <Ionicons name="earth" size={20} color="#60a5fa" />
             </View>
           </View>
-          <View style={styles.trendDivider} />
+          <View style={[styles.trendDivider, { backgroundColor: theme.border }]} />
           <View style={styles.trendItem}>
-            <Text style={styles.trendLabel}>Favorite Season</Text>
+            <Text style={[styles.trendLabel, { color: theme.textSecondary }]}>Favorite Season</Text>
             <View style={styles.trendValueContainer}>
-              <Text style={styles.trendValue}>{favoriteSeason}</Text>
+              <Text style={[styles.trendValue, { color: theme.text }]}>{favoriteSeason}</Text>
               <Ionicons name="sunny" size={20} color="#fbbf24" />
             </View>
           </View>
-          <View style={styles.trendDivider} />
+          <View style={[styles.trendDivider, { backgroundColor: theme.border }]} />
           <View style={styles.trendItem}>
-            <Text style={styles.trendLabel}>Average Trip Length</Text>
+            <Text style={[styles.trendLabel, { color: theme.textSecondary }]}>Average Trip Length</Text>
             <View style={styles.trendValueContainer}>
-              <Text style={styles.trendValue}>{avgTripLengthDisplay}</Text>
-              <Ionicons name="time" size={20} color="#4ade80" />
+              <Text style={[styles.trendValue, { color: theme.text }]}>{avgTripLengthDisplay}</Text>
+              <Ionicons name="time" size={20} color={theme.primary} />
             </View>
           </View>
         </View>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Travel Milestones</Text>
-        <View style={styles.milestoneCard}>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Travel Milestones</Text>
+        <View style={[styles.milestoneCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
           <Ionicons name="trophy" size={24} color="#fbbf24" />
           <View style={styles.milestoneContent}>
-            <Text style={styles.milestoneTitle}>Getting Started</Text>
-            <Text style={styles.milestoneDescription}>
+            <Text style={[styles.milestoneTitle, { color: theme.text }]}>Getting Started</Text>
+            <Text style={[styles.milestoneDescription, { color: theme.textSecondary }]}>
               {totalCountriesVisited === 0
                 ? 'Start your travel journey!'
                 : totalCountriesVisited < 5
@@ -283,7 +268,6 @@ export default function YourStatsScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0a',
   },
   header: {
     padding: 20,
@@ -292,12 +276,10 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#ffffff',
     marginBottom: 5,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: '#888888',
   },
   statsGrid: {
     padding: 10,
@@ -307,13 +289,11 @@ const styles = StyleSheet.create({
   },
   statCard: {
     width: '48%',
-    backgroundColor: '#1a1a1a',
     borderRadius: 15,
     padding: 20,
     marginBottom: 15,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#2a2a2a',
   },
   iconContainer: {
     width: 60,
@@ -326,12 +306,10 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#ffffff',
     marginBottom: 5,
   },
   statLabel: {
     fontSize: 14,
-    color: '#888888',
     textAlign: 'center',
   },
   clickableIndicator: {
@@ -345,7 +323,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#ffffff',
     marginBottom: 15,
   },
   continentsList: {
@@ -356,25 +333,20 @@ const styles = StyleSheet.create({
   continentChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1a1a1a',
     paddingHorizontal: 15,
     paddingVertical: 10,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#2a2a2a',
     gap: 5,
   },
   continentText: {
-    color: '#ffffff',
     fontSize: 14,
   },
   milestoneCard: {
     flexDirection: 'row',
-    backgroundColor: '#1a1a1a',
     padding: 20,
     borderRadius: 15,
     borderWidth: 1,
-    borderColor: '#2a2a2a',
     gap: 15,
   },
   milestoneContent: {
@@ -383,26 +355,21 @@ const styles = StyleSheet.create({
   milestoneTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#ffffff',
     marginBottom: 5,
   },
   milestoneDescription: {
     fontSize: 16,
-    color: '#888888',
   },
   trendsCard: {
-    backgroundColor: '#1a1a1a',
     borderRadius: 15,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#2a2a2a',
   },
   trendItem: {
     paddingVertical: 12,
   },
   trendLabel: {
     fontSize: 14,
-    color: '#888888',
     marginBottom: 8,
   },
   trendValueContainer: {
@@ -413,11 +380,9 @@ const styles = StyleSheet.create({
   trendValue: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#ffffff',
   },
   trendDivider: {
     height: 1,
-    backgroundColor: '#2a2a2a',
     marginVertical: 4,
   },
 });

@@ -25,7 +25,7 @@ TravelPlannerApp/
 │   ├── INSTALLATION.md                # Installation guide
 │   └── PROJECT_SUMMARY.md             # This file
 │
-├── 📱 screens/                        # All application screens (11 files)
+├── 📱 screens/                        # All application screens (13 files)
 │   ├── HomeScreen.js                  # Welcome screen with animated globe
 │   ├── DashboardScreen.js             # Main dashboard with feature cards
 │   ├── MyTripsScreen.js               # Trip list with FAB
@@ -33,11 +33,25 @@ TravelPlannerApp/
 │   ├── TripDetailScreen.js            # Individual trip details
 │   ├── BudgetMakerScreen.js           # Budget category creator
 │   ├── MyBudgetScreen.js              # Expense tracking interface
-│   ├── TravelMapperScreen.js          # Interactive world map
+│   ├── TravelMapperScreen.js          # Interactive world map with distance calc
 │   ├── AddCompletedTripScreen.js      # Log completed trips
 │   ├── YourStatsScreen.js             # Travel statistics dashboard
 │   ├── WorldBankScreen.js             # Country rankings browser
-│   └── CountryDetailScreen.js         # Individual country information
+│   ├── CountryDetailScreen.js         # Individual country information
+│   ├── PublicProfileScreen.js         # Public profile showcase view
+│   └── EditProfileScreen.js           # Edit profile information
+│
+├── 🎨 context/                        # Application state management
+│   ├── AppContext.js                  # Global app state
+│   └── ThemeContext.js                # Dark/Light theme management
+│
+├── 🧩 components/                     # Reusable components
+│   └── SpinningGlobe.js               # 3D globe with trip markers
+│
+├── 🛠️ utils/                          # Utility functions
+│   ├── coordinates.js                 # Country coordinate database
+│   ├── countryFlags.js                # Country flag emoji mappings
+│   └── presetAvatars.js               # Preset profile avatar options
 │
 └── 🎨 assets/                         # App icons and images
     └── README.md                      # Asset guidelines
@@ -74,6 +88,10 @@ TravelPlannerApp/
   - Markers for visited countries
   - Country coordinates lookup
   - Visual trip representation
+  - **Distance Calculations**: Route planning
+    - Total distance calculation
+    - Segment distances between countries
+    - Visual route lines on map
 - **Completed Trips**: Log past travels
   - Country name
   - Visit year
@@ -102,6 +120,49 @@ TravelPlannerApp/
   - Travel tips
   - Quick facts
 
+### 👤 User Profile System
+- **Public Profile View**: Showcase your travels
+  - Profile avatar (custom or preset)
+  - Verified badge display
+  - **Traveler Rank System**: 10 ranks with levels
+    - Drifter (< 5 countries)
+    - Pilgrim (5-9)
+    - Wanderer Lvl 1-3 (10-19)
+    - Seeker Lvl 1-3 (20-29)
+    - Adventurer Lvl 1-3 (30-39)
+    - Traveler Lvl 1-3 (40-49)
+    - Explorer Lvl 1-3 (50-59)
+    - Voyager Lvl 1-3 (60-69)
+    - Globetrotter Lvl 1-4 (70-90)
+    - Nomad Lvl 1-5 (91-141+)
+  - Bio and social media links
+  - Top 3 favorite countries with flags
+  - Next 3 travel destinations
+  - Travel stats card (countries, world %, continents)
+  - Spinning globe visualization
+- **Edit Profile**: Customize your information
+  - Profile picture selection
+    - Upload from camera roll
+    - 12 preset emoji avatars
+    - Clear to default
+  - Basic information (name, location, bio)
+  - Social media (Instagram, Twitter, Facebook)
+  - **Country Search**: Type-to-search functionality
+    - Searchable country pickers
+    - Real-time filtering
+    - Clear search option
+  - Favorite countries selection
+  - Next destinations selection
+  - Save and navigate back to profile
+
+### 🎨 Theme System
+- **Dark/Light Mode Toggle**: User preference
+  - System-wide theme switching
+  - Toggle button on Dashboard
+  - Persistent theme preference
+  - Smooth theme transitions
+  - All screens fully themed
+
 ---
 
 ## Technical Stack
@@ -109,11 +170,13 @@ TravelPlannerApp/
 ### Core Technologies
 | Technology | Version | Purpose |
 |------------|---------|---------|
-| Expo | ~51.0.0 | Development platform |
+| Expo | ~51.0.0 (SDK 54) | Development platform |
 | React Native | 0.74.0 | Mobile framework |
 | React | 18.2.0 | UI library |
 | React Navigation | ^6.1.9 | Navigation system |
 | React Native Maps | 1.14.0 | Map visualization |
+| Expo Image Picker | Latest | Camera roll access |
+| @react-native-picker/picker | Latest | Country selection |
 
 ### Navigation
 - **Stack Navigator**: Hierarchical screen navigation
@@ -121,26 +184,29 @@ TravelPlannerApp/
 - **Gesture Support**: Native swipe-back gestures
 - **Custom Headers**: Themed navigation headers
 
-### Styling
+### Styling & Theming
 - **Design System**: Consistent color palette
+- **Theme Toggle**: User-selectable dark/light mode
 - **Dark Theme**: Black background (#0a0a0a)
+- **Light Theme**: White background (#ffffff)
 - **Accent Color**: Green (#4ade80)
 - **Component Library**: Reusable styled components
+- **Context-based Theming**: ThemeContext for app-wide theme management
 
 ---
 
 ## Screen Flow
 
 ```
-[HomeScreen] → [DashboardScreen]
+[HomeScreen] → [DashboardScreen] (with Theme Toggle)
                       ↓
-        ┌─────────────┼─────────────┐
-        ↓             ↓             ↓
-   [MyTrips]    [BudgetMaker]  [TravelMapper]
-        ↓             ↓             ↓
-  [CreateTrip]  [MyBudget]   [AddCompleted]
-        ↓
-  [TripDetail]
+        ┌─────────────┼─────────────────────┐
+        ↓             ↓             ↓       ↓
+   [MyTrips]    [BudgetMaker]  [TravelMapper] [Profile Icon]
+        ↓             ↓             ↓              ↓
+  [CreateTrip]  [MyBudget]   [AddCompleted]  [PublicProfile]
+        ↓                                          ↓
+  [TripDetail]                              [EditProfile]
                       ↓
         ┌─────────────┼─────────────┐
         ↓             ↓             ↓
@@ -207,6 +273,26 @@ TravelPlannerApp/
 {
   country: String,
   date: String
+}
+```
+
+### User Profile
+```javascript
+{
+  name: String,
+  location: String,
+  bio: String,
+  instagram: String,
+  twitter: String,
+  facebook: String,
+  top1: String,        // Favorite country #1
+  top2: String,        // Favorite country #2
+  top3: String,        // Favorite country #3
+  next1: String,       // Next destination #1
+  next2: String,       // Next destination #2
+  next3: String,       // Next destination #3
+  avatar: String/null, // 'preset1', 'preset2', etc., or image URI
+  avatarType: String   // 'default', 'preset', or 'custom'
 }
 ```
 
@@ -359,8 +445,11 @@ npm start
 
 ## Development Statistics
 
-- **Total Screens**: 11
-- **Total Lines of Code**: ~2,500+
+- **Total Screens**: 13
+- **Total Context Providers**: 2 (AppContext, ThemeContext)
+- **Total Components**: 1 (SpinningGlobe)
+- **Total Utility Files**: 3 (coordinates, countryFlags, presetAvatars)
+- **Total Lines of Code**: ~3,500+
 - **Configuration Files**: 5
 - **Documentation Files**: 5
 - **Asset Files**: 1 (+ instructions)
@@ -382,7 +471,9 @@ npm start
   "react-native-safe-area-context": "4.10.1",
   "react-native-screens": "~3.31.1",
   "@expo/vector-icons": "^14.0.0",
-  "expo-status-bar": "~1.12.1"
+  "expo-status-bar": "~1.12.1",
+  "expo-image-picker": "latest",
+  "@react-native-picker/picker": "latest"
 }
 ```
 
@@ -525,4 +616,214 @@ All core features implemented, documented, and ready to use!
 
 ---
 
-**Last Updated**: December 2025
+---
+
+## Recent Updates (December 2025)
+
+### ✨ New Features Added
+1. **User Profile System**
+   - Public profile showcase view
+   - Editable profile with rich customization
+   - Profile avatar system (camera roll + presets)
+   - Traveler ranking system (10 ranks, 29 levels)
+   - Social media integration
+   - Top 3 favorite countries display
+   - Next 3 destinations planning
+
+2. **Theme System**
+   - Dark/Light mode toggle
+   - System-wide theme switching
+   - Persistent theme preference
+   - All screens fully themed
+
+3. **Enhanced Travel Mapper**
+   - Distance calculations
+   - Route visualization
+   - Multi-country trip planning
+
+4. **Country Selection**
+   - Type-to-search functionality
+   - Real-time filtering
+   - 195+ countries supported
+   - Accurate flag emojis
+
+5. **Avatar System**
+   - 12 preset emoji avatars
+   - Custom photo uploads
+   - Camera roll integration
+   - Avatar preview and management
+
+---
+
+**Last Updated**: December 11, 2025
+
+---
+
+## Upcoming: Supabase Integration
+
+### Overview
+Integrating Supabase as the backend service for authentication, database storage, and cloud synchronization while maintaining the current app structure and functionality.
+
+### Supabase Features to Implement
+
+#### 1. Authentication
+- Email/password authentication
+- User session management
+- Secure token storage
+- Password reset functionality
+
+#### 2. Database (PostgreSQL)
+- Cloud storage for all user data
+- Real-time data synchronization
+- Relational data model for trips, budgets, and profiles
+
+#### 3. Data Migration
+- Migrate from AsyncStorage to Supabase tables
+- Maintain backward compatibility during transition
+- Seamless user experience
+
+### Planned Database Schema
+
+#### Users Table
+```sql
+users (
+  id UUID PRIMARY KEY,
+  email TEXT UNIQUE,
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP
+)
+```
+
+#### Profiles Table
+```sql
+profiles (
+  id UUID PRIMARY KEY REFERENCES users(id),
+  name TEXT,
+  location TEXT,
+  bio TEXT,
+  instagram TEXT,
+  twitter TEXT,
+  facebook TEXT,
+  top1 TEXT,
+  top2 TEXT,
+  top3 TEXT,
+  next1 TEXT,
+  next2 TEXT,
+  next3 TEXT,
+  avatar TEXT,
+  avatar_type TEXT,
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP
+)
+```
+
+#### Trips Table
+```sql
+trips (
+  id UUID PRIMARY KEY,
+  user_id UUID REFERENCES users(id),
+  name TEXT,
+  budget DECIMAL,
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP
+)
+```
+
+#### Trip Countries Table
+```sql
+trip_countries (
+  id UUID PRIMARY KEY,
+  trip_id UUID REFERENCES trips(id),
+  country_name TEXT,
+  start_date DATE,
+  end_date DATE,
+  order_index INTEGER
+)
+```
+
+#### Completed Trips Table
+```sql
+completed_trips (
+  id UUID PRIMARY KEY,
+  user_id UUID REFERENCES users(id),
+  country TEXT,
+  visit_date TEXT,
+  created_at TIMESTAMP
+)
+```
+
+#### Budgets Table
+```sql
+budgets (
+  id UUID PRIMARY KEY,
+  user_id UUID REFERENCES users(id),
+  trip_name TEXT,
+  total_budget DECIMAL,
+  currency_code TEXT,
+  currency_symbol TEXT,
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP
+)
+```
+
+#### Budget Categories Table
+```sql
+budget_categories (
+  id UUID PRIMARY KEY,
+  budget_id UUID REFERENCES budgets(id),
+  name TEXT,
+  budget_amount DECIMAL,
+  spent DECIMAL,
+  icon TEXT,
+  color TEXT
+)
+```
+
+### Implementation Phases
+
+#### Phase 1: Setup
+- [ ] Install Supabase JS client
+- [ ] Configure Supabase project credentials
+- [ ] Create database tables in Supabase
+- [ ] Set up Row Level Security (RLS) policies
+
+#### Phase 2: Authentication
+- [ ] Create login screen
+- [ ] Create signup screen
+- [ ] Implement session management
+- [ ] Add logout functionality
+- [ ] Protected route navigation
+
+#### Phase 3: Data Layer
+- [ ] Create Supabase service utilities
+- [ ] Migrate AppContext to use Supabase
+- [ ] Implement CRUD operations for all data types
+- [ ] Add loading and error states
+
+#### Phase 4: Sync & Polish
+- [ ] Real-time subscriptions for data updates
+- [ ] Offline support with local caching
+- [ ] Profile avatar cloud storage
+- [ ] Error handling and user feedback
+
+---
+
+## Recent Bug Fixes (December 11, 2025)
+
+### Keyboard Overlap Fix
+Fixed keyboard overlap issues across all screens with country selection dropdowns. When typing in country search fields, the dropdown list is no longer hidden behind the keyboard.
+
+**Screens Updated:**
+- ManageCitiesScreen.js
+- EditProfileScreen.js
+- CreateTripScreen.js
+- TravelMapperScreen.js
+- BudgetMakerScreen.js
+- ManageCountriesScreen.js
+- AddCompletedTripScreen.js
+
+**Solution:** Added `KeyboardAvoidingView` wrapper with platform-specific behavior:
+- iOS: `behavior="padding"` with `keyboardVerticalOffset={90}`
+- Android: `behavior="height"`
+
+---
