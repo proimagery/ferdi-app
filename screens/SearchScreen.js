@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,31 +6,105 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAppContext } from '../context/AppContext';
-import { searchUsers } from '../utils/mockUsers';
+import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 import Avatar from '../components/Avatar';
 
 export default function SearchScreen({ navigation }) {
   const { theme } = useTheme();
+  const { user } = useAuth();
   const { travelBuddies, buddyRequests, sendBuddyRequest } = useAppContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+  const debounceTimer = useRef(null);
 
-  const handleSearch = (query) => {
-    setSearchQuery(query);
-    if (query.trim().length > 0) {
-      const results = searchUsers(query);
-      setSearchResults(results);
-    } else {
+  // Debounced search function
+  const searchProfiles = useCallback(async (query) => {
+    if (!query || query.trim().length < 2) {
       setSearchResults([]);
+      setHasSearched(false);
+      return;
     }
-  };
 
-  const handleViewProfile = (user) => {
-    navigation.navigate('PublicProfile', { user });
+    setIsSearching(true);
+    setHasSearched(true);
+
+    try {
+      const searchTerm = query.trim().toLowerCase();
+
+      // Search by username or name (case-insensitive)
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, name, username, location, bio, avatar, avatar_type')
+        .or(`username.ilike.%${searchTerm}%,name.ilike.%${searchTerm}%`)
+        .neq('id', user?.id) // Exclude current user
+        .limit(50);
+
+      if (error) {
+        console.error('Search error:', error);
+        setSearchResults([]);
+      } else {
+        // Transform data to match expected format
+        const transformedResults = (data || []).map(profile => ({
+          id: profile.id,
+          name: profile.name || 'Unknown User',
+          username: profile.username || '',
+          location: profile.location || 'Location not set',
+          bio: profile.bio || '',
+          avatar: profile.avatar,
+          avatarType: profile.avatar_type || 'default',
+        }));
+        setSearchResults(transformedResults);
+      }
+    } catch (err) {
+      console.error('Search error:', err);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  }, [user?.id]);
+
+  // Handle search input with debounce
+  const handleSearch = useCallback((query) => {
+    setSearchQuery(query);
+
+    // Clear previous timer
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+
+    // Don't search if query is too short
+    if (query.trim().length < 2) {
+      setSearchResults([]);
+      setHasSearched(false);
+      setIsSearching(false);
+      return;
+    }
+
+    // Set new debounce timer
+    debounceTimer.current = setTimeout(() => {
+      searchProfiles(query);
+    }, 300);
+  }, [searchProfiles]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
+    };
+  }, []);
+
+  const handleViewProfile = (profileUser) => {
+    navigation.navigate('PublicProfile', { user: profileUser });
   };
 
   const handleAddBuddy = (userId) => {
@@ -39,6 +113,12 @@ export default function SearchScreen({ navigation }) {
 
   const isBuddy = (userId) => travelBuddies.includes(userId);
   const isRequestSent = (userId) => buddyRequests.includes(userId);
+
+  const clearSearch = () => {
+    setSearchQuery('');
+    setSearchResults([]);
+    setHasSearched(false);
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -51,91 +131,115 @@ export default function SearchScreen({ navigation }) {
           <Ionicons name="search" size={20} color={theme.textSecondary} />
           <TextInput
             style={[styles.searchInput, { color: theme.text }]}
-            placeholder="Search for travelers..."
+            placeholder="Search by name or @username..."
             placeholderTextColor={theme.textSecondary}
             value={searchQuery}
             onChangeText={handleSearch}
+            autoCapitalize="none"
+            autoCorrect={false}
+            autoComplete="off"
+            spellCheck={false}
             autoFocus={true}
           />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => handleSearch('')}>
+          {isSearching && (
+            <ActivityIndicator size="small" color={theme.primary} />
+          )}
+          {searchQuery.length > 0 && !isSearching && (
+            <TouchableOpacity onPress={clearSearch}>
               <Ionicons name="close-circle" size={20} color={theme.textSecondary} />
             </TouchableOpacity>
           )}
         </View>
+        {searchQuery.length > 0 && searchQuery.length < 2 && (
+          <Text style={[styles.hintText, { color: theme.textSecondary }]}>
+            Type at least 2 characters to search
+          </Text>
+        )}
       </View>
 
       {/* Search Results */}
       <ScrollView style={styles.resultsContainer} showsVerticalScrollIndicator={false}>
-        {searchQuery.trim().length === 0 ? (
+        {searchQuery.trim().length < 2 ? (
           <View style={styles.emptyState}>
             <Ionicons name="search-outline" size={80} color={theme.textSecondary} />
             <Text style={[styles.emptyTitle, { color: theme.text }]}>
               Search for Travelers
             </Text>
             <Text style={[styles.emptySubtitle, { color: theme.textSecondary }]}>
-              Find friends and fellow adventurers
+              Find friends by name or @username
             </Text>
           </View>
-        ) : searchResults.length === 0 ? (
+        ) : isSearching ? (
+          <View style={styles.loadingState}>
+            <ActivityIndicator size="large" color={theme.primary} />
+            <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
+              Searching...
+            </Text>
+          </View>
+        ) : hasSearched && searchResults.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="person-outline" size={80} color={theme.textSecondary} />
             <Text style={[styles.emptyTitle, { color: theme.text }]}>
               No Results Found
             </Text>
             <Text style={[styles.emptySubtitle, { color: theme.textSecondary }]}>
-              Try searching for a different name
+              Try searching for a different name or username
             </Text>
           </View>
         ) : (
           <View style={styles.resultsList}>
-            {searchResults.map((user) => (
+            <Text style={[styles.resultsCount, { color: theme.textSecondary }]}>
+              {searchResults.length} {searchResults.length === 1 ? 'result' : 'results'} found
+            </Text>
+            {searchResults.map((profileUser) => (
               <TouchableOpacity
-                key={user.id}
+                key={profileUser.id}
                 style={[styles.userCard, {
                   backgroundColor: theme.cardBackground,
                   borderColor: theme.border
                 }]}
-                onPress={() => handleViewProfile(user)}
+                onPress={() => handleViewProfile(profileUser)}
               >
                 <View style={styles.userInfo}>
                   <Avatar
-                    avatar={user.avatar}
-                    avatarType={user.avatarType}
+                    avatar={profileUser.avatar}
+                    avatarType={profileUser.avatarType}
                     size={50}
                   />
                   <View style={styles.userDetails}>
                     <Text style={[styles.userName, { color: theme.text }]}>
-                      {user.name}
+                      {profileUser.name}
                     </Text>
-                    <Text style={[styles.userLocation, { color: theme.textSecondary }]}>
-                      {user.location}
-                    </Text>
-                    <View style={styles.countryCount}>
-                      <Ionicons name="earth" size={14} color={theme.primary} />
-                      <Text style={[styles.countryCountText, { color: theme.primary }]}>
-                        {user.countriesVisited.length} countries
+                    {profileUser.username ? (
+                      <Text style={[styles.userUsername, { color: theme.primary }]}>
+                        @{profileUser.username}
+                      </Text>
+                    ) : null}
+                    <View style={styles.locationRow}>
+                      <Ionicons name="location" size={12} color={theme.textSecondary} />
+                      <Text style={[styles.userLocation, { color: theme.textSecondary }]}>
+                        {profileUser.location}
                       </Text>
                     </View>
                   </View>
                 </View>
-                {!isBuddy(user.id) && (
+                {!isBuddy(profileUser.id) && (
                   <TouchableOpacity
                     style={[styles.addButton, {
-                      backgroundColor: isRequestSent(user.id) ? theme.border : theme.primary,
-                      opacity: isRequestSent(user.id) ? 0.5 : 1
+                      backgroundColor: isRequestSent(profileUser.id) ? theme.border : theme.primary,
+                      opacity: isRequestSent(profileUser.id) ? 0.5 : 1
                     }]}
-                    onPress={() => handleAddBuddy(user.id)}
-                    disabled={isRequestSent(user.id)}
+                    onPress={() => handleAddBuddy(profileUser.id)}
+                    disabled={isRequestSent(profileUser.id)}
                   >
                     <Ionicons
-                      name={isRequestSent(user.id) ? "checkmark" : "person-add"}
+                      name={isRequestSent(profileUser.id) ? "checkmark" : "person-add"}
                       size={18}
                       color={theme.background}
                     />
                   </TouchableOpacity>
                 )}
-                {isBuddy(user.id) && (
+                {isBuddy(profileUser.id) && (
                   <View style={[styles.buddyBadge, { backgroundColor: theme.primary + '20' }]}>
                     <Ionicons name="checkmark-circle" size={16} color={theme.primary} />
                     <Text style={[styles.buddyText, { color: theme.primary }]}>Buddy</Text>
@@ -171,9 +275,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     padding: 5,
   },
+  hintText: {
+    fontSize: 12,
+    marginTop: 8,
+    marginLeft: 5,
+  },
   resultsContainer: {
     flex: 1,
     paddingHorizontal: 20,
+  },
+  loadingState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  loadingText: {
+    fontSize: 16,
+    marginTop: 15,
   },
   emptyState: {
     alignItems: 'center',
@@ -188,9 +306,14 @@ const styles = StyleSheet.create({
   emptySubtitle: {
     fontSize: 14,
     marginTop: 8,
+    textAlign: 'center',
   },
   resultsList: {
     paddingBottom: 20,
+  },
+  resultsCount: {
+    fontSize: 13,
+    marginBottom: 15,
   },
   userCard: {
     flexDirection: 'row',
@@ -207,31 +330,26 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 12,
   },
-  avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-  },
   userDetails: {
     flex: 1,
   },
   userName: {
     fontSize: 16,
     fontWeight: '600',
+    marginBottom: 2,
+  },
+  userUsername: {
+    fontSize: 14,
+    fontWeight: '500',
     marginBottom: 3,
   },
-  userLocation: {
-    fontSize: 13,
-    marginBottom: 4,
-  },
-  countryCount: {
+  locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  countryCountText: {
-    fontSize: 12,
-    fontWeight: '600',
+  userLocation: {
+    fontSize: 13,
   },
   addButton: {
     width: 36,
