@@ -377,6 +377,8 @@ function RootNavigator() {
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background }}>
+        <Ionicons name="earth" size={80} color={theme.primary} style={{ marginBottom: 20 }} />
+        <Text style={{ fontSize: 32, fontWeight: 'bold', color: theme.primary, marginBottom: 10 }}>Ferdi</Text>
         <ActivityIndicator size="large" color={theme.primary} />
       </View>
     );

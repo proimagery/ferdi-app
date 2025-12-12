@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext({});
@@ -10,6 +10,7 @@ export const AuthProvider = ({ children }) => {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [needsUsername, setNeedsUsername] = useState(false);
+  const initializationComplete = useRef(false);
 
   // Check if user has set up a username
   const checkUsernameSetup = async (userId) => {
@@ -34,37 +35,91 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    let isMounted = true;
+    let timeoutId;
 
-      if (session?.user) {
-        const needsSetup = await checkUsernameSetup(session.user.id);
-        setNeedsUsername(needsSetup);
+    const initializeAuth = async () => {
+      try {
+        // Set a timeout to prevent infinite loading
+        timeoutId = setTimeout(() => {
+          if (isMounted && !initializationComplete.current) {
+            console.log('Auth initialization timeout - proceeding without session');
+            initializationComplete.current = true;
+            setLoading(false);
+          }
+        }, 5000); // 5 second timeout
+
+        // Get initial session
+        const { data: { session }, error } = await supabase.auth.getSession();
+
+        if (error) {
+          console.log('Error getting session:', error);
+        }
+
+        if (isMounted && !initializationComplete.current) {
+          setSession(session);
+          setUser(session?.user ?? null);
+
+          if (session?.user) {
+            try {
+              const needsSetup = await checkUsernameSetup(session.user.id);
+              if (isMounted) {
+                setNeedsUsername(needsSetup);
+              }
+            } catch (err) {
+              console.log('Error checking username setup:', err);
+            }
+          }
+
+          initializationComplete.current = true;
+          setLoading(false);
+          clearTimeout(timeoutId);
+        }
+      } catch (err) {
+        console.error('Auth initialization error:', err);
+        if (isMounted && !initializationComplete.current) {
+          initializationComplete.current = true;
+          setLoading(false);
+          clearTimeout(timeoutId);
+        }
       }
+    };
 
-      setLoading(false);
-    });
+    initializeAuth();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!isMounted) return;
+
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          const needsSetup = await checkUsernameSetup(session.user.id);
-          setNeedsUsername(needsSetup);
+          try {
+            const needsSetup = await checkUsernameSetup(session.user.id);
+            if (isMounted) {
+              setNeedsUsername(needsSetup);
+            }
+          } catch (err) {
+            console.log('Error checking username on auth change:', err);
+          }
         } else {
           setNeedsUsername(false);
         }
 
-        setLoading(false);
+        if (!initializationComplete.current) {
+          initializationComplete.current = true;
+          setLoading(false);
+        }
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Function to mark username as set up
