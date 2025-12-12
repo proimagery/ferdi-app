@@ -6,13 +6,15 @@ const AuthContext = createContext({});
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
+  // Start with loading false - show UI immediately, auth state updates async
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [initializing, setInitializing] = useState(true);
   const [needsUsername, setNeedsUsername] = useState(false);
   const initializationComplete = useRef(false);
 
-  // Check if user has set up a username
+  // Check if user has set up a username (non-blocking)
   const checkUsernameSetup = async (userId) => {
     try {
       const { data, error } = await supabase
@@ -22,102 +24,87 @@ export const AuthProvider = ({ children }) => {
         .single();
 
       if (error) {
-        console.log('Error checking username:', error);
         return false;
       }
 
-      // If username is null or empty, user needs to set one up
       return !data?.username;
     } catch (err) {
-      console.error('Error in checkUsernameSetup:', err);
       return false;
     }
   };
 
   useEffect(() => {
     let isMounted = true;
-    let timeoutId;
 
     const initializeAuth = async () => {
+      // Immediately try to get session - this should be fast from cache
       try {
-        // Set a timeout to prevent infinite loading
-        timeoutId = setTimeout(() => {
-          if (isMounted && !initializationComplete.current) {
-            console.log('Auth initialization timeout - proceeding without session');
-            initializationComplete.current = true;
-            setLoading(false);
-          }
-        }, 5000); // 5 second timeout
+        const { data: { session } } = await supabase.auth.getSession();
 
-        // Get initial session
-        const { data: { session }, error } = await supabase.auth.getSession();
-
-        if (error) {
-          console.log('Error getting session:', error);
-        }
-
-        if (isMounted && !initializationComplete.current) {
-          setSession(session);
-          setUser(session?.user ?? null);
-
+        if (isMounted) {
           if (session?.user) {
-            try {
-              const needsSetup = await checkUsernameSetup(session.user.id);
+            setSession(session);
+            setUser(session.user);
+            // Check username in background - don't block UI
+            checkUsernameSetup(session.user.id).then(needsSetup => {
               if (isMounted) {
                 setNeedsUsername(needsSetup);
               }
-            } catch (err) {
-              console.log('Error checking username setup:', err);
-            }
+            });
           }
-
           initializationComplete.current = true;
-          setLoading(false);
-          clearTimeout(timeoutId);
+          setInitializing(false);
         }
       } catch (err) {
-        console.error('Auth initialization error:', err);
-        if (isMounted && !initializationComplete.current) {
+        // On any error, just proceed - user can log in manually
+        if (isMounted) {
           initializationComplete.current = true;
-          setLoading(false);
-          clearTimeout(timeoutId);
+          setInitializing(false);
         }
       }
     };
 
+    // Start auth check immediately
     initializeAuth();
+
+    // Also set a very short fallback - if nothing happens in 1.5s, proceed anyway
+    const fallbackTimeout = setTimeout(() => {
+      if (isMounted && !initializationComplete.current) {
+        initializationComplete.current = true;
+        setInitializing(false);
+      }
+    }, 1500);
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (_event, session) => {
         if (!isMounted) return;
 
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          try {
-            const needsSetup = await checkUsernameSetup(session.user.id);
+          // Check username in background
+          checkUsernameSetup(session.user.id).then(needsSetup => {
             if (isMounted) {
               setNeedsUsername(needsSetup);
             }
-          } catch (err) {
-            console.log('Error checking username on auth change:', err);
-          }
+          });
         } else {
           setNeedsUsername(false);
         }
 
+        // Mark initialization complete on first auth event
         if (!initializationComplete.current) {
           initializationComplete.current = true;
-          setLoading(false);
+          setInitializing(false);
         }
       }
     );
 
     return () => {
       isMounted = false;
-      clearTimeout(timeoutId);
+      clearTimeout(fallbackTimeout);
       subscription.unsubscribe();
     };
   }, []);
@@ -212,6 +199,7 @@ export const AuthProvider = ({ children }) => {
     user,
     session,
     loading,
+    initializing,
     needsUsername,
     signUp,
     signIn,

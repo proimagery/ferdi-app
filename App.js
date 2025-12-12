@@ -371,15 +371,15 @@ function UsernameSetupNavigator() {
 
 // Root Navigator - handles auth state
 function RootNavigator() {
-  const { user, loading, needsUsername } = useAuth();
+  const { user, initializing, needsUsername } = useAuth();
   const { theme, isDarkMode } = useTheme();
 
-  if (loading) {
+  // Only show brief loading on first initialization (max 1.5 seconds)
+  if (initializing) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background }}>
-        <Ionicons name="earth" size={80} color={theme.primary} style={{ marginBottom: 20 }} />
-        <Text style={{ fontSize: 32, fontWeight: 'bold', color: theme.primary, marginBottom: 10 }}>Ferdi</Text>
-        <ActivityIndicator size="large" color={theme.primary} />
+        <Ionicons name="earth" size={60} color={theme.primary} style={{ marginBottom: 15 }} />
+        <Text style={{ fontSize: 28, fontWeight: 'bold', color: theme.primary }}>Ferdi</Text>
       </View>
     );
   }
