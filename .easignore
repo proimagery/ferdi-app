@@ -1,0 +1,13 @@
+# Ignore unnecessary files for EAS builds
+.git
+node_modules
+.expo
+android
+ios
+*.log
+*.lock
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+Thumbs.db

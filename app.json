@@ -26,6 +26,15 @@
     "android": {
       "package": "com.ferdi.app",
       "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0a0a0a"
+      },
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyBtzMruCCMpiFfqfdhLtoHWfSk3TZ5UvJ8"
+        }
+      },
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
