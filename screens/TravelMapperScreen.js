@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ScrollView, Modal, TextInput, KeyboardAvoidingView, Platform, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ScrollView, Modal, TextInput, KeyboardAvoidingView, Platform, Image, ActivityIndicator, Alert } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,15 +8,58 @@ import { countryCoordinates } from '../utils/coordinates';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
+// Google Maps Geocoding API key (same as Maps API)
+const GOOGLE_MAPS_API_KEY = 'AIzaSyBtzMruCCMpiFfqfdhLtoHWfSk3TZ5UvJ8';
+
 export default function TravelMapperScreen({ navigation, route }) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
-  const [selectedCountries, setSelectedCountries] = useState([]);
-  const [showCountryPicker, setShowCountryPicker] = useState(false);
-  const [tempCountry, setTempCountry] = useState('');
+  const [selectedLocations, setSelectedLocations] = useState([]);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [searchText, setSearchText] = useState('');
+  const [pickerMode, setPickerMode] = useState('country'); // 'country' or 'address'
+  const [addressSearch, setAddressSearch] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [addressResults, setAddressResults] = useState([]);
+
+  // Legacy support
+  const [selectedCountries, setSelectedCountries] = useState([]);
 
   const countries = Object.keys(countryCoordinates).sort();
+
+  // Geocode an address using Google Maps API
+  const geocodeAddress = async (address) => {
+    try {
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_MAPS_API_KEY}`
+      );
+      const data = await response.json();
+
+      if (data.status === 'OK' && data.results.length > 0) {
+        return data.results.map(result => ({
+          name: result.formatted_address,
+          latitude: result.geometry.location.lat,
+          longitude: result.geometry.location.lng,
+          type: 'address',
+          placeId: result.place_id,
+        }));
+      }
+      return [];
+    } catch (error) {
+      console.error('Geocoding error:', error);
+      return [];
+    }
+  };
+
+  // Search for addresses
+  const searchAddresses = async () => {
+    if (!addressSearch.trim()) return;
+
+    setIsSearching(true);
+    const results = await geocodeAddress(addressSearch);
+    setAddressResults(results);
+    setIsSearching(false);
+  };
 
   // Calculate distance between two points using Haversine formula
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -54,16 +97,27 @@ export default function TravelMapperScreen({ navigation, route }) {
     };
   };
 
+  // Get location coordinates (works for both countries and addresses)
+  const getLocationCoords = (location) => {
+    if (typeof location === 'string') {
+      // It's a country name
+      return countryCoordinates[location];
+    }
+    // It's a location object with coordinates
+    return { latitude: location.latitude, longitude: location.longitude };
+  };
+
   // Get total journey stats
   const getJourneyStats = () => {
-    if (selectedCountries.length < 2) return null;
+    if (selectedLocations.length < 2) return null;
 
     let totalMiles = 0;
     let totalKm = 0;
 
-    for (let i = 0; i < selectedCountries.length - 1; i++) {
-      const current = countryCoordinates[selectedCountries[i]];
-      const next = countryCoordinates[selectedCountries[i + 1]];
+    for (let i = 0; i < selectedLocations.length - 1; i++) {
+      const current = getLocationCoords(selectedLocations[i]);
+      const next = getLocationCoords(selectedLocations[i + 1]);
+      if (!current || !next) continue;
       const distance = calculateDistance(
         current.latitude,
         current.longitude,
@@ -79,53 +133,100 @@ export default function TravelMapperScreen({ navigation, route }) {
     return {
       totalMiles,
       totalKm,
-      countries: selectedCountries.length,
-      legs: selectedCountries.length - 1,
+      locations: selectedLocations.length,
+      legs: selectedLocations.length - 1,
       travelTimes
     };
   };
 
+  // Add a country to the journey
   const addCountry = (country) => {
-    if (country && !selectedCountries.includes(country)) {
-      setSelectedCountries([...selectedCountries, country]);
-      setTempCountry('');
+    const locationExists = selectedLocations.some(loc =>
+      typeof loc === 'string' ? loc === country : false
+    );
+    if (country && !locationExists) {
+      setSelectedLocations([...selectedLocations, country]);
       setSearchText('');
-      setShowCountryPicker(false);
+      setShowLocationPicker(false);
     }
   };
 
-  const removeCountry = (index) => {
-    const updated = selectedCountries.filter((_, i) => i !== index);
-    setSelectedCountries(updated);
+  // Add an address/city to the journey
+  const addAddress = (addressObj) => {
+    const locationExists = selectedLocations.some(loc =>
+      typeof loc === 'object' && loc.placeId === addressObj.placeId
+    );
+    if (!locationExists) {
+      setSelectedLocations([...selectedLocations, addressObj]);
+      setAddressSearch('');
+      setAddressResults([]);
+      setShowLocationPicker(false);
+    }
   };
 
-  const moveCountry = (index, direction) => {
-    const updated = [...selectedCountries];
+  // Get display name for a location
+  const getLocationName = (location) => {
+    if (typeof location === 'string') return location;
+    // For addresses, show a shorter version
+    const parts = location.name.split(',');
+    return parts.length > 2 ? `${parts[0]}, ${parts[1]}` : location.name;
+  };
+
+  // Get location type icon
+  const getLocationIcon = (location) => {
+    if (typeof location === 'string') return 'flag';
+    return 'location';
+  };
+
+  const removeLocation = (index) => {
+    const updated = selectedLocations.filter((_, i) => i !== index);
+    setSelectedLocations(updated);
+  };
+
+  const moveLocation = (index, direction) => {
+    const updated = [...selectedLocations];
     const newIndex = direction === 'up' ? index - 1 : index + 1;
     if (newIndex >= 0 && newIndex < updated.length) {
       [updated[index], updated[newIndex]] = [updated[newIndex], updated[index]];
-      setSelectedCountries(updated);
+      setSelectedLocations(updated);
     }
   };
 
   const saveToMyTrips = () => {
-    const countriesForTrip = selectedCountries.map(name => ({
-      name,
-      startDate: null,
-      endDate: null,
-    }));
+    const locationsForTrip = selectedLocations.map(loc => {
+      if (typeof loc === 'string') {
+        return {
+          name: loc,
+          type: 'country',
+          startDate: null,
+          endDate: null,
+        };
+      }
+      return {
+        name: loc.name,
+        type: 'address',
+        latitude: loc.latitude,
+        longitude: loc.longitude,
+        startDate: null,
+        endDate: null,
+      };
+    });
 
     navigation.navigate('CreateTrip', {
-      prefilledCountries: countriesForTrip
+      prefilledCountries: locationsForTrip
     });
   };
 
   // Get map markers
-  const markers = selectedCountries.map((countryName, index) => ({
-    ...countryCoordinates[countryName],
-    name: countryName,
-    index: index + 1,
-  }));
+  const markers = selectedLocations.map((location, index) => {
+    const coords = getLocationCoords(location);
+    return {
+      ...coords,
+      name: getLocationName(location),
+      index: index + 1,
+      type: typeof location === 'string' ? 'country' : 'address',
+    };
+  }).filter(m => m.latitude && m.longitude);
 
   // Get polyline coordinates
   const polylineCoords = markers.map(m => ({
@@ -205,8 +306,8 @@ export default function TravelMapperScreen({ navigation, route }) {
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <Ionicons name="location" size={20} color={theme.primary} />
-              <Text style={[styles.statValue, { color: theme.text }]}>{journeyStats.countries}</Text>
-              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Countries</Text>
+              <Text style={[styles.statValue, { color: theme.text }]}>{journeyStats.locations}</Text>
+              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Stops</Text>
             </View>
             <View style={styles.statItem}>
               <Ionicons name="swap-horizontal" size={20} color={theme.secondary} />
@@ -237,11 +338,11 @@ export default function TravelMapperScreen({ navigation, route }) {
         </View>
       )}
 
-      {/* Country List Panel */}
+      {/* Location List Panel */}
       <View style={[styles.bottomPanel, { backgroundColor: theme.cardBackground, borderTopColor: theme.border }]}>
         <View style={styles.panelHeader}>
           <Text style={[styles.panelTitle, { color: theme.text }]}>Journey Route</Text>
-          {selectedCountries.length >= 2 && (
+          {selectedLocations.length >= 2 && (
             <TouchableOpacity
               style={[styles.saveButton, { backgroundColor: theme.primary }]}
               onPress={saveToMyTrips}
@@ -253,50 +354,68 @@ export default function TravelMapperScreen({ navigation, route }) {
         </View>
 
         <ScrollView style={styles.countryList} showsVerticalScrollIndicator={false}>
-          {selectedCountries.length === 0 ? (
+          {selectedLocations.length === 0 ? (
             <View style={styles.emptyState}>
               <Ionicons name="map-outline" size={40} color={theme.textSecondary} />
               <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-                Add countries to plan your journey
+                Add countries or addresses to plan your journey
               </Text>
             </View>
           ) : (
-            selectedCountries.map((country, index) => {
-              const nextCountry = selectedCountries[index + 1];
+            selectedLocations.map((location, index) => {
+              const nextLocation = selectedLocations[index + 1];
               let distance = null;
               let travelTimes = null;
 
-              if (nextCountry) {
-                const current = countryCoordinates[country];
-                const next = countryCoordinates[nextCountry];
-                distance = calculateDistance(
-                  current.latitude,
-                  current.longitude,
-                  next.latitude,
-                  next.longitude
-                );
-                travelTimes = calculateTravelTime(distance.miles);
+              if (nextLocation) {
+                const current = getLocationCoords(location);
+                const next = getLocationCoords(nextLocation);
+                if (current && next) {
+                  distance = calculateDistance(
+                    current.latitude,
+                    current.longitude,
+                    next.latitude,
+                    next.longitude
+                  );
+                  travelTimes = calculateTravelTime(distance.miles);
+                }
               }
 
               return (
                 <View key={index}>
                   <View style={[styles.countryItem, { backgroundColor: theme.background, borderColor: theme.border }]}>
-                    <View style={[styles.countryNumber, { backgroundColor: theme.primary }]}>
+                    <View style={[styles.countryNumber, { backgroundColor: typeof location === 'string' ? theme.primary : theme.secondary }]}>
                       <Text style={[styles.countryNumberText, { color: theme.background }]}>{index + 1}</Text>
                     </View>
-                    <Text style={[styles.countryName, { color: theme.text }]}>{country}</Text>
+                    <View style={styles.locationInfo}>
+                      <View style={styles.locationNameRow}>
+                        <Ionicons
+                          name={getLocationIcon(location)}
+                          size={14}
+                          color={typeof location === 'string' ? theme.primary : theme.secondary}
+                        />
+                        <Text style={[styles.countryName, { color: theme.text }]} numberOfLines={1}>
+                          {getLocationName(location)}
+                        </Text>
+                      </View>
+                      {typeof location === 'object' && (
+                        <Text style={[styles.locationType, { color: theme.textSecondary }]}>
+                          Address/City
+                        </Text>
+                      )}
+                    </View>
                     <View style={styles.countryActions}>
                       {index > 0 && (
-                        <TouchableOpacity onPress={() => moveCountry(index, 'up')}>
+                        <TouchableOpacity onPress={() => moveLocation(index, 'up')}>
                           <Ionicons name="arrow-up" size={20} color={theme.primary} />
                         </TouchableOpacity>
                       )}
-                      {index < selectedCountries.length - 1 && (
-                        <TouchableOpacity onPress={() => moveCountry(index, 'down')}>
+                      {index < selectedLocations.length - 1 && (
+                        <TouchableOpacity onPress={() => moveLocation(index, 'down')}>
                           <Ionicons name="arrow-down" size={20} color={theme.primary} />
                         </TouchableOpacity>
                       )}
-                      <TouchableOpacity onPress={() => removeCountry(index)}>
+                      <TouchableOpacity onPress={() => removeLocation(index)}>
                         <Ionicons name="close-circle" size={20} color={theme.danger} />
                       </TouchableOpacity>
                     </View>
@@ -342,22 +461,24 @@ export default function TravelMapperScreen({ navigation, route }) {
         </ScrollView>
       </View>
 
-      {/* Add Country FAB */}
+      {/* Add Location FAB */}
       <TouchableOpacity
         style={[styles.fab, { backgroundColor: theme.primary }]}
-        onPress={() => setShowCountryPicker(true)}
+        onPress={() => setShowLocationPicker(true)}
       >
         <Ionicons name="add" size={30} color={theme.background} />
       </TouchableOpacity>
 
-      {/* Country Picker Modal */}
+      {/* Location Picker Modal */}
       <Modal
-        visible={showCountryPicker}
+        visible={showLocationPicker}
         transparent={true}
         animationType="slide"
         onRequestClose={() => {
-          setShowCountryPicker(false);
+          setShowLocationPicker(false);
           setSearchText('');
+          setAddressSearch('');
+          setAddressResults([]);
         }}
       >
         <View style={styles.modalOverlay}>
@@ -367,68 +488,223 @@ export default function TravelMapperScreen({ navigation, route }) {
           >
             <View style={[styles.modalContent, { backgroundColor: theme.cardBackground }]}>
               <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: theme.text }]}>Add Country</Text>
-              <TouchableOpacity onPress={() => {
-                setShowCountryPicker(false);
-                setSearchText('');
-              }}>
-                <Ionicons name="close" size={24} color={theme.text} />
-              </TouchableOpacity>
-            </View>
-
-            {/* Search Input */}
-            <View style={[styles.searchContainer, { backgroundColor: theme.inputBackground, borderColor: theme.border }]}>
-              <Ionicons name="search" size={20} color={theme.textSecondary} />
-              <TextInput
-                style={[styles.searchInput, { color: theme.text }]}
-                placeholder="Type to search countries..."
-                placeholderTextColor={theme.textSecondary}
-                value={searchText}
-                onChangeText={setSearchText}
-                autoCapitalize="words"
-                autoFocus={true}
-              />
-              {searchText.length > 0 && (
-                <TouchableOpacity onPress={() => setSearchText('')}>
-                  <Ionicons name="close-circle" size={20} color={theme.textSecondary} />
+                <Text style={[styles.modalTitle, { color: theme.text }]}>Add Location</Text>
+                <TouchableOpacity onPress={() => {
+                  setShowLocationPicker(false);
+                  setSearchText('');
+                  setAddressSearch('');
+                  setAddressResults([]);
+                }}>
+                  <Ionicons name="close" size={24} color={theme.text} />
                 </TouchableOpacity>
-              )}
-            </View>
+              </View>
 
-            {/* Country List */}
-            <ScrollView style={styles.countryPickerList} showsVerticalScrollIndicator={false}>
-              {countries
-                .filter(country => country.toLowerCase().includes(searchText.toLowerCase()))
-                .map((country, index) => (
+              {/* Mode Toggle Tabs */}
+              <View style={[styles.modeTabs, { backgroundColor: theme.background, borderColor: theme.border }]}>
+                <TouchableOpacity
+                  style={[
+                    styles.modeTab,
+                    pickerMode === 'country' && { backgroundColor: theme.primary }
+                  ]}
+                  onPress={() => {
+                    setPickerMode('country');
+                    setAddressSearch('');
+                    setAddressResults([]);
+                  }}
+                >
+                  <Ionicons
+                    name="flag"
+                    size={18}
+                    color={pickerMode === 'country' ? theme.background : theme.textSecondary}
+                  />
+                  <Text style={[
+                    styles.modeTabText,
+                    { color: pickerMode === 'country' ? theme.background : theme.textSecondary }
+                  ]}>
+                    Country
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.modeTab,
+                    pickerMode === 'address' && { backgroundColor: theme.secondary }
+                  ]}
+                  onPress={() => {
+                    setPickerMode('address');
+                    setSearchText('');
+                  }}
+                >
+                  <Ionicons
+                    name="location"
+                    size={18}
+                    color={pickerMode === 'address' ? theme.background : theme.textSecondary}
+                  />
+                  <Text style={[
+                    styles.modeTabText,
+                    { color: pickerMode === 'address' ? theme.background : theme.textSecondary }
+                  ]}>
+                    Address/City
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {pickerMode === 'country' ? (
+                <>
+                  {/* Country Search Input */}
+                  <View style={[styles.searchContainer, { backgroundColor: theme.inputBackground, borderColor: theme.border }]}>
+                    <Ionicons name="search" size={20} color={theme.textSecondary} />
+                    <TextInput
+                      style={[styles.searchInput, { color: theme.text }]}
+                      placeholder="Search countries..."
+                      placeholderTextColor={theme.textSecondary}
+                      value={searchText}
+                      onChangeText={setSearchText}
+                      autoCapitalize="words"
+                    />
+                    {searchText.length > 0 && (
+                      <TouchableOpacity onPress={() => setSearchText('')}>
+                        <Ionicons name="close-circle" size={20} color={theme.textSecondary} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+
+                  {/* Country List */}
+                  <ScrollView style={styles.countryPickerList} showsVerticalScrollIndicator={false}>
+                    {countries
+                      .filter(country => country.toLowerCase().includes(searchText.toLowerCase()))
+                      .map((country, index) => {
+                        const isSelected = selectedLocations.some(loc =>
+                          typeof loc === 'string' && loc === country
+                        );
+                        return (
+                          <TouchableOpacity
+                            key={index}
+                            style={[
+                              styles.countryPickerItem,
+                              {
+                                backgroundColor: isSelected ? theme.border : 'transparent',
+                                borderBottomColor: theme.border
+                              }
+                            ]}
+                            onPress={() => addCountry(country)}
+                            disabled={isSelected}
+                          >
+                            <View style={styles.pickerItemContent}>
+                              <Ionicons name="flag" size={18} color={theme.primary} />
+                              <Text style={[
+                                styles.countryPickerText,
+                                { color: isSelected ? theme.textSecondary : theme.text }
+                              ]}>
+                                {country}
+                              </Text>
+                            </View>
+                            {isSelected && (
+                              <Ionicons name="checkmark-circle" size={20} color={theme.primary} />
+                            )}
+                          </TouchableOpacity>
+                        );
+                      })}
+                    {countries.filter(country => country.toLowerCase().includes(searchText.toLowerCase())).length === 0 && (
+                      <View style={styles.noResultsContainer}>
+                        <Text style={[styles.noResultsText, { color: theme.textSecondary }]}>No countries found</Text>
+                      </View>
+                    )}
+                  </ScrollView>
+                </>
+              ) : (
+                <>
+                  {/* Address Search Input */}
+                  <View style={[styles.searchContainer, { backgroundColor: theme.inputBackground, borderColor: theme.border }]}>
+                    <Ionicons name="location" size={20} color={theme.textSecondary} />
+                    <TextInput
+                      style={[styles.searchInput, { color: theme.text }]}
+                      placeholder="Enter address, city, or place..."
+                      placeholderTextColor={theme.textSecondary}
+                      value={addressSearch}
+                      onChangeText={setAddressSearch}
+                      onSubmitEditing={searchAddresses}
+                      returnKeyType="search"
+                    />
+                    {addressSearch.length > 0 && (
+                      <TouchableOpacity onPress={() => {
+                        setAddressSearch('');
+                        setAddressResults([]);
+                      }}>
+                        <Ionicons name="close-circle" size={20} color={theme.textSecondary} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+
+                  {/* Search Button */}
                   <TouchableOpacity
-                    key={index}
-                    style={[
-                      styles.countryPickerItem,
-                      {
-                        backgroundColor: selectedCountries.includes(country) ? theme.border : 'transparent',
-                        borderBottomColor: theme.border
-                      }
-                    ]}
-                    onPress={() => addCountry(country)}
-                    disabled={selectedCountries.includes(country)}
+                    style={[styles.searchButton, { backgroundColor: theme.secondary }]}
+                    onPress={searchAddresses}
+                    disabled={isSearching || !addressSearch.trim()}
                   >
-                    <Text style={[
-                      styles.countryPickerText,
-                      { color: selectedCountries.includes(country) ? theme.textSecondary : theme.text }
-                    ]}>
-                      {country}
-                    </Text>
-                    {selectedCountries.includes(country) && (
-                      <Ionicons name="checkmark-circle" size={20} color={theme.primary} />
+                    {isSearching ? (
+                      <ActivityIndicator color={theme.background} size="small" />
+                    ) : (
+                      <>
+                        <Ionicons name="search" size={18} color={theme.background} />
+                        <Text style={[styles.searchButtonText, { color: theme.background }]}>
+                          Search Location
+                        </Text>
+                      </>
                     )}
                   </TouchableOpacity>
-                ))}
-              {countries.filter(country => country.toLowerCase().includes(searchText.toLowerCase())).length === 0 && (
-                <View style={styles.noResultsContainer}>
-                  <Text style={[styles.noResultsText, { color: theme.textSecondary }]}>No countries found</Text>
-                </View>
+
+                  {/* Address Results */}
+                  <ScrollView style={styles.countryPickerList} showsVerticalScrollIndicator={false}>
+                    {addressResults.length > 0 ? (
+                      addressResults.map((result, index) => {
+                        const isSelected = selectedLocations.some(loc =>
+                          typeof loc === 'object' && loc.placeId === result.placeId
+                        );
+                        return (
+                          <TouchableOpacity
+                            key={index}
+                            style={[
+                              styles.countryPickerItem,
+                              {
+                                backgroundColor: isSelected ? theme.border : 'transparent',
+                                borderBottomColor: theme.border
+                              }
+                            ]}
+                            onPress={() => addAddress(result)}
+                            disabled={isSelected}
+                          >
+                            <View style={styles.addressResultContent}>
+                              <Ionicons name="location" size={18} color={theme.secondary} />
+                              <Text
+                                style={[
+                                  styles.countryPickerText,
+                                  { color: isSelected ? theme.textSecondary : theme.text, flex: 1 }
+                                ]}
+                                numberOfLines={2}
+                              >
+                                {result.name}
+                              </Text>
+                            </View>
+                            {isSelected && (
+                              <Ionicons name="checkmark-circle" size={20} color={theme.secondary} />
+                            )}
+                          </TouchableOpacity>
+                        );
+                      })
+                    ) : (
+                      <View style={styles.addressHelpContainer}>
+                        <Ionicons name="information-circle" size={40} color={theme.textSecondary} />
+                        <Text style={[styles.addressHelpText, { color: theme.textSecondary }]}>
+                          Enter a city, address, or landmark and tap "Search Location" to find it
+                        </Text>
+                        <Text style={[styles.addressExamples, { color: theme.textSecondary }]}>
+                          Examples:{'\n'}• Paris, France{'\n'}• 1600 Pennsylvania Ave, Washington DC{'\n'}• Eiffel Tower
+                        </Text>
+                      </View>
+                    )}
+                  </ScrollView>
+                </>
               )}
-            </ScrollView>
             </View>
           </KeyboardAvoidingView>
         </View>
@@ -570,6 +846,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  locationInfo: {
+    flex: 1,
+  },
+  locationNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  locationType: {
+    fontSize: 11,
+    marginTop: 2,
+    marginLeft: 20,
+  },
   countryActions: {
     flexDirection: 'row',
     gap: 10,
@@ -674,6 +963,65 @@ const styles = StyleSheet.create({
   noResultsText: {
     fontSize: 14,
     fontStyle: 'italic',
+  },
+  modeTabs: {
+    flexDirection: 'row',
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 15,
+    overflow: 'hidden',
+  },
+  modeTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    gap: 6,
+  },
+  modeTabText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  pickerItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  addressResultContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  searchButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 10,
+    marginBottom: 15,
+    gap: 8,
+  },
+  searchButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  addressHelpContainer: {
+    alignItems: 'center',
+    paddingVertical: 30,
+    paddingHorizontal: 20,
+  },
+  addressHelpText: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 15,
+    marginBottom: 15,
+  },
+  addressExamples: {
+    fontSize: 13,
+    textAlign: 'left',
+    lineHeight: 22,
   },
   footer: {
     alignItems: 'center',
