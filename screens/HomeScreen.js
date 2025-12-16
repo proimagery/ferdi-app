@@ -1,7 +1,9 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
+
+const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function HomeScreen({ navigation }) {
   const { theme } = useTheme();
@@ -58,8 +60,8 @@ export default function HomeScreen({ navigation }) {
         <Ionicons name="earth" size={120} color={theme.primary} />
       </Animated.View>
 
-      <Text style={[styles.title, { color: theme.text }]}>Travel Planner</Text>
-      <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Plan Your Next Adventure</Text>
+      <Image source={ferdiLogo} style={styles.logo} resizeMode="contain" />
+      <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Plan. Connect. Explore.</Text>
 
       <TouchableOpacity
         style={[styles.button, { backgroundColor: theme.primary }]}
@@ -80,16 +82,18 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   globeContainer: {
-    marginBottom: 40,
+    marginBottom: 30,
   },
-  title: {
-    fontSize: 36,
-    fontWeight: 'bold',
+  logo: {
+    width: 300,
+    height: 100,
     marginBottom: 10,
   },
   subtitle: {
-    fontSize: 18,
-    marginBottom: 60,
+    fontSize: 20,
+    fontWeight: '500',
+    letterSpacing: 1,
+    marginBottom: 50,
   },
   button: {
     paddingHorizontal: 40,
