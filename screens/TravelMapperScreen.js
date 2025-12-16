@@ -121,7 +121,7 @@ export default function TravelMapperScreen({ navigation, route }) {
       return {
         success: false,
         error: data.status,
-        message: data.error_message || getGeocodingErrorMessage(data.status)
+        message: getGeocodingErrorMessage(data.status, data.error_message)
       };
     } catch (error) {
       console.error('Geocoding error:', error);
@@ -134,14 +134,19 @@ export default function TravelMapperScreen({ navigation, route }) {
   };
 
   // Get user-friendly error messages
-  const getGeocodingErrorMessage = (status) => {
+  const getGeocodingErrorMessage = (status, errorMessage) => {
+    // Check for API key authorization error in the error message
+    if (errorMessage && errorMessage.includes('not authorized')) {
+      return 'API key not authorized for this app. Please configure API key restrictions in Google Cloud Console to allow your app package name (com.ferdi.app) or remove restrictions.';
+    }
+
     switch (status) {
       case 'ZERO_RESULTS':
         return 'No locations found. Try a different search term.';
       case 'OVER_QUERY_LIMIT':
         return 'API limit reached. Please try again later.';
       case 'REQUEST_DENIED':
-        return 'Geocoding API is not enabled. Please enable it in Google Cloud Console.';
+        return 'Geocoding API is not enabled or API key not authorized. Please check Google Cloud Console settings.';
       case 'INVALID_REQUEST':
         return 'Invalid search. Please enter a valid address or city.';
       default:
@@ -1029,7 +1034,8 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
-    maxHeight: '80%',
+    maxHeight: '85%',
+    minHeight: 450,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1056,7 +1062,9 @@ const styles = StyleSheet.create({
     padding: 5,
   },
   countryPickerList: {
-    maxHeight: 400,
+    flex: 1,
+    minHeight: 200,
+    maxHeight: 350,
   },
   countryPickerItem: {
     flexDirection: 'row',
