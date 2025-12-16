@@ -31,6 +31,7 @@ import EditProfileScreen from './screens/EditProfileScreen';
 import SearchScreen from './screens/SearchScreen';
 import LeaderboardScreen from './screens/LeaderboardScreen';
 import TravelBuddiesScreen from './screens/TravelBuddiesScreen';
+import SettingsScreen from './screens/SettingsScreen';
 
 // Auth screens
 import LoginScreen from './screens/LoginScreen';
@@ -302,11 +303,14 @@ function MainNavigator() {
             title: 'Profile',
             headerRight: () => (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 15, marginRight: 10 }}>
+                <TouchableOpacity onPress={() => navigation.navigate('Dashboard')}>
+                  <Ionicons name="home" size={24} color={theme.primary} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
+                  <Ionicons name="settings-outline" size={24} color={theme.primary} />
+                </TouchableOpacity>
                 <TouchableOpacity onPress={() => navigation.navigate('EditProfile')}>
                   <Ionicons name="create" size={24} color={theme.primary} />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={signOut}>
-                  <Ionicons name="log-out-outline" size={24} color={theme.danger} />
                 </TouchableOpacity>
               </View>
             ),
@@ -349,6 +353,14 @@ function MainNavigator() {
           component={PublicProfileScreen}
           options={({ navigation }) => ({
             title: 'Profile',
+            ...getHeaderButtons(navigation),
+          })}
+        />
+        <Stack.Screen
+          name="Settings"
+          component={SettingsScreen}
+          options={({ navigation }) => ({
+            title: 'Settings',
             ...getHeaderButtons(navigation),
           })}
         />
