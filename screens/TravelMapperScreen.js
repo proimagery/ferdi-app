@@ -11,6 +11,72 @@ const ferdiLogo = require('../assets/Ferdi-transparent.png');
 // Google Maps Geocoding API key (same as Maps API)
 const GOOGLE_MAPS_API_KEY = 'AIzaSyBtzMruCCMpiFfqfdhLtoHWfSk3TZ5UvJ8';
 
+// Country flag emoji mapping
+const countryFlags = {
+  'Afghanistan': '🇦🇫', 'Albania': '🇦🇱', 'Algeria': '🇩🇿', 'Andorra': '🇦🇩', 'Angola': '🇦🇴',
+  'Argentina': '🇦🇷', 'Armenia': '🇦🇲', 'Australia': '🇦🇺', 'Austria': '🇦🇹', 'Azerbaijan': '🇦🇿',
+  'Bahamas': '🇧🇸', 'Bahrain': '🇧🇭', 'Bangladesh': '🇧🇩', 'Barbados': '🇧🇧', 'Belarus': '🇧🇾',
+  'Belgium': '🇧🇪', 'Belize': '🇧🇿', 'Benin': '🇧🇯', 'Bhutan': '🇧🇹', 'Bolivia': '🇧🇴',
+  'Bosnia and Herzegovina': '🇧🇦', 'Botswana': '🇧🇼', 'Brazil': '🇧🇷', 'Brunei': '🇧🇳',
+  'Bulgaria': '🇧🇬', 'Burkina Faso': '🇧🇫', 'Burundi': '🇧🇮', 'Cambodia': '🇰🇭', 'Cameroon': '🇨🇲',
+  'Canada': '🇨🇦', 'Cape Verde': '🇨🇻', 'Central African Republic': '🇨🇫', 'Chad': '🇹🇩',
+  'Chile': '🇨🇱', 'China': '🇨🇳', 'Colombia': '🇨🇴', 'Comoros': '🇰🇲', 'Congo': '🇨🇬',
+  'Costa Rica': '🇨🇷', 'Croatia': '🇭🇷', 'Cuba': '🇨🇺', 'Cyprus': '🇨🇾', 'Czech Republic': '🇨🇿',
+  'Denmark': '🇩🇰', 'Djibouti': '🇩🇯', 'Dominica': '🇩🇲', 'Dominican Republic': '🇩🇴',
+  'East Timor': '🇹🇱', 'Ecuador': '🇪🇨', 'Egypt': '🇪🇬', 'El Salvador': '🇸🇻',
+  'Equatorial Guinea': '🇬🇶', 'Eritrea': '🇪🇷', 'Estonia': '🇪🇪', 'Ethiopia': '🇪🇹',
+  'Fiji': '🇫🇯', 'Finland': '🇫🇮', 'France': '🇫🇷', 'Gabon': '🇬🇦', 'Gambia': '🇬🇲',
+  'Georgia': '🇬🇪', 'Germany': '🇩🇪', 'Ghana': '🇬🇭', 'Greece': '🇬🇷', 'Grenada': '🇬🇩',
+  'Guatemala': '🇬🇹', 'Guinea': '🇬🇳', 'Guinea-Bissau': '🇬🇼', 'Guyana': '🇬🇾', 'Haiti': '🇭🇹',
+  'Honduras': '🇭🇳', 'Hong Kong': '🇭🇰', 'Hungary': '🇭🇺', 'Iceland': '🇮🇸', 'India': '🇮🇳',
+  'Indonesia': '🇮🇩', 'Iran': '🇮🇷', 'Iraq': '🇮🇶', 'Ireland': '🇮🇪', 'Israel': '🇮🇱',
+  'Italy': '🇮🇹', 'Jamaica': '🇯🇲', 'Japan': '🇯🇵', 'Jordan': '🇯🇴', 'Kazakhstan': '🇰🇿',
+  'Kenya': '🇰🇪', 'Kiribati': '🇰🇮', 'Kosovo': '🇽🇰', 'Kuwait': '🇰🇼', 'Kyrgyzstan': '🇰🇬',
+  'Laos': '🇱🇦', 'Latvia': '🇱🇻', 'Lebanon': '🇱🇧', 'Lesotho': '🇱🇸', 'Liberia': '🇱🇷',
+  'Libya': '🇱🇾', 'Liechtenstein': '🇱🇮', 'Lithuania': '🇱🇹', 'Luxembourg': '🇱🇺',
+  'Macedonia': '🇲🇰', 'Madagascar': '🇲🇬', 'Malawi': '🇲🇼', 'Malaysia': '🇲🇾', 'Maldives': '🇲🇻',
+  'Mali': '🇲🇱', 'Malta': '🇲🇹', 'Marshall Islands': '🇲🇭', 'Mauritania': '🇲🇷', 'Mauritius': '🇲🇺',
+  'Mexico': '🇲🇽', 'Micronesia': '🇫🇲', 'Moldova': '🇲🇩', 'Monaco': '🇲🇨', 'Mongolia': '🇲🇳',
+  'Montenegro': '🇲🇪', 'Morocco': '🇲🇦', 'Mozambique': '🇲🇿', 'Myanmar': '🇲🇲', 'Namibia': '🇳🇦',
+  'Nauru': '🇳🇷', 'Nepal': '🇳🇵', 'Netherlands': '🇳🇱', 'New Zealand': '🇳🇿', 'Nicaragua': '🇳🇮',
+  'Niger': '🇳🇪', 'Nigeria': '🇳🇬', 'North Korea': '🇰🇵', 'North Macedonia': '🇲🇰', 'Norway': '🇳🇴',
+  'Oman': '🇴🇲', 'Pakistan': '🇵🇰', 'Palau': '🇵🇼', 'Palestine': '🇵🇸', 'Panama': '🇵🇦',
+  'Papua New Guinea': '🇵🇬', 'Paraguay': '🇵🇾', 'Peru': '🇵🇪', 'Philippines': '🇵🇭', 'Poland': '🇵🇱',
+  'Portugal': '🇵🇹', 'Qatar': '🇶🇦', 'Romania': '🇷🇴', 'Russia': '🇷🇺', 'Rwanda': '🇷🇼',
+  'Saint Kitts and Nevis': '🇰🇳', 'Saint Lucia': '🇱🇨', 'Saint Vincent and the Grenadines': '🇻🇨',
+  'Samoa': '🇼🇸', 'San Marino': '🇸🇲', 'Sao Tome and Principe': '🇸🇹', 'Saudi Arabia': '🇸🇦',
+  'Senegal': '🇸🇳', 'Serbia': '🇷🇸', 'Seychelles': '🇸🇨', 'Sierra Leone': '🇸🇱', 'Singapore': '🇸🇬',
+  'Slovakia': '🇸🇰', 'Slovenia': '🇸🇮', 'Solomon Islands': '🇸🇧', 'Somalia': '🇸🇴',
+  'South Africa': '🇿🇦', 'South Korea': '🇰🇷', 'South Sudan': '🇸🇸', 'Spain': '🇪🇸',
+  'Sri Lanka': '🇱🇰', 'Sudan': '🇸🇩', 'Suriname': '🇸🇷', 'Swaziland': '🇸🇿', 'Sweden': '🇸🇪',
+  'Switzerland': '🇨🇭', 'Syria': '🇸🇾', 'Taiwan': '🇹🇼', 'Tajikistan': '🇹🇯', 'Tanzania': '🇹🇿',
+  'Thailand': '🇹🇭', 'Togo': '🇹🇬', 'Tonga': '🇹🇴', 'Trinidad and Tobago': '🇹🇹', 'Tunisia': '🇹🇳',
+  'Turkey': '🇹🇷', 'Turkmenistan': '🇹🇲', 'Tuvalu': '🇹🇻', 'Uganda': '🇺🇬', 'Ukraine': '🇺🇦',
+  'United Arab Emirates': '🇦🇪', 'England': '🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'Scotland': '🏴󠁧󠁢󠁳󠁣󠁴󠁿',
+  'Wales': '🏴󠁧󠁢󠁷󠁬󠁳󠁿', 'Northern Ireland': '🇬🇧', 'United States': '🇺🇸', 'Uruguay': '🇺🇾',
+  'Uzbekistan': '🇺🇿', 'Vanuatu': '🇻🇺', 'Vatican City': '🇻🇦', 'Venezuela': '🇻🇪',
+  'Vietnam': '🇻🇳', 'Yemen': '🇾🇪', 'Zambia': '🇿🇲', 'Zimbabwe': '🇿🇼',
+  // Common alternative names
+  'USA': '🇺🇸', 'US': '🇺🇸', 'America': '🇺🇸', 'UK': '🇬🇧', 'United Kingdom': '🇬🇧',
+  'Great Britain': '🇬🇧', 'Britain': '🇬🇧', 'UAE': '🇦🇪', 'Emirates': '🇦🇪', 'Dubai': '🇦🇪',
+  'Czech': '🇨🇿', 'Czechia': '🇨🇿', 'Korea': '🇰🇷', 'Holland': '🇳🇱', 'The Netherlands': '🇳🇱',
+  'Ivory Coast': '🇨🇮', "Cote d'Ivoire": '🇨🇮', 'DR Congo': '🇨🇩', 'Democratic Republic of Congo': '🇨🇩',
+  'DRC': '🇨🇩', 'Republic of Congo': '🇨🇬', 'Eswatini': '🇸🇿', 'Burma': '🇲🇲', 'Timor-Leste': '🇹🇱',
+  'Russian Federation': '🇷🇺', 'Macau': '🇲🇴', 'Macao': '🇲🇴', 'Bosnia': '🇧🇦',
+  'St. Lucia': '🇱🇨', 'St Lucia': '🇱🇨', 'St. Vincent': '🇻🇨', 'St Vincent': '🇻🇨',
+  'St. Kitts': '🇰🇳', 'St Kitts': '🇰🇳', 'Trinidad': '🇹🇹', 'Antigua': '🇦🇬',
+  'Antigua and Barbuda': '🇦🇬', 'New Caledonia': '🇳🇨', 'French Polynesia': '🇵🇫',
+  'Tahiti': '🇵🇫', 'Puerto Rico': '🇵🇷', 'Guam': '🇬🇺', 'Virgin Islands': '🇻🇮',
+  'Bermuda': '🇧🇲', 'Cayman Islands': '🇰🇾', 'The Bahamas': '🇧🇸', 'Turks and Caicos': '🇹🇨',
+  'Aruba': '🇦🇼', 'Curacao': '🇨🇼', 'Bonaire': '🇧🇶', 'Martinique': '🇲🇶', 'Guadeloupe': '🇬🇵',
+  'Reunion': '🇷🇪', 'Zanzibar': '🇹🇿',
+};
+
+// Get flag emoji for a country
+const getCountryFlag = (country) => {
+  return countryFlags[country] || '🏳️';
+};
+
 export default function TravelMapperScreen({ navigation, route }) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
@@ -30,24 +96,56 @@ export default function TravelMapperScreen({ navigation, route }) {
   // Geocode an address using Google Maps API
   const geocodeAddress = async (address) => {
     try {
-      const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_MAPS_API_KEY}`
-      );
+      const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_MAPS_API_KEY}`;
+      console.log('Geocoding URL:', url);
+
+      const response = await fetch(url);
       const data = await response.json();
 
+      console.log('Geocoding response:', JSON.stringify(data, null, 2));
+
       if (data.status === 'OK' && data.results.length > 0) {
-        return data.results.map(result => ({
-          name: result.formatted_address,
-          latitude: result.geometry.location.lat,
-          longitude: result.geometry.location.lng,
-          type: 'address',
-          placeId: result.place_id,
-        }));
+        return {
+          success: true,
+          results: data.results.map(result => ({
+            name: result.formatted_address,
+            latitude: result.geometry.location.lat,
+            longitude: result.geometry.location.lng,
+            type: 'address',
+            placeId: result.place_id,
+          }))
+        };
       }
-      return [];
+
+      // Return error info for display
+      return {
+        success: false,
+        error: data.status,
+        message: data.error_message || getGeocodingErrorMessage(data.status)
+      };
     } catch (error) {
       console.error('Geocoding error:', error);
-      return [];
+      return {
+        success: false,
+        error: 'NETWORK_ERROR',
+        message: 'Network error. Please check your internet connection.'
+      };
+    }
+  };
+
+  // Get user-friendly error messages
+  const getGeocodingErrorMessage = (status) => {
+    switch (status) {
+      case 'ZERO_RESULTS':
+        return 'No locations found. Try a different search term.';
+      case 'OVER_QUERY_LIMIT':
+        return 'API limit reached. Please try again later.';
+      case 'REQUEST_DENIED':
+        return 'Geocoding API is not enabled. Please enable it in Google Cloud Console.';
+      case 'INVALID_REQUEST':
+        return 'Invalid search. Please enter a valid address or city.';
+      default:
+        return `Search failed: ${status}`;
     }
   };
 
@@ -56,8 +154,22 @@ export default function TravelMapperScreen({ navigation, route }) {
     if (!addressSearch.trim()) return;
 
     setIsSearching(true);
-    const results = await geocodeAddress(addressSearch);
-    setAddressResults(results);
+    setAddressResults([]);
+
+    const result = await geocodeAddress(addressSearch);
+
+    if (result.success) {
+      setAddressResults(result.results);
+    } else {
+      // Show error alert
+      Alert.alert(
+        'Search Failed',
+        result.message,
+        [{ text: 'OK' }]
+      );
+      setAddressResults([]);
+    }
+
     setIsSearching(false);
   };
 
@@ -389,11 +501,11 @@ export default function TravelMapperScreen({ navigation, route }) {
                     </View>
                     <View style={styles.locationInfo}>
                       <View style={styles.locationNameRow}>
-                        <Ionicons
-                          name={getLocationIcon(location)}
-                          size={14}
-                          color={typeof location === 'string' ? theme.primary : theme.secondary}
-                        />
+                        {typeof location === 'string' ? (
+                          <Text style={styles.flagEmojiSmall}>{getCountryFlag(location)}</Text>
+                        ) : (
+                          <Ionicons name="location" size={14} color={theme.secondary} />
+                        )}
                         <Text style={[styles.countryName, { color: theme.text }]} numberOfLines={1}>
                           {getLocationName(location)}
                         </Text>
@@ -513,7 +625,7 @@ export default function TravelMapperScreen({ navigation, route }) {
                   }}
                 >
                   <Ionicons
-                    name="flag"
+                    name="globe-outline"
                     size={18}
                     color={pickerMode === 'country' ? theme.background : theme.textSecondary}
                   />
@@ -590,7 +702,7 @@ export default function TravelMapperScreen({ navigation, route }) {
                             disabled={isSelected}
                           >
                             <View style={styles.pickerItemContent}>
-                              <Ionicons name="flag" size={18} color={theme.primary} />
+                              <Text style={styles.flagEmoji}>{getCountryFlag(country)}</Text>
                               <Text style={[
                                 styles.countryPickerText,
                                 { color: isSelected ? theme.textSecondary : theme.text }
@@ -1030,5 +1142,11 @@ const styles = StyleSheet.create({
   footerLogo: {
     width: 400,
     height: 120,
+  },
+  flagEmoji: {
+    fontSize: 20,
+  },
+  flagEmojiSmall: {
+    fontSize: 16,
   },
 });
