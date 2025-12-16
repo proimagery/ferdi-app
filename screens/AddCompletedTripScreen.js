@@ -10,14 +10,19 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAppContext } from '../context/AppContext';
 import { countryCoordinates } from '../utils/coordinates';
 import { getCountryFlag } from '../utils/countryFlags';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function AddCompletedTripScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const { completedTrips, addCompletedTrip, deleteCompletedTrip } = useAppContext();
 
@@ -209,6 +214,11 @@ export default function AddCompletedTripScreen({ navigation }) {
             </TouchableOpacity>
           ))
         )}
+
+        {/* Footer */}
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+          <Image source={ferdiLogo} style={styles.footerLogo} resizeMode="contain" />
+        </View>
       </ScrollView>
 
       {/* Add Country FAB */}
@@ -587,5 +597,13 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  footer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  footerLogo: {
+    width: 400,
+    height: 120,
   },
 });

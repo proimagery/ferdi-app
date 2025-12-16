@@ -1,12 +1,16 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppContext } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
+
+const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function YourStatsScreen({ navigation }) {
   const { completedTrips, visitedCities, trips } = useAppContext();
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
 
   // Calculate statistics - merge completed trips from all sources
   const allCountries = [
@@ -261,6 +265,11 @@ export default function YourStatsScreen({ navigation }) {
           </View>
         </View>
       </View>
+
+      {/* Footer */}
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+        <Image source={ferdiLogo} style={styles.footerLogo} resizeMode="contain" />
+      </View>
     </ScrollView>
   );
 }
@@ -384,5 +393,13 @@ const styles = StyleSheet.create({
   trendDivider: {
     height: 1,
     marginVertical: 4,
+  },
+  footer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  footerLogo: {
+    width: 400,
+    height: 120,
   },
 });

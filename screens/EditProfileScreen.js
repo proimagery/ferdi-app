@@ -9,8 +9,12 @@ import { countryCoordinates } from '../utils/coordinates';
 import { presetAvatars } from '../utils/presetAvatars';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../lib/supabase';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function EditProfileScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const { profile, updateProfile, completedTrips, visitedCities, trips } = useAppContext();
   const { theme } = useTheme();
 
@@ -708,6 +712,11 @@ export default function EditProfileScreen({ navigation }) {
         </Text>
         <SpinningGlobe completedTrips={completedTrips} visitedCities={visitedCities} />
       </View>
+
+      {/* Footer */}
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+        <Image source={ferdiLogo} style={styles.footerLogo} resizeMode="contain" />
+      </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -1130,5 +1139,13 @@ const styles = StyleSheet.create({
   manageTripsButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  footer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  footerLogo: {
+    width: 400,
+    height: 120,
   },
 });

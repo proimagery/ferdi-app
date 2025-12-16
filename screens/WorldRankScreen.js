@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function WorldRankScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('visitors');
@@ -1721,6 +1725,11 @@ export default function WorldRankScreen({ navigation }) {
           </View>
         )}
       </View>
+
+      {/* Footer */}
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+        <Image source={ferdiLogo} style={styles.footerLogo} resizeMode="contain" />
+      </View>
     </ScrollView>
   );
 }
@@ -1870,5 +1879,13 @@ const styles = StyleSheet.create({
   },
   dropdownCountryVisitors: {
     fontSize: 13,
+  },
+  footer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  footerLogo: {
+    width: 400,
+    height: 120,
   },
 });

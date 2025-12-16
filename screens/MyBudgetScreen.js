@@ -6,12 +6,17 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppContext } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function MyBudgetScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const { budgets, deleteBudget } = useAppContext();
   const [expandedId, setExpandedId] = useState(null);
@@ -223,6 +228,11 @@ export default function MyBudgetScreen({ navigation }) {
             })}
           </View>
         )}
+
+        {/* Footer */}
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+          <Image source={ferdiLogo} style={styles.footerLogo} resizeMode="contain" />
+        </View>
       </ScrollView>
 
       {/* Create Budget Button */}
@@ -493,5 +503,13 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+  },
+  footer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  footerLogo: {
+    width: 400,
+    height: 120,
   },
 });

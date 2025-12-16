@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -14,8 +15,12 @@ import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import Avatar from '../components/Avatar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function SearchScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { travelBuddies, buddyRequests, sendBuddyRequest } = useAppContext();
@@ -249,6 +254,11 @@ export default function SearchScreen({ navigation }) {
             ))}
           </View>
         )}
+
+        {/* Footer */}
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+          <Image source={ferdiLogo} style={styles.footerLogo} resizeMode="contain" />
+        </View>
       </ScrollView>
     </View>
   );
@@ -369,5 +379,13 @@ const styles = StyleSheet.create({
   buddyText: {
     fontSize: 12,
     fontWeight: '600',
+  },
+  footer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  footerLogo: {
+    width: 400,
+    height: 120,
   },
 });

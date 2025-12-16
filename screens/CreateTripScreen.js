@@ -9,14 +9,19 @@ import {
   Alert,
   Platform,
   KeyboardAvoidingView,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAppContext } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 
+const ferdiLogo = require('../assets/Ferdi-transparent.png');
+
 export default function CreateTripScreen({ navigation, route }) {
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
   const { trips, addTrip, updateTrip, addBudget } = useAppContext();
   const editMode = route.params?.editMode || false;
   const editIndex = route.params?.editIndex;
@@ -365,6 +370,11 @@ export default function CreateTripScreen({ navigation, route }) {
             />
           </View>
         )}
+
+        {/* Footer */}
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+          <Image source={ferdiLogo} style={styles.footerLogo} resizeMode="contain" />
+        </View>
       </ScrollView>
 
       {/* Date Picker Modal */}
@@ -534,5 +544,13 @@ const styles = StyleSheet.create({
   nextButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  footer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  footerLogo: {
+    width: 400,
+    height: 120,
   },
 });

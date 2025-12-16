@@ -1,14 +1,18 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppContext } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { countryCoordinates } from '../utils/coordinates';
 
+const ferdiLogo = require('../assets/Ferdi-transparent.png');
+
 export default function WorldMapScreen({ route }) {
   const { completedTrips, visitedCities } = useAppContext();
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
 
   // Collect all visited locations with coordinates
   const markers = [];
@@ -99,6 +103,11 @@ export default function WorldMapScreen({ route }) {
           <Text style={[styles.legendText, { color: theme.text }]}>City</Text>
         </View>
       </View>
+
+      {/* Footer */}
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+        <Image source={ferdiLogo} style={styles.footerLogo} resizeMode="contain" />
+      </View>
     </View>
   );
 }
@@ -161,5 +170,13 @@ const styles = StyleSheet.create({
   },
   legendText: {
     fontSize: 14,
+  },
+  footer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  footerLogo: {
+    width: 400,
+    height: 120,
   },
 });

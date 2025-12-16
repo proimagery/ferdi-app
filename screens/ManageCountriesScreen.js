@@ -9,15 +9,20 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppContext } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { countryCoordinates } from '../utils/coordinates';
 
+const ferdiLogo = require('../assets/Ferdi-transparent.png');
+
 export default function ManageCountriesScreen({ navigation, route }) {
   const { completedTrips, addCompletedTrip, deleteCompletedTrip } = useAppContext();
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
   const [newCountry, setNewCountry] = useState('');
   const [newYear, setNewYear] = useState('');
   const [newMonth, setNewMonth] = useState('');
@@ -228,6 +233,11 @@ export default function ManageCountriesScreen({ navigation, route }) {
           ))
         )}
       </View>
+
+      {/* Footer */}
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+        <Image source={ferdiLogo} style={styles.footerLogo} resizeMode="contain" />
+      </View>
     </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -351,5 +361,13 @@ const styles = StyleSheet.create({
   },
   dropdownItemText: {
     fontSize: 16,
+  },
+  footer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  footerLogo: {
+    width: 400,
+    height: 120,
   },
 });

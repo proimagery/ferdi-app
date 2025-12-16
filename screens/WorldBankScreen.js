@@ -1,8 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function WorldBankScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const countries = [
     {
       name: 'France',
@@ -117,6 +121,11 @@ export default function WorldBankScreen({ navigation }) {
           <Ionicons name="chevron-forward" size={24} color="#888" />
         </TouchableOpacity>
       ))}
+
+      {/* Footer */}
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+        <Image source={ferdiLogo} style={styles.footerLogo} resizeMode="contain" />
+      </View>
     </ScrollView>
   );
 }
@@ -184,5 +193,13 @@ const styles = StyleSheet.create({
   infoText: {
     fontSize: 14,
     color: '#888',
+  },
+  footer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  footerLogo: {
+    width: 400,
+    height: 120,
   },
 });

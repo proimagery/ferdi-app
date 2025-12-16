@@ -12,8 +12,12 @@ import { getTravelerRank } from '../utils/rankingSystem';
 import { getUserById } from '../utils/mockUsers';
 import Avatar from '../components/Avatar';
 import { countryCoordinates } from '../utils/coordinates';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function PublicProfileScreen({ navigation, route }) {
+  const insets = useSafeAreaInsets();
   const { profile, completedTrips, visitedCities, trips, travelBuddies, highlightedBuddies, buddyRequests, sendBuddyRequest, updateProfile } = useAppContext();
   const { theme } = useTheme();
 
@@ -649,6 +653,11 @@ export default function PublicProfileScreen({ navigation, route }) {
           </View>
         )}
       </View>
+
+      {/* Footer */}
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+        <Image source={ferdiLogo} style={styles.footerLogo} resizeMode="contain" />
+      </View>
     </ScrollView>
   );
 }
@@ -1007,5 +1016,13 @@ const styles = StyleSheet.create({
   manageButtonText: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  footer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  footerLogo: {
+    width: 400,
+    height: 120,
   },
 });

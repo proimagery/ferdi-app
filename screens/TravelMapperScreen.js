@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ScrollView, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ScrollView, Modal, TextInput, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { countryCoordinates } from '../utils/coordinates';
 
+const ferdiLogo = require('../assets/Ferdi-transparent.png');
+
 export default function TravelMapperScreen({ navigation, route }) {
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
   const [selectedCountries, setSelectedCountries] = useState([]);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [tempCountry, setTempCountry] = useState('');
@@ -330,6 +334,11 @@ export default function TravelMapperScreen({ navigation, route }) {
               );
             })
           )}
+
+          {/* Footer */}
+          <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+            <Image source={ferdiLogo} style={styles.footerLogo} resizeMode="contain" />
+          </View>
         </ScrollView>
       </View>
 
@@ -665,5 +674,13 @@ const styles = StyleSheet.create({
   noResultsText: {
     fontSize: 14,
     fontStyle: 'italic',
+  },
+  footer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  footerLogo: {
+    width: 400,
+    height: 120,
   },
 });

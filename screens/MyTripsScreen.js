@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppContext } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
+
+const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function MyTripsScreen({ navigation, route }) {
   const { trips, deleteTrip, profile, updateProfile } = useAppContext();
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
   const sharingMode = route.params?.sharingMode || false;
 
   const [viewMode, setViewMode] = useState('upcoming'); // 'upcoming' or 'past'
@@ -209,6 +213,11 @@ export default function MyTripsScreen({ navigation, route }) {
             );
           })
         )}
+
+        {/* Footer */}
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+          <Image source={ferdiLogo} style={styles.footerLogo} resizeMode="contain" />
+        </View>
       </ScrollView>
 
       <TouchableOpacity
@@ -323,5 +332,13 @@ const styles = StyleSheet.create({
   saveSharingText: {
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  footer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  footerLogo: {
+    width: 400,
+    height: 120,
   },
 });

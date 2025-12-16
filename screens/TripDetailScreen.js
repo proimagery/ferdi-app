@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Alert, Image } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppContext } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { countryCoordinates } from '../utils/coordinates';
 
+const ferdiLogo = require('../assets/Ferdi-transparent.png');
+
 export default function TripDetailScreen({ route, navigation }) {
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
   const { trips } = useAppContext();
   const { tripIndex, isNewTrip = true } = route.params;
   const trip = trips[tripIndex];
@@ -371,6 +375,11 @@ export default function TripDetailScreen({ route, navigation }) {
           </TouchableOpacity>
         )}
       </View>
+
+      {/* Footer */}
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+        <Image source={ferdiLogo} style={styles.footerLogo} resizeMode="contain" />
+      </View>
     </ScrollView>
   );
 }
@@ -621,5 +630,13 @@ const styles = StyleSheet.create({
   modeTime: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  footer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  footerLogo: {
+    width: 400,
+    height: 120,
   },
 });

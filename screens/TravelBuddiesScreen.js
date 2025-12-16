@@ -6,15 +6,20 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { useAppContext } from '../context/AppContext';
 import { getUserById } from '../utils/mockUsers';
 import Avatar from '../components/Avatar';
 
+const ferdiLogo = require('../assets/Ferdi-transparent.png');
+
 export default function TravelBuddiesScreen({ navigation }) {
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
   const { travelBuddies, removeTravelBuddy } = useAppContext();
 
   const handleViewProfile = (user) => {
@@ -116,6 +121,11 @@ export default function TravelBuddiesScreen({ navigation }) {
             ))}
           </View>
         )}
+
+        {/* Footer */}
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+          <Image source={ferdiLogo} style={styles.footerLogo} resizeMode="contain" />
+        </View>
       </ScrollView>
     </View>
   );
@@ -226,5 +236,13 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  footer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  footerLogo: {
+    width: 400,
+    height: 120,
   },
 });

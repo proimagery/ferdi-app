@@ -10,6 +10,7 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,8 +18,12 @@ import { useAppContext } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { countryCoordinates } from '../utils/coordinates';
 import { getCurrencyInfo } from '../utils/currencyData';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function BudgetMakerScreen({ navigation, route }) {
+  const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const { addBudget, updateBudget, budgets } = useAppContext();
 
@@ -1066,6 +1071,11 @@ export default function BudgetMakerScreen({ navigation, route }) {
           {editMode ? 'Update Budget' : 'Save to My Budget'}
         </Text>
       </TouchableOpacity>
+
+      {/* Footer */}
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+        <Image source={ferdiLogo} style={styles.footerLogo} resizeMode="contain" />
+      </View>
     </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -1650,5 +1660,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 5,
     textAlign: 'center',
+  },
+  footer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  footerLogo: {
+    width: 400,
+    height: 120,
   },
 });
