@@ -171,6 +171,70 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Test login - creates or signs in with a test account using username
+  const testSignIn = async (username, password) => {
+    try {
+      setLoading(true);
+      // Convert username to a test email format
+      const testEmail = `${username.toLowerCase().replace(/[^a-z0-9]/g, '')}@ferdi-test.app`;
+
+      // First try to sign in
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: testEmail,
+        password,
+      });
+
+      if (!signInError) {
+        return { data: signInData, error: null };
+      }
+
+      // If sign in failed (user doesn't exist), create the account
+      if (signInError.message.includes('Invalid login credentials')) {
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: testEmail,
+          password,
+          options: {
+            data: {
+              is_test_account: true,
+              test_username: username,
+            },
+          },
+        });
+
+        if (signUpError) throw signUpError;
+
+        // Create initial profile for the test user
+        if (signUpData.user) {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert([
+              {
+                id: signUpData.user.id,
+                email: testEmail,
+                username: username,
+                name: username,
+                location: '',
+                bio: 'Test account',
+                avatar_type: 'default',
+              },
+            ]);
+
+          if (profileError) {
+            console.log('Profile creation error:', profileError);
+          }
+        }
+
+        return { data: signUpData, error: null };
+      }
+
+      throw signInError;
+    } catch (error) {
+      return { data: null, error };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Sign out
   const signOut = async () => {
     try {
@@ -203,6 +267,7 @@ export const AuthProvider = ({ children }) => {
     needsUsername,
     signUp,
     signIn,
+    testSignIn,
     signOut,
     resetPassword,
     completeUsernameSetup,
