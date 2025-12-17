@@ -175,9 +175,10 @@ export const AuthProvider = ({ children }) => {
   const testSignIn = async (username, password) => {
     try {
       setLoading(true);
-      // Convert username to a test email format
+      // Convert username to a test email format using gmail plus addressing
+      // This uses a real-looking email format that Supabase accepts
       const sanitizedUsername = username.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const testEmail = `${sanitizedUsername}@ferditester.com`;
+      const testEmail = `ferditester+${sanitizedUsername}@gmail.com`;
 
       // First try to sign in
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
@@ -195,6 +196,8 @@ export const AuthProvider = ({ children }) => {
           email: testEmail,
           password,
           options: {
+            // Skip email confirmation for test accounts
+            emailRedirectTo: undefined,
             data: {
               is_test_account: true,
               test_username: username,
@@ -203,6 +206,18 @@ export const AuthProvider = ({ children }) => {
         });
 
         if (signUpError) throw signUpError;
+
+        // Check if email confirmation is required
+        if (signUpData.user && !signUpData.session) {
+          // Email confirmation is enabled in Supabase
+          // We need to inform the user
+          return {
+            data: null,
+            error: {
+              message: 'Account created! Please ask the app administrator to disable email confirmation in Supabase, or use the regular Sign Up with a real email.'
+            }
+          };
+        }
 
         // Create initial profile for the test user
         if (signUpData.user) {
