@@ -176,7 +176,8 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
       // Convert username to a test email format
-      const testEmail = `${username.toLowerCase().replace(/[^a-z0-9]/g, '')}@ferdi-test.app`;
+      const sanitizedUsername = username.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const testEmail = `${sanitizedUsername}@ferditester.com`;
 
       // First try to sign in
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
