@@ -24,7 +24,7 @@ export default function LoginScreen({ navigation }) {
   const [testUsername, setTestUsername] = useState('');
   const [testPassword, setTestPassword] = useState('');
   const [showTestPassword, setShowTestPassword] = useState(false);
-  const { signIn, testSignIn } = useAuth();
+  const { signIn, testSignIn, continueAsGuest } = useAuth();
   const { theme } = useTheme();
 
   const handleLogin = async () => {
@@ -160,6 +160,17 @@ export default function LoginScreen({ navigation }) {
             )}
           </TouchableOpacity>
         </View>
+
+        {/* Continue as Guest Button */}
+        <TouchableOpacity
+          style={[styles.guestButton, { borderColor: theme.primary }]}
+          onPress={continueAsGuest}
+        >
+          <Ionicons name="eye-outline" size={20} color={theme.primary} />
+          <Text style={[styles.guestButtonText, { color: theme.primary }]}>
+            Continue as Guest
+          </Text>
+        </TouchableOpacity>
 
         {/* Footer */}
         <View style={styles.footer}>
@@ -334,6 +345,20 @@ const styles = StyleSheet.create({
   loginButtonText: {
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  guestButton: {
+    height: 55,
+    borderRadius: 12,
+    borderWidth: 2,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    gap: 8,
+  },
+  guestButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
   footer: {
     flexDirection: 'row',

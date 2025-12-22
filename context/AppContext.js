@@ -34,9 +34,12 @@ export const AppProvider = ({ children }) => {
   });
 
   // Social features state
-  const [travelBuddies, setTravelBuddies] = useState([]);
+  const [travelBuddies, setTravelBuddies] = useState([]); // User IDs of accepted buddies
+  const [travelBuddyProfiles, setTravelBuddyProfiles] = useState([]); // Full profile data of buddies
   const [highlightedBuddies, setHighlightedBuddies] = useState([]);
-  const [buddyRequests, setBuddyRequests] = useState([]);
+  const [buddyRequests, setBuddyRequests] = useState([]); // Incoming requests (user IDs)
+  const [buddyRequestProfiles, setBuddyRequestProfiles] = useState([]); // Full profile data of requesters
+  const [sentRequests, setSentRequests] = useState([]); // Outgoing requests the user has sent
 
   // ============================================
   // LOAD ALL USER DATA ON LOGIN
@@ -72,8 +75,11 @@ export const AppProvider = ({ children }) => {
         travelPhotos: [],
       });
       setTravelBuddies([]);
+      setTravelBuddyProfiles([]);
       setHighlightedBuddies([]);
       setBuddyRequests([]);
+      setBuddyRequestProfiles([]);
+      setSentRequests([]);
       setLoading(false);
     }
   }, [user]);
@@ -632,30 +638,100 @@ export const AppProvider = ({ children }) => {
   const loadTravelBuddies = async () => {
     if (!user) return;
 
-    const { data, error } = await supabase
-      .from('travel_buddies')
-      .select('*')
-      .or(`user_id.eq.${user.id},buddy_id.eq.${user.id}`);
+    try {
+      const { data, error } = await supabase
+        .from('travel_buddies')
+        .select('*')
+        .or(`user_id.eq.${user.id},buddy_id.eq.${user.id}`);
 
-    if (error) {
-      // Table might not exist yet
-      if (error.code !== '42P01') {
-        console.error('Error loading travel buddies:', error);
+      if (error) {
+        // Table might not exist yet
+        if (error.code !== '42P01') {
+          console.error('Error loading travel buddies:', error);
+        }
+        return;
       }
-      return;
+
+      // Filter relationships
+      const accepted = data.filter(b => b.status === 'accepted');
+      const incomingPending = data.filter(b => b.status === 'pending' && b.buddy_id === user.id);
+      const outgoingPending = data.filter(b => b.status === 'pending' && b.user_id === user.id);
+      const highlighted = data.filter(b => b.is_highlighted && b.user_id === user.id);
+
+      // Get buddy IDs
+      const buddyIds = accepted.map(b => b.user_id === user.id ? b.buddy_id : b.user_id);
+      const incomingRequestIds = incomingPending.map(b => b.user_id);
+      const outgoingRequestIds = outgoingPending.map(b => b.buddy_id);
+      const highlightedIds = highlighted.map(b => b.buddy_id);
+
+      setTravelBuddies(buddyIds);
+      setBuddyRequests(incomingRequestIds);
+      setSentRequests(outgoingRequestIds);
+      setHighlightedBuddies(highlightedIds);
+
+      // Load profiles for buddies
+      if (buddyIds.length > 0) {
+        const { data: buddyProfiles, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, name, username, location, bio, avatar, avatar_type, top1, top2, top3')
+          .in('id', buddyIds);
+
+        if (!profileError && buddyProfiles) {
+          const formattedProfiles = buddyProfiles.map(p => ({
+            id: p.id,
+            name: p.name || 'Unknown User',
+            username: p.username || '',
+            location: p.location || 'Location not set',
+            bio: p.bio || '',
+            avatar: p.avatar,
+            avatarType: p.avatar_type || 'default',
+            countriesVisited: [p.top1, p.top2, p.top3].filter(Boolean),
+          }));
+          setTravelBuddyProfiles(formattedProfiles);
+        }
+      } else {
+        setTravelBuddyProfiles([]);
+      }
+
+      // Load profiles for incoming requests
+      if (incomingRequestIds.length > 0) {
+        const { data: requestProfiles, error: requestError } = await supabase
+          .from('profiles')
+          .select('id, name, username, location, bio, avatar, avatar_type')
+          .in('id', incomingRequestIds);
+
+        if (!requestError && requestProfiles) {
+          const formattedProfiles = requestProfiles.map(p => ({
+            id: p.id,
+            name: p.name || 'Unknown User',
+            username: p.username || '',
+            location: p.location || 'Location not set',
+            bio: p.bio || '',
+            avatar: p.avatar,
+            avatarType: p.avatar_type || 'default',
+          }));
+          setBuddyRequestProfiles(formattedProfiles);
+        }
+      } else {
+        setBuddyRequestProfiles([]);
+      }
+    } catch (err) {
+      console.error('Error loading travel buddies:', err);
     }
-
-    const accepted = data.filter(b => b.status === 'accepted');
-    const pending = data.filter(b => b.status === 'pending' && b.buddy_id === user.id);
-    const highlighted = data.filter(b => b.is_highlighted && b.user_id === user.id);
-
-    setTravelBuddies(accepted.map(b => b.user_id === user.id ? b.buddy_id : b.user_id));
-    setBuddyRequests(pending.map(b => b.user_id));
-    setHighlightedBuddies(highlighted.map(b => b.buddy_id));
   };
 
   const sendBuddyRequest = async (buddyId) => {
-    if (!user || travelBuddies.includes(buddyId) || buddyRequests.includes(buddyId)) return;
+    if (!user) return { success: false, message: 'Not logged in' };
+    if (travelBuddies.includes(buddyId)) return { success: false, message: 'Already a buddy' };
+    if (sentRequests.includes(buddyId)) return { success: false, message: 'Request already sent' };
+    if (buddyRequests.includes(buddyId)) {
+      // If they've already sent us a request, auto-accept it
+      await acceptBuddyRequest(buddyId);
+      return { success: true, message: 'You are now buddies!' };
+    }
+
+    // Optimistically add to sent requests
+    setSentRequests(prev => [...prev, buddyId]);
 
     const { error } = await supabase
       .from('travel_buddies')
@@ -667,12 +743,25 @@ export const AppProvider = ({ children }) => {
 
     if (error) {
       console.error('Error sending buddy request:', error);
+      // Rollback
+      setSentRequests(prev => prev.filter(id => id !== buddyId));
+      return { success: false, message: 'Failed to send request' };
     }
+
+    return { success: true, message: 'Request sent!' };
   };
 
   const acceptBuddyRequest = async (buddyId) => {
+    // Move from requests to buddies
+    const requestProfile = buddyRequestProfiles.find(p => p.id === buddyId);
+
     setBuddyRequests(prev => prev.filter(id => id !== buddyId));
+    setBuddyRequestProfiles(prev => prev.filter(p => p.id !== buddyId));
     setTravelBuddies(prev => [...prev, buddyId]);
+
+    if (requestProfile) {
+      setTravelBuddyProfiles(prev => [...prev, { ...requestProfile, countriesVisited: [] }]);
+    }
 
     if (!user) return;
 
@@ -689,12 +778,13 @@ export const AppProvider = ({ children }) => {
 
   const rejectBuddyRequest = async (buddyId) => {
     setBuddyRequests(prev => prev.filter(id => id !== buddyId));
+    setBuddyRequestProfiles(prev => prev.filter(p => p.id !== buddyId));
 
     if (!user) return;
 
     const { error } = await supabase
       .from('travel_buddies')
-      .update({ status: 'rejected', updated_at: new Date().toISOString() })
+      .delete()
       .eq('user_id', buddyId)
       .eq('buddy_id', user.id);
 
@@ -705,6 +795,7 @@ export const AppProvider = ({ children }) => {
 
   const removeTravelBuddy = async (buddyId) => {
     setTravelBuddies(prev => prev.filter(id => id !== buddyId));
+    setTravelBuddyProfiles(prev => prev.filter(p => p.id !== buddyId));
     setHighlightedBuddies(prev => prev.filter(id => id !== buddyId));
 
     if (!user) return;
@@ -767,10 +858,13 @@ export const AppProvider = ({ children }) => {
         updateProfile,
         // Social features
         travelBuddies,
+        travelBuddyProfiles,
         setTravelBuddies,
         highlightedBuddies,
         setHighlightedBuddies: setHighlightedBuddiesFunc,
         buddyRequests,
+        buddyRequestProfiles,
+        sentRequests,
         sendBuddyRequest,
         acceptBuddyRequest,
         rejectBuddyRequest,

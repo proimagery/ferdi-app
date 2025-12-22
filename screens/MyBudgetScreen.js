@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAppContext } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getCurrencyInfo } from '../utils/currencyData';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
@@ -65,7 +66,15 @@ export default function MyBudgetScreen({ navigation }) {
             {budgets.map((budget, index) => {
               const isExpanded = expandedId === budget.id;
               const dailyBudget = budget.totalBudget / budget.tripDuration;
-              const dailyBudgetLocal = (budget.totalBudget * budget.currencyRate) / budget.tripDuration;
+
+              // Get currency info - for single country use country name, for multi use first country or USD
+              const currencyInfo = budget.tripType === 'single' && budget.country
+                ? getCurrencyInfo(budget.country)
+                : budget.tripType === 'multi' && budget.countries?.[0]
+                  ? getCurrencyInfo(budget.countries[0].name)
+                  : { currency: 'USD', symbol: '$', rate: 1.0 };
+
+              const dailyBudgetLocal = dailyBudget * (budget.currencyRate || currencyInfo.rate);
 
               return (
                 <View key={budget.id} style={[styles.budgetCard, {
@@ -135,7 +144,7 @@ export default function MyBudgetScreen({ navigation }) {
                       borderColor: theme.border
                     }]}>
                       <Text style={[styles.briefLabel, { color: theme.textSecondary }]}>Daily Budget</Text>
-                      <Text style={[styles.briefValue, { color: theme.text }]}>${dailyBudget.toFixed(0)}</Text>
+                      <Text style={[styles.briefValue, { color: theme.text }]}>${Math.round(dailyBudget).toLocaleString()}</Text>
                     </View>
                   </View>
 
@@ -147,9 +156,9 @@ export default function MyBudgetScreen({ navigation }) {
                         backgroundColor: theme.background,
                         borderColor: theme.primary
                       }]}>
-                        <Text style={[styles.dailyBudgetLabel, { color: theme.textSecondary }]}>Daily Budget (Local)</Text>
+                        <Text style={[styles.dailyBudgetLabel, { color: theme.textSecondary }]}>Daily Budget</Text>
                         <Text style={[styles.dailyBudgetValue, { color: theme.primary }]}>
-                          ${dailyBudget.toFixed(2)} / {budget.currency} {dailyBudgetLocal.toFixed(0)}
+                          ${Math.round(dailyBudget).toLocaleString()} USD / {currencyInfo.symbol}{Math.round(dailyBudgetLocal).toLocaleString()} {currencyInfo.currency}
                         </Text>
                       </View>
 
@@ -160,35 +169,56 @@ export default function MyBudgetScreen({ navigation }) {
                           <Text style={[styles.sectionTitle, { color: theme.text }]}>Accommodation</Text>
                         </View>
                         <View style={styles.breakdownRow}>
-                          <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>Total</Text>
-                          <Text style={[styles.breakdownValue, { color: theme.text }]}>${budget.accommodation.toFixed(0)}</Text>
+                          <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>Total (USD)</Text>
+                          <Text style={[styles.breakdownValue, { color: theme.text }]}>${Math.round(budget.accommodation || 0).toLocaleString()}</Text>
                         </View>
                         <View style={styles.breakdownRow}>
-                          <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>Per Day</Text>
+                          <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>Total ({currencyInfo.currency})</Text>
                           <Text style={[styles.breakdownValue, { color: theme.text }]}>
-                            ${(budget.accommodation / budget.tripDuration).toFixed(0)}
+                            {currencyInfo.symbol}{Math.round((budget.accommodation || 0) * currencyInfo.rate).toLocaleString()}
+                          </Text>
+                        </View>
+                        <View style={styles.breakdownRow}>
+                          <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>Per Day (USD)</Text>
+                          <Text style={[styles.breakdownValue, { color: theme.text }]}>
+                            ${Math.round((budget.accommodation || 0) / budget.tripDuration).toLocaleString()}
+                          </Text>
+                        </View>
+                        <View style={styles.breakdownRow}>
+                          <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>Per Day ({currencyInfo.currency})</Text>
+                          <Text style={[styles.breakdownValue, { color: theme.text }]}>
+                            {currencyInfo.symbol}{Math.round(((budget.accommodation || 0) * currencyInfo.rate) / budget.tripDuration).toLocaleString()}
                           </Text>
                         </View>
                       </View>
 
                       {/* Budget Breakdown */}
-                      <View style={styles.section}>
-                        <Text style={[styles.sectionTitle, { color: theme.text }]}>Budget Breakdown</Text>
-                        {budget.lineItems.map((item, idx) => (
-                          <View key={idx} style={[styles.lineItemRow, { borderBottomColor: theme.border }]}>
-                            <View style={styles.lineItemInfo}>
-                              <Text style={[styles.lineItemName, { color: theme.text }]}>{item.name}</Text>
-                              <Text style={[styles.lineItemPercent, { color: theme.primary }]}>{item.percent}%</Text>
-                            </View>
-                            <View style={styles.lineItemAmounts}>
-                              <Text style={[styles.lineItemTotal, { color: theme.text }]}>${item.total.toFixed(0)}</Text>
-                              <Text style={[styles.lineItemDaily, { color: theme.textSecondary }]}>
-                                ${(item.total / budget.tripDuration).toFixed(0)}/day
-                              </Text>
-                            </View>
-                          </View>
-                        ))}
-                      </View>
+                      {budget.lineItems && budget.lineItems.length > 0 && (
+                        <View style={styles.section}>
+                          <Text style={[styles.sectionTitle, { color: theme.text }]}>Budget Breakdown</Text>
+                          {budget.lineItems.map((item, idx) => {
+                            const itemLocal = (item.total || 0) * currencyInfo.rate;
+                            const itemDailyLocal = ((item.total || 0) / budget.tripDuration) * currencyInfo.rate;
+                            return (
+                              <View key={idx} style={[styles.lineItemRow, { borderBottomColor: theme.border }]}>
+                                <View style={styles.lineItemInfo}>
+                                  <Text style={[styles.lineItemName, { color: theme.text }]}>{item.name}</Text>
+                                  <Text style={[styles.lineItemPercent, { color: theme.primary }]}>{item.percent}%</Text>
+                                </View>
+                                <View style={styles.lineItemAmounts}>
+                                  <Text style={[styles.lineItemTotal, { color: theme.text }]}>${Math.round(item.total || 0).toLocaleString()} USD</Text>
+                                  <Text style={[styles.lineItemLocalTotal, { color: theme.textSecondary }]}>
+                                    {currencyInfo.symbol}{Math.round(itemLocal).toLocaleString()} {currencyInfo.currency}
+                                  </Text>
+                                  <Text style={[styles.lineItemDaily, { color: theme.textSecondary }]}>
+                                    ${Math.round((item.total || 0) / budget.tripDuration).toLocaleString()}/day | {currencyInfo.symbol}{Math.round(itemDailyLocal).toLocaleString()}/day
+                                  </Text>
+                                </View>
+                              </View>
+                            );
+                          })}
+                        </View>
+                      )}
 
                       {/* Summary */}
                       <View style={[styles.summaryCard, {
@@ -197,8 +227,8 @@ export default function MyBudgetScreen({ navigation }) {
                       }]}>
                         <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Budget Remaining After All Expenses</Text>
                         <Text style={[styles.summaryValue, { color: theme.primary }]}>
-                          ${(budget.totalBudget - budget.accommodation -
-                            budget.lineItems.reduce((sum, item) => sum + item.total, 0)).toFixed(2)}
+                          ${(budget.totalBudget - (budget.accommodation || 0) -
+                            (budget.lineItems || []).reduce((sum, item) => sum + (item.total || 0), 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </Text>
                       </View>
 
@@ -433,10 +463,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     color: '#ffffff',
-    marginBottom: 3,
+    marginBottom: 2,
+  },
+  lineItemLocalTotal: {
+    fontSize: 13,
+    color: '#888',
+    marginBottom: 2,
   },
   lineItemDaily: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#888',
   },
   summaryCard: {

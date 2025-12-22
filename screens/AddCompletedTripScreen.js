@@ -15,6 +15,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAppContext } from '../context/AppContext';
+import { useAuthGuard } from '../hooks/useAuthGuard';
+import AuthPromptModal from '../components/AuthPromptModal';
 import { countryCoordinates } from '../utils/coordinates';
 import { getCountryFlag } from '../utils/countryFlags';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,6 +27,7 @@ export default function AddCompletedTripScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const { completedTrips, addCompletedTrip, deleteCompletedTrip } = useAppContext();
+  const { checkAuth, showAuthModal, setShowAuthModal, featureMessage } = useAuthGuard();
 
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -57,6 +60,9 @@ export default function AddCompletedTripScreen({ navigation }) {
   }).sort((a, b) => a.country.localeCompare(b.country));
 
   const handleAddCountry = (country) => {
+    // Check if guest user is trying to add a trip
+    if (checkAuth('add your travel history')) return;
+
     // Check if country already exists (case-insensitive and trimmed)
     const normalizedCountry = country.trim();
     const countryExists = visitedCountryNames.some(
@@ -90,6 +96,9 @@ export default function AddCompletedTripScreen({ navigation }) {
   };
 
   const handleAddVisit = () => {
+    // Check if guest user is trying to add a visit
+    if (checkAuth('add your travel history')) return;
+
     if (!newVisitYear.trim()) {
       Alert.alert('Error', 'Please enter a year');
       return;
@@ -365,6 +374,13 @@ export default function AddCompletedTripScreen({ navigation }) {
           </View>
         </View>
       </Modal>
+
+      {/* Auth Prompt Modal for Guests */}
+      <AuthPromptModal
+        visible={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        feature={featureMessage}
+      />
     </View>
     </KeyboardAvoidingView>
   );

@@ -16,6 +16,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAppContext } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
+import { useAuthGuard } from '../hooks/useAuthGuard';
+import AuthPromptModal from '../components/AuthPromptModal';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
@@ -23,6 +25,7 @@ export default function CreateTripScreen({ navigation, route }) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const { trips, addTrip, updateTrip, addBudget } = useAppContext();
+  const { checkAuth, showAuthModal, setShowAuthModal, featureMessage } = useAuthGuard();
   const editMode = route.params?.editMode || false;
   const editIndex = route.params?.editIndex;
   const editTrip = editMode && editIndex !== undefined ? trips[editIndex] : null;
@@ -159,6 +162,9 @@ export default function CreateTripScreen({ navigation, route }) {
   };
 
   const handleSubmit = () => {
+    // Check if guest user is trying to save a trip
+    if (checkAuth('save your trip')) return;
+
     if (!budget.trim() || isNaN(budget)) {
       Alert.alert('Error', 'Please enter a valid budget');
       return;
@@ -409,6 +415,13 @@ export default function CreateTripScreen({ navigation, route }) {
         </TouchableOpacity>
       </View>
       </View>
+
+      {/* Auth Prompt Modal for Guests */}
+      <AuthPromptModal
+        visible={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        feature={featureMessage}
+      />
     </KeyboardAvoidingView>
   );
 }

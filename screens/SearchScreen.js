@@ -13,6 +13,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
+import { useAuthGuard } from '../hooks/useAuthGuard';
+import AuthPromptModal from '../components/AuthPromptModal';
 import { supabase } from '../lib/supabase';
 import Avatar from '../components/Avatar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,7 +25,8 @@ export default function SearchScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const { user } = useAuth();
-  const { travelBuddies, buddyRequests, sendBuddyRequest } = useAppContext();
+  const { travelBuddies, sentRequests, sendBuddyRequest } = useAppContext();
+  const { checkAuth, showAuthModal, setShowAuthModal, featureMessage } = useAuthGuard();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -112,12 +115,19 @@ export default function SearchScreen({ navigation }) {
     navigation.navigate('PublicProfile', { user: profileUser });
   };
 
-  const handleAddBuddy = (userId) => {
-    sendBuddyRequest(userId);
+  const handleAddBuddy = async (userId) => {
+    // Check if guest user is trying to add a buddy
+    if (checkAuth('add travel buddies')) return;
+
+    const result = await sendBuddyRequest(userId);
+    if (result?.message) {
+      // Force re-render to update button state
+      setSearchResults([...searchResults]);
+    }
   };
 
   const isBuddy = (userId) => travelBuddies.includes(userId);
-  const isRequestSent = (userId) => buddyRequests.includes(userId);
+  const isRequestSent = (userId) => sentRequests.includes(userId);
 
   const clearSearch = () => {
     setSearchQuery('');
@@ -260,6 +270,13 @@ export default function SearchScreen({ navigation }) {
           <Image source={ferdiLogo} style={styles.footerLogo} resizeMode="contain" />
         </View>
       </ScrollView>
+
+      {/* Auth Prompt Modal for Guests */}
+      <AuthPromptModal
+        visible={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        feature={featureMessage}
+      />
     </View>
   );
 }

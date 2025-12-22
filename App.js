@@ -383,7 +383,7 @@ function UsernameSetupNavigator() {
 
 // Root Navigator - handles auth state
 function RootNavigator() {
-  const { user, initializing, needsUsername } = useAuth();
+  const { user, initializing, needsUsername, isGuest } = useAuth();
   const { theme, isDarkMode } = useTheme();
 
   // Only show brief loading on first initialization (max 1.5 seconds)
@@ -410,7 +410,7 @@ function RootNavigator() {
     <>
       <StatusBar style={isDarkMode ? "light" : "dark"} />
       <NavigationContainer>
-        {user ? <MainNavigator /> : <AuthNavigator />}
+        {(user || isGuest) ? <MainNavigator /> : <AuthNavigator />}
       </NavigationContainer>
     </>
   );

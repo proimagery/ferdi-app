@@ -19,6 +19,8 @@ import { useTheme } from '../context/ThemeContext';
 import { countryCoordinates } from '../utils/coordinates';
 import { getCurrencyInfo } from '../utils/currencyData';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuthGuard } from '../hooks/useAuthGuard';
+import AuthPromptModal from '../components/AuthPromptModal';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
@@ -26,6 +28,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const { addBudget, updateBudget, budgets } = useAppContext();
+  const { checkAuth, showAuthModal, setShowAuthModal, featureMessage } = useAuthGuard();
 
   // Edit mode detection
   const editMode = route?.params?.editMode;
@@ -103,9 +106,9 @@ export default function BudgetMakerScreen({ navigation, route }) {
 
   // Accommodations
   const [accommodationPercent, setAccommodationPercent] = useState(
-    budgetToEdit ? Math.round((budgetToEdit.accommodation / budgetToEdit.totalBudget) * 100) : 40
+    budgetToEdit ? Math.round(((budgetToEdit.accommodation || 0) / budgetToEdit.totalBudget) * 100) : 40
   );
-  const [accommodationTotal, setAccommodationTotal] = useState(budgetToEdit?.accommodation.toString() || '');
+  const [accommodationTotal, setAccommodationTotal] = useState(budgetToEdit?.accommodation ? budgetToEdit.accommodation.toString() : '');
   const [accommodationInputMode, setAccommodationInputMode] = useState('percent'); // 'percent' or 'total'
 
   // Budget line items (for manual mode)
@@ -224,6 +227,9 @@ export default function BudgetMakerScreen({ navigation, route }) {
   };
 
   const saveBudget = () => {
+    // Check if guest user is trying to save a budget
+    if (checkAuth('save your budget')) return;
+
     // Validation
     if (tripType === 'single' && !selectedCountry) {
       Alert.alert('Error', 'Please select a country');
@@ -606,13 +612,25 @@ export default function BudgetMakerScreen({ navigation, route }) {
         <>
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Total Budget</Text>
-            <Text style={[styles.sliderValue, { color: theme.primary }]}>${totalBudget.toLocaleString()}</Text>
+            <View style={styles.sliderInputRow}>
+              <Text style={[styles.sliderValuePrefix, { color: theme.text }]}>$</Text>
+              <TextInput
+                style={[styles.sliderInput, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
+                keyboardType="numeric"
+                value={totalBudget.toString()}
+                onChangeText={(text) => {
+                  const value = parseInt(text) || 0;
+                  setTotalBudget(Math.min(Math.max(value, 0), 100000));
+                }}
+                selectTextOnFocus
+              />
+            </View>
             <Slider
               style={styles.slider}
               minimumValue={500}
               maximumValue={25000}
               step={100}
-              value={totalBudget}
+              value={Math.min(totalBudget, 25000)}
               onValueChange={setTotalBudget}
               minimumTrackTintColor={theme.primary}
               maximumTrackTintColor={theme.border}
@@ -620,27 +638,39 @@ export default function BudgetMakerScreen({ navigation, route }) {
             />
             <View style={styles.sliderLabels}>
               <Text style={[styles.sliderLabel, { color: theme.textSecondary }]}>$500</Text>
-              <Text style={[styles.sliderLabel, { color: theme.textSecondary }]}>$25,000</Text>
+              <Text style={[styles.sliderLabel, { color: theme.textSecondary }]}>$25,000+</Text>
             </View>
           </View>
 
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Trip Duration</Text>
-            <Text style={[styles.sliderValue, { color: theme.primary }]}>{tripDuration} days</Text>
+            <View style={styles.sliderInputRow}>
+              <TextInput
+                style={[styles.sliderInput, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
+                keyboardType="numeric"
+                value={tripDuration.toString()}
+                onChangeText={(text) => {
+                  const value = parseInt(text) || 1;
+                  setTripDuration(Math.min(Math.max(value, 1), 365));
+                }}
+                selectTextOnFocus
+              />
+              <Text style={[styles.sliderValueSuffix, { color: theme.text }]}>days</Text>
+            </View>
             <Slider
               style={styles.slider}
-              minimumValue={4}
+              minimumValue={1}
               maximumValue={120}
               step={1}
-              value={tripDuration}
+              value={Math.min(tripDuration, 120)}
               onValueChange={setTripDuration}
               minimumTrackTintColor={theme.primary}
               maximumTrackTintColor={theme.border}
               thumbTintColor={theme.primary}
             />
             <View style={styles.sliderLabels}>
-              <Text style={[styles.sliderLabel, { color: theme.textSecondary }]}>4 days</Text>
-              <Text style={[styles.sliderLabel, { color: theme.textSecondary }]}>120 days</Text>
+              <Text style={[styles.sliderLabel, { color: theme.textSecondary }]}>1 day</Text>
+              <Text style={[styles.sliderLabel, { color: theme.textSecondary }]}>120+ days</Text>
             </View>
           </View>
         </>
@@ -649,13 +679,25 @@ export default function BudgetMakerScreen({ navigation, route }) {
           {/* Multi-Country: Budget and Duration Sliders First */}
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Total Budget</Text>
-            <Text style={[styles.sliderValue, { color: theme.primary }]}>${totalBudget.toLocaleString()}</Text>
+            <View style={styles.sliderInputRow}>
+              <Text style={[styles.sliderValuePrefix, { color: theme.text }]}>$</Text>
+              <TextInput
+                style={[styles.sliderInput, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
+                keyboardType="numeric"
+                value={totalBudget.toString()}
+                onChangeText={(text) => {
+                  const value = parseInt(text) || 0;
+                  setTotalBudget(Math.min(Math.max(value, 0), 100000));
+                }}
+                selectTextOnFocus
+              />
+            </View>
             <Slider
               style={styles.slider}
               minimumValue={500}
               maximumValue={25000}
               step={100}
-              value={totalBudget}
+              value={Math.min(totalBudget, 25000)}
               onValueChange={setTotalBudget}
               minimumTrackTintColor={theme.primary}
               maximumTrackTintColor={theme.border}
@@ -663,27 +705,39 @@ export default function BudgetMakerScreen({ navigation, route }) {
             />
             <View style={styles.sliderLabels}>
               <Text style={[styles.sliderLabel, { color: theme.textSecondary }]}>$500</Text>
-              <Text style={[styles.sliderLabel, { color: theme.textSecondary }]}>$25,000</Text>
+              <Text style={[styles.sliderLabel, { color: theme.textSecondary }]}>$25,000+</Text>
             </View>
           </View>
 
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Trip Duration</Text>
-            <Text style={[styles.sliderValue, { color: theme.primary }]}>{tripDuration} days</Text>
+            <View style={styles.sliderInputRow}>
+              <TextInput
+                style={[styles.sliderInput, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
+                keyboardType="numeric"
+                value={tripDuration.toString()}
+                onChangeText={(text) => {
+                  const value = parseInt(text) || 1;
+                  setTripDuration(Math.min(Math.max(value, 1), 365));
+                }}
+                selectTextOnFocus
+              />
+              <Text style={[styles.sliderValueSuffix, { color: theme.text }]}>days</Text>
+            </View>
             <Slider
               style={styles.slider}
-              minimumValue={4}
+              minimumValue={1}
               maximumValue={120}
               step={1}
-              value={tripDuration}
+              value={Math.min(tripDuration, 120)}
               onValueChange={setTripDuration}
               minimumTrackTintColor={theme.primary}
               maximumTrackTintColor={theme.border}
               thumbTintColor={theme.primary}
             />
             <View style={styles.sliderLabels}>
-              <Text style={[styles.sliderLabel, { color: theme.textSecondary }]}>4 days</Text>
-              <Text style={[styles.sliderLabel, { color: theme.textSecondary }]}>120 days</Text>
+              <Text style={[styles.sliderLabel, { color: theme.textSecondary }]}>1 day</Text>
+              <Text style={[styles.sliderLabel, { color: theme.textSecondary }]}>120+ days</Text>
             </View>
           </View>
 
@@ -759,7 +813,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
                         />
                         {country.accommodation > 0 && (
                           <Text style={[styles.accommodationLocalText, { color: theme.textSecondary }]}>
-                            {country.symbol}{(country.accommodation * country.rate).toFixed(0)} {country.currency}
+                            {country.symbol}{Math.round(country.accommodation * country.rate).toLocaleString()} {country.currency}
                           </Text>
                         )}
                       </View>
@@ -820,7 +874,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
             }]}>
               <Text style={[styles.budgetBoxLabel, { color: theme.textSecondary }]}>Daily Budget</Text>
               <Text style={[styles.budgetBoxValue, { color: theme.text }]}>
-                ${dailyBudget.toFixed(2)} / {currencySymbol}{dailyBudgetLocal.toFixed(0)}
+                ${Math.round(dailyBudget).toLocaleString()} / {currencySymbol}{Math.round(dailyBudgetLocal).toLocaleString()}
               </Text>
             </View>
           </View>
@@ -853,7 +907,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
                     <View style={[styles.countryAccommodationDisplay, { backgroundColor: theme.background, borderColor: theme.border }]}>
                       <Ionicons name="bed" size={16} color={theme.primary} />
                       <Text style={[styles.countryAccommodationText, { color: theme.textSecondary }]}>
-                        Accommodation: ${countryAccommodation.toFixed(0)} ({country.symbol}{countryAccommodationLocal.toFixed(0)} {country.currency})
+                        Accommodation: ${Math.round(countryAccommodation).toLocaleString()} ({country.symbol}{Math.round(countryAccommodationLocal).toLocaleString()} {country.currency})
                       </Text>
                     </View>
                   )}
@@ -864,19 +918,19 @@ export default function BudgetMakerScreen({ navigation, route }) {
                         {countryAccommodation > 0 ? 'After Accom.' : 'Total Budget'}
                       </Text>
                       <Text style={[styles.countryBudgetValue, { color: theme.primary }]}>
-                        ${budgetAfterAccommodationCountry.toFixed(0)}
+                        ${Math.round(budgetAfterAccommodationCountry).toLocaleString()}
                       </Text>
                       <Text style={[styles.countryBudgetLocalValue, { color: theme.textSecondary }]}>
-                        {country.symbol}{budgetAfterAccommodationCountryLocal.toFixed(0)} {country.currency}
+                        {country.symbol}{Math.round(budgetAfterAccommodationCountryLocal).toLocaleString()} {country.currency}
                       </Text>
                     </View>
                     <View style={styles.countryBudgetItem}>
                       <Text style={[styles.countryBudgetLabel, { color: theme.textSecondary }]}>Per Day</Text>
                       <Text style={[styles.countryBudgetValue, { color: theme.primary }]}>
-                        ${dailyBudgetCountry.toFixed(0)}
+                        ${Math.round(dailyBudgetCountry).toLocaleString()}
                       </Text>
                       <Text style={[styles.countryBudgetLocalValue, { color: theme.textSecondary }]}>
-                        {country.symbol}{dailyBudgetCountryLocal.toFixed(0)} {country.currency}
+                        {country.symbol}{Math.round(dailyBudgetCountryLocal).toLocaleString()} {country.currency}
                       </Text>
                     </View>
                     <View style={styles.countryBudgetItem}>
@@ -897,14 +951,14 @@ export default function BudgetMakerScreen({ navigation, route }) {
                 </View>
                 <View style={styles.budgetSummaryItem}>
                   <Text style={[styles.budgetSummaryLabel, { color: theme.textSecondary }]}>Daily Average</Text>
-                  <Text style={[styles.budgetSummaryValue, { color: theme.primary }]}>${dailyBudget.toFixed(0)}</Text>
+                  <Text style={[styles.budgetSummaryValue, { color: theme.primary }]}>${Math.round(dailyBudget).toLocaleString()}</Text>
                 </View>
               </View>
               {accommodationAmount > 0 && (
                 <View style={[styles.totalAccommodationRow, { borderTopColor: theme.border }]}>
                   <Ionicons name="bed" size={18} color={theme.primary} />
                   <Text style={[styles.totalAccommodationText, { color: theme.textSecondary }]}>
-                    Total Accommodations: ${accommodationAmount.toFixed(0)}
+                    Total Accommodations: ${Math.round(accommodationAmount).toLocaleString()}
                   </Text>
                 </View>
               )}
@@ -971,18 +1025,18 @@ export default function BudgetMakerScreen({ navigation, route }) {
           <View style={styles.budgetBreakdownRow}>
             <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>%</Text>
             <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>TOTAL</Text>
-            <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>$/DAY</Text>
-            <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>{currencySymbol}/DAY</Text>
+            <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>USD/DAY</Text>
+            <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>{currencyCode}/DAY</Text>
           </View>
 
           <View style={styles.budgetBreakdownRow}>
             <Text style={[styles.breakdownValue, { color: theme.text }]}>
               {((accommodationAmount / totalBudget) * 100).toFixed(0)}%
             </Text>
-            <Text style={[styles.breakdownValue, { color: theme.text }]}>${accommodationAmount.toFixed(0)}</Text>
-            <Text style={[styles.breakdownValue, { color: theme.text }]}>${(accommodationAmount / tripDuration).toFixed(0)}</Text>
+            <Text style={[styles.breakdownValue, { color: theme.text }]}>${Math.round(accommodationAmount).toLocaleString()}</Text>
+            <Text style={[styles.breakdownValue, { color: theme.text }]}>${Math.round(accommodationAmount / tripDuration).toLocaleString()}</Text>
             <Text style={[styles.breakdownValue, { color: theme.text }]}>
-              {currencySymbol}{((accommodationAmount * currencyRate) / tripDuration).toFixed(0)}
+              {currencySymbol}{Math.round((accommodationAmount * currencyRate) / tripDuration).toLocaleString()}
             </Text>
           </View>
         </View>
@@ -995,7 +1049,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
       }]}>
         <Text style={[styles.budgetAfterLabel, { color: theme.textSecondary }]}>Budget After Accommodations</Text>
         <Text style={[styles.budgetAfterValue, { color: theme.primary }]}>
-          ${budgetAfterAccommodation.toFixed(0)} / {currencySymbol}{budgetAfterAccommodationLocal.toFixed(0)}
+          ${Math.round(budgetAfterAccommodation).toLocaleString()} USD / {currencySymbol}{Math.round(budgetAfterAccommodationLocal).toLocaleString()} {currencyCode}
         </Text>
       </View>
 
@@ -1006,8 +1060,8 @@ export default function BudgetMakerScreen({ navigation, route }) {
         <View style={styles.budgetBreakdownRow}>
           <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>%</Text>
           <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>TOTAL</Text>
-          <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>$/DAY</Text>
-          <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>{currencySymbol}/DAY</Text>
+          <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>USD/DAY</Text>
+          <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>{currencyCode}/DAY</Text>
         </View>
 
         {lineItems.map((item, index) => {
@@ -1045,9 +1099,9 @@ export default function BudgetMakerScreen({ navigation, route }) {
 
               <View style={styles.budgetBreakdownRow}>
                 <Text style={[styles.breakdownValue, { color: theme.text }]}>{percent}%</Text>
-                <Text style={[styles.breakdownValue, { color: theme.text }]}>${total.toFixed(0)}</Text>
-                <Text style={[styles.breakdownValue, { color: theme.text }]}>${perDay.toFixed(0)}</Text>
-                <Text style={[styles.breakdownValue, { color: theme.text }]}>{currencySymbol}{perDayLocal.toFixed(0)}</Text>
+                <Text style={[styles.breakdownValue, { color: theme.text }]}>${Math.round(total).toLocaleString()}</Text>
+                <Text style={[styles.breakdownValue, { color: theme.text }]}>${Math.round(perDay).toLocaleString()}</Text>
+                <Text style={[styles.breakdownValue, { color: theme.text }]}>{currencySymbol}{Math.round(perDayLocal).toLocaleString()}</Text>
               </View>
             </View>
           );
@@ -1077,6 +1131,13 @@ export default function BudgetMakerScreen({ navigation, route }) {
         <Image source={ferdiLogo} style={styles.footerLogo} resizeMode="contain" />
       </View>
     </ScrollView>
+
+      {/* Auth Prompt Modal for Guests */}
+      <AuthPromptModal
+        visible={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        feature={featureMessage}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -1227,6 +1288,31 @@ const styles = StyleSheet.create({
   sliderLabel: {
     fontSize: 12,
     color: '#888',
+  },
+  sliderInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+    gap: 8,
+  },
+  sliderInput: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    minWidth: 100,
+  },
+  sliderValuePrefix: {
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  sliderValueSuffix: {
+    fontSize: 18,
+    fontWeight: '500',
   },
   budgetRow: {
     flexDirection: 'row',

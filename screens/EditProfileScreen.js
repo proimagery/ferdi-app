@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Image,
 import { Ionicons } from '@expo/vector-icons';
 import { useAppContext } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
+import { useAuthGuard } from '../hooks/useAuthGuard';
+import AuthPromptModal from '../components/AuthPromptModal';
 import SpinningGlobe from '../components/SpinningGlobe';
 import { Picker } from '@react-native-picker/picker';
 import { countryCoordinates } from '../utils/coordinates';
@@ -17,6 +19,7 @@ export default function EditProfileScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { profile, updateProfile, completedTrips, visitedCities, trips } = useAppContext();
   const { theme } = useTheme();
+  const { checkAuth, showAuthModal, setShowAuthModal, featureMessage } = useAuthGuard();
 
   const [name, setName] = useState(profile?.name || '');
   const [username, setUsername] = useState(profile?.username || '');
@@ -143,6 +146,9 @@ export default function EditProfileScreen({ navigation }) {
   const worldCoverage = ((totalCountriesVisited / worldCountries) * 100).toFixed(1);
 
   const handleSave = async () => {
+    // Check if guest user is trying to save profile
+    if (checkAuth('save your profile')) return;
+
     // Validate username if changed
     if (username !== originalUsername) {
       if (username.length < 3) {
@@ -718,6 +724,13 @@ export default function EditProfileScreen({ navigation }) {
         <Image source={ferdiLogo} style={styles.footerLogo} resizeMode="contain" />
       </View>
       </ScrollView>
+
+      {/* Auth Prompt Modal for Guests */}
+      <AuthPromptModal
+        visible={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        feature={featureMessage}
+      />
     </KeyboardAvoidingView>
   );
 }

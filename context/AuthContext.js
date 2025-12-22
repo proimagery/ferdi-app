@@ -12,6 +12,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
   const [needsUsername, setNeedsUsername] = useState(false);
+  const [isGuest, setIsGuest] = useState(false);
   const initializationComplete = useRef(false);
 
   // Check if user has set up a username (non-blocking)
@@ -275,18 +276,37 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Continue as guest - allows browsing without account
+  const continueAsGuest = () => {
+    setIsGuest(true);
+  };
+
+  // Exit guest mode (when user wants to sign up/in)
+  const exitGuestMode = () => {
+    setIsGuest(false);
+  };
+
+  // Check if action requires authentication
+  const requireAuth = () => {
+    return !user && isGuest;
+  };
+
   const value = {
     user,
     session,
     loading,
     initializing,
     needsUsername,
+    isGuest,
     signUp,
     signIn,
     testSignIn,
     signOut,
     resetPassword,
     completeUsernameSetup,
+    continueAsGuest,
+    exitGuestMode,
+    requireAuth,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

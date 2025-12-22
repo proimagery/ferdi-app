@@ -12,7 +12,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { useAppContext } from '../context/AppContext';
-import { getUserById } from '../utils/mockUsers';
 import Avatar from '../components/Avatar';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
@@ -20,7 +19,13 @@ const ferdiLogo = require('../assets/Ferdi-transparent.png');
 export default function TravelBuddiesScreen({ navigation }) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
-  const { travelBuddies, removeTravelBuddy } = useAppContext();
+  const {
+    travelBuddyProfiles,
+    buddyRequestProfiles,
+    removeTravelBuddy,
+    acceptBuddyRequest,
+    rejectBuddyRequest
+  } = useAppContext();
 
   const handleViewProfile = (user) => {
     navigation.navigate('PublicProfile', { user });
@@ -41,7 +46,25 @@ export default function TravelBuddiesScreen({ navigation }) {
     );
   };
 
-  const buddyUsers = travelBuddies.map(id => getUserById(id)).filter(Boolean);
+  const handleAcceptRequest = (userId, userName) => {
+    acceptBuddyRequest(userId);
+    Alert.alert('Success', `You and ${userName} are now travel buddies!`);
+  };
+
+  const handleRejectRequest = (userId, userName) => {
+    Alert.alert(
+      'Decline Request',
+      `Decline ${userName}'s buddy request?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Decline',
+          style: 'destructive',
+          onPress: () => rejectBuddyRequest(userId),
+        },
+      ]
+    );
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -52,13 +75,75 @@ export default function TravelBuddiesScreen({ navigation }) {
           <Text style={[styles.headerTitle, { color: theme.text }]}>Travel Buddies</Text>
         </View>
         <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>
-          {buddyUsers.length} {buddyUsers.length === 1 ? 'buddy' : 'buddies'}
+          {travelBuddyProfiles.length} {travelBuddyProfiles.length === 1 ? 'buddy' : 'buddies'}
         </Text>
       </View>
 
       {/* Buddies List */}
       <ScrollView style={styles.buddiesList} showsVerticalScrollIndicator={false}>
-        {buddyUsers.length === 0 ? (
+
+        {/* Pending Requests Section */}
+        {buddyRequestProfiles.length > 0 && (
+          <View style={styles.requestsSection}>
+            <View style={styles.sectionHeader}>
+              <View style={[styles.requestBadge, { backgroundColor: theme.danger }]}>
+                <Ionicons name="person-add" size={16} color="#fff" />
+                <Text style={styles.requestBadgeText}>{buddyRequestProfiles.length}</Text>
+              </View>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Pending Requests</Text>
+            </View>
+            {buddyRequestProfiles.map((requestUser) => (
+              <View
+                key={requestUser.id}
+                style={[styles.requestCard, {
+                  backgroundColor: theme.cardBackground,
+                  borderColor: theme.primary
+                }]}
+              >
+                <TouchableOpacity
+                  style={styles.buddyInfo}
+                  onPress={() => handleViewProfile(requestUser)}
+                >
+                  <Avatar
+                    avatar={requestUser.avatar}
+                    avatarType={requestUser.avatarType}
+                    size={50}
+                  />
+                  <View style={styles.buddyDetails}>
+                    <Text style={[styles.buddyName, { color: theme.text }]}>
+                      {requestUser.name}
+                    </Text>
+                    {requestUser.username ? (
+                      <Text style={[styles.buddyUsername, { color: theme.primary }]}>
+                        @{requestUser.username}
+                      </Text>
+                    ) : null}
+                    <Text style={[styles.buddyLocation, { color: theme.textSecondary }]}>
+                      {requestUser.location}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+                <View style={styles.requestActions}>
+                  <TouchableOpacity
+                    style={[styles.acceptButton, { backgroundColor: theme.primary }]}
+                    onPress={() => handleAcceptRequest(requestUser.id, requestUser.name)}
+                  >
+                    <Ionicons name="checkmark" size={20} color="#fff" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.declineButton, { borderColor: theme.danger }]}
+                    onPress={() => handleRejectRequest(requestUser.id, requestUser.name)}
+                  >
+                    <Ionicons name="close" size={20} color={theme.danger} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Existing Buddies */}
+        {travelBuddyProfiles.length === 0 && buddyRequestProfiles.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="people-outline" size={80} color={theme.textSecondary} />
             <Text style={[styles.emptyTitle, { color: theme.text }]}>
@@ -77,9 +162,14 @@ export default function TravelBuddiesScreen({ navigation }) {
               </Text>
             </TouchableOpacity>
           </View>
-        ) : (
+        ) : travelBuddyProfiles.length > 0 ? (
           <View style={styles.buddiesContainer}>
-            {buddyUsers.map((user) => (
+            {buddyRequestProfiles.length > 0 && (
+              <Text style={[styles.sectionTitle, { color: theme.text, marginBottom: 15 }]}>
+                Your Buddies
+              </Text>
+            )}
+            {travelBuddyProfiles.map((user) => (
               <View
                 key={user.id}
                 style={[styles.buddyCard, {
@@ -100,15 +190,22 @@ export default function TravelBuddiesScreen({ navigation }) {
                     <Text style={[styles.buddyName, { color: theme.text }]}>
                       {user.name}
                     </Text>
+                    {user.username ? (
+                      <Text style={[styles.buddyUsername, { color: theme.primary }]}>
+                        @{user.username}
+                      </Text>
+                    ) : null}
                     <Text style={[styles.buddyLocation, { color: theme.textSecondary }]}>
                       {user.location}
                     </Text>
-                    <View style={styles.countryCount}>
-                      <Ionicons name="earth" size={14} color={theme.primary} />
-                      <Text style={[styles.countryCountText, { color: theme.primary }]}>
-                        {user.countriesVisited.length} countries
-                      </Text>
-                    </View>
+                    {user.countriesVisited && user.countriesVisited.length > 0 && (
+                      <View style={styles.countryCount}>
+                        <Ionicons name="earth" size={14} color={theme.primary} />
+                        <Text style={[styles.countryCountText, { color: theme.primary }]}>
+                          {user.countriesVisited.length} countries
+                        </Text>
+                      </View>
+                    )}
                   </View>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -120,7 +217,7 @@ export default function TravelBuddiesScreen({ navigation }) {
               </View>
             ))}
           </View>
-        )}
+        ) : null}
 
         {/* Footer */}
         <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
@@ -214,11 +311,70 @@ const styles = StyleSheet.create({
   buddyName: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 3,
+    marginBottom: 2,
+  },
+  buddyUsername: {
+    fontSize: 13,
+    fontWeight: '500',
+    marginBottom: 2,
   },
   buddyLocation: {
     fontSize: 13,
     marginBottom: 4,
+  },
+  requestsSection: {
+    marginBottom: 25,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 15,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  requestBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  requestBadgeText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  requestCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 15,
+    borderRadius: 12,
+    borderWidth: 2,
+    marginBottom: 12,
+  },
+  requestActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  acceptButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  declineButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   countryCount: {
     flexDirection: 'row',

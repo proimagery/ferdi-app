@@ -5,6 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useAppContext } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
+import { useAuthGuard } from '../hooks/useAuthGuard';
+import AuthPromptModal from '../components/AuthPromptModal';
 import SpinningGlobe from '../components/SpinningGlobe';
 import { getCountryFlag } from '../utils/countryFlags';
 import { presetAvatars } from '../utils/presetAvatars';
@@ -20,6 +22,7 @@ export default function PublicProfileScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const { profile, completedTrips, visitedCities, trips, travelBuddies, highlightedBuddies, buddyRequests, sendBuddyRequest, updateProfile } = useAppContext();
   const { theme } = useTheme();
+  const { checkAuth, showAuthModal, setShowAuthModal, featureMessage } = useAuthGuard();
 
   // Check if viewing another user's profile or own profile
   const viewingUser = route?.params?.user;
@@ -35,6 +38,9 @@ export default function PublicProfileScreen({ navigation, route }) {
   const isRequestSent = viewingUser ? buddyRequests.includes(viewingUser.id) : false;
 
   const handleAddBuddy = () => {
+    // Check if guest user is trying to add a buddy
+    if (checkAuth('add travel buddies')) return;
+
     if (viewingUser && !isBuddy && !isRequestSent) {
       sendBuddyRequest(viewingUser.id);
     }
@@ -658,6 +664,13 @@ export default function PublicProfileScreen({ navigation, route }) {
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
         <Image source={ferdiLogo} style={styles.footerLogo} resizeMode="contain" />
       </View>
+
+      {/* Auth Prompt Modal for Guests */}
+      <AuthPromptModal
+        visible={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        feature={featureMessage}
+      />
     </ScrollView>
   );
 }
