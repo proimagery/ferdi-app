@@ -111,7 +111,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
   const [accommodationTotal, setAccommodationTotal] = useState(budgetToEdit?.accommodation ? budgetToEdit.accommodation.toString() : '');
   const [accommodationInputMode, setAccommodationInputMode] = useState('percent'); // 'percent' or 'total'
 
-  // Budget line items (for manual mode)
+  // Budget line items (for manual mode) - single country
   const [lineItems, setLineItems] = useState(
     budgetToEdit?.lineItems || [
       { name: 'Food/Drink (non-alc)', percent: 25, icon: 'restaurant' },
@@ -120,6 +120,33 @@ export default function BudgetMakerScreen({ navigation, route }) {
       { name: 'Alcohol', percent: 5, icon: 'beer' },
     ]
   );
+
+  // Per-country line items for multi-country mode
+  const defaultLineItems = [
+    { name: 'Food/Drink (non-alc)', percent: 25, icon: 'restaurant' },
+    { name: 'Transportation', percent: 15, icon: 'car' },
+    { name: 'Activities/Fun', percent: 15, icon: 'bicycle' },
+    { name: 'Alcohol', percent: 5, icon: 'beer' },
+  ];
+
+  const [countryLineItems, setCountryLineItems] = useState(() => {
+    if (budgetToEdit?.countryLineItems) return budgetToEdit.countryLineItems;
+    // Initialize with default line items for each country
+    const initial = {};
+    if (budgetToEdit?.countries) {
+      budgetToEdit.countries.forEach(c => {
+        initial[c.name] = [...defaultLineItems];
+      });
+    }
+    return initial;
+  });
+
+  // Selected country for budget breakdown in multi-country mode
+  const [selectedBreakdownCountry, setSelectedBreakdownCountry] = useState(() => {
+    if (budgetToEdit?.countries?.length > 0) return budgetToEdit.countries[0].name;
+    if (fromTrip && tripData?.countries?.length > 0) return tripData.countries[0].name;
+    return null;
+  });
 
   // Get all countries from coordinates
   const allCountryNames = Object.keys(countryCoordinates).sort();
@@ -208,6 +235,23 @@ export default function BudgetMakerScreen({ navigation, route }) {
     setLineItems(updated);
   };
 
+  // Update line item for a specific country in multi-country mode
+  const updateCountryLineItemPercent = (countryName, index, newPercent) => {
+    setCountryLineItems(prev => {
+      const countryItems = [...(prev[countryName] || defaultLineItems)];
+      countryItems[index].percent = newPercent;
+      return {
+        ...prev,
+        [countryName]: countryItems,
+      };
+    });
+  };
+
+  // Get line items for a specific country
+  const getCountryLineItems = (countryName) => {
+    return countryLineItems[countryName] || defaultLineItems;
+  };
+
   const addCustomLineItem = () => {
     Alert.prompt(
       'Add Custom Item',
@@ -249,6 +293,46 @@ export default function BudgetMakerScreen({ navigation, route }) {
       return;
     }
 
+    // Build per-country line items with calculated totals for multi-country mode
+    const buildCountryBreakdowns = () => {
+      if (tripType !== 'multi') return null;
+
+      const breakdowns = {};
+      countries.forEach(country => {
+        const countryBudget = totalDaysMulti > 0 ? (totalBudget / totalDaysMulti) * country.days : 0;
+        const countryAccommodation = country.accommodation || 0;
+        const countryBudgetAfterAccommodation = countryBudget - countryAccommodation;
+        const items = getCountryLineItems(country.name);
+
+        breakdowns[country.name] = {
+          budget: countryBudget,
+          accommodation: countryAccommodation,
+          budgetAfterAccommodation: countryBudgetAfterAccommodation,
+          days: country.days,
+          currency: country.currency,
+          symbol: country.symbol,
+          rate: country.rate,
+          lineItems: mode === 'recommended'
+            ? Object.entries(presets[selectedPreset] || presets.standard)
+                .filter(([key]) => key !== 'accommodation')
+                .map(([key, percent]) => ({
+                  name: key.charAt(0).toUpperCase() + key.slice(1),
+                  percent,
+                  total: (countryBudgetAfterAccommodation * percent) / 100,
+                  totalLocal: (countryBudgetAfterAccommodation * percent / 100) * country.rate,
+                }))
+            : items.map(item => ({
+                name: item.name,
+                icon: item.icon,
+                percent: item.percent,
+                total: (countryBudgetAfterAccommodation * item.percent) / 100,
+                totalLocal: (countryBudgetAfterAccommodation * item.percent / 100) * country.rate,
+              })),
+        };
+      });
+      return breakdowns;
+    };
+
     const budget = {
       id: editMode ? budgetToEdit.id : Date.now().toString(),
       source: fromTrip ? 'trip' : (budgetToEdit?.source || 'budgetMaker'), // Track where it came from
@@ -274,6 +358,9 @@ export default function BudgetMakerScreen({ navigation, route }) {
             percent: item.percent,
             total: (budgetAfterAccommodation * item.percent) / 100,
           })),
+      // Per-country breakdowns for multi-country mode
+      countryBreakdowns: buildCountryBreakdowns(),
+      countryLineItems: tripType === 'multi' ? countryLineItems : null,
       currency: tripType === 'single' ? currencyCode : 'USD',
       currencyRate: tripType === 'single' ? currencyRate : null,
     };
@@ -325,10 +412,31 @@ export default function BudgetMakerScreen({ navigation, route }) {
       rate: currencyInfo.rate,
       accommodation: 0, // Per-country accommodation cost in USD
     }]);
+    // Initialize line items for the new country
+    setCountryLineItems(prev => ({
+      ...prev,
+      [countryName]: [...defaultLineItems],
+    }));
+    // Set as selected if first country
+    if (countries.length === 0) {
+      setSelectedBreakdownCountry(countryName);
+    }
   };
 
   const removeCountryFromTrip = (index) => {
+    const removedCountry = countries[index];
     setCountries(countries.filter((_, i) => i !== index));
+    // Remove line items for the removed country
+    setCountryLineItems(prev => {
+      const updated = { ...prev };
+      delete updated[removedCountry.name];
+      return updated;
+    });
+    // Update selected breakdown country if removed
+    if (selectedBreakdownCountry === removedCountry.name) {
+      const remainingCountries = countries.filter((_, i) => i !== index);
+      setSelectedBreakdownCountry(remainingCountries[0]?.name || null);
+    }
   };
 
   const updateCountryDays = (index, days) => {
@@ -1053,70 +1161,215 @@ export default function BudgetMakerScreen({ navigation, route }) {
         </Text>
       </View>
 
-      {/* Budget Breakdown */}
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Budget Breakdown</Text>
+      {/* Budget Breakdown - Single Country Mode */}
+      {tripType === 'single' ? (
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Budget Breakdown</Text>
 
-        <View style={styles.budgetBreakdownRow}>
-          <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>%</Text>
-          <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>TOTAL</Text>
-          <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>USD/DAY</Text>
-          <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>{currencyCode}/DAY</Text>
-        </View>
+          <View style={styles.budgetBreakdownRow}>
+            <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>%</Text>
+            <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>TOTAL</Text>
+            <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>USD/DAY</Text>
+            <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>{currencyCode}/DAY</Text>
+          </View>
 
-        {lineItems.map((item, index) => {
-          const percent = mode === 'recommended' ? getLineItemPercent(item.name) : item.percent;
-          const total = (budgetAfterAccommodation * percent) / 100;
-          const perDay = total / tripDuration;
-          const perDayLocal = perDay * currencyRate;
+          {lineItems.map((item, index) => {
+            const percent = mode === 'recommended' ? getLineItemPercent(item.name) : item.percent;
+            const total = (budgetAfterAccommodation * percent) / 100;
+            const perDay = total / tripDuration;
+            const perDayLocal = perDay * currencyRate;
 
-          return (
-            <View key={index} style={[styles.lineItemCard, {
+            return (
+              <View key={index} style={[styles.lineItemCard, {
+                backgroundColor: theme.cardBackground,
+                borderColor: theme.border
+              }]}>
+                <View style={styles.lineItemHeader}>
+                  <Ionicons name={item.icon} size={18} color={theme.primary} />
+                  <Text style={[styles.lineItemName, { color: theme.text }]}>{item.name}</Text>
+                </View>
+
+                {mode === 'manual' && (
+                  <>
+                    <Text style={[styles.sliderValue, { color: theme.primary }]}>{percent}%</Text>
+                    <Slider
+                      style={styles.slider}
+                      minimumValue={0}
+                      maximumValue={100}
+                      step={5}
+                      value={percent}
+                      onValueChange={(value) => updateLineItemPercent(index, value)}
+                      minimumTrackTintColor={theme.primary}
+                      maximumTrackTintColor={theme.border}
+                      thumbTintColor={theme.primary}
+                    />
+                  </>
+                )}
+
+                <View style={styles.budgetBreakdownRow}>
+                  <Text style={[styles.breakdownValue, { color: theme.text }]}>{percent}%</Text>
+                  <Text style={[styles.breakdownValue, { color: theme.text }]}>${Math.round(total).toLocaleString()}</Text>
+                  <Text style={[styles.breakdownValue, { color: theme.text }]}>${Math.round(perDay).toLocaleString()}</Text>
+                  <Text style={[styles.breakdownValue, { color: theme.text }]}>{currencySymbol}{Math.round(perDayLocal).toLocaleString()}</Text>
+                </View>
+              </View>
+            );
+          })}
+
+          {mode === 'manual' && (
+            <TouchableOpacity style={[styles.addItemButton, {
               backgroundColor: theme.cardBackground,
               borderColor: theme.border
-            }]}>
-              <View style={styles.lineItemHeader}>
-                <Ionicons name={item.icon} size={18} color={theme.primary} />
-                <Text style={[styles.lineItemName, { color: theme.text }]}>{item.name}</Text>
-              </View>
+            }]} onPress={addCustomLineItem}>
+              <Ionicons name="add-circle" size={24} color={theme.primary} />
+              <Text style={[styles.addItemButtonText, { color: theme.primary }]}>Add More</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      ) : (
+        /* Budget Breakdown - Multi-Country Mode */
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Budget Breakdown by Country</Text>
 
-              {mode === 'manual' && (
-                <>
-                  <Text style={[styles.sliderValue, { color: theme.primary }]}>{percent}%</Text>
-                  <Slider
-                    style={styles.slider}
-                    minimumValue={0}
-                    maximumValue={100}
-                    step={5}
-                    value={percent}
-                    onValueChange={(value) => updateLineItemPercent(index, value)}
-                    minimumTrackTintColor={theme.primary}
-                    maximumTrackTintColor={theme.border}
-                    thumbTintColor={theme.primary}
-                  />
-                </>
-              )}
+          {countries.length > 0 && (
+            <>
+              {/* Country Selector Toggle */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.countryToggleContainer}
+                contentContainerStyle={styles.countryToggleContent}
+              >
+                {countries.map((country, index) => {
+                  const isSelected = selectedBreakdownCountry === country.name;
+                  return (
+                    <TouchableOpacity
+                      key={index}
+                      style={[
+                        styles.countryToggleButton,
+                        { backgroundColor: theme.cardBackground, borderColor: theme.border },
+                        isSelected && { backgroundColor: theme.primary, borderColor: theme.primary }
+                      ]}
+                      onPress={() => setSelectedBreakdownCountry(country.name)}
+                    >
+                      <Text style={[
+                        styles.countryToggleText,
+                        { color: theme.text },
+                        isSelected && { color: theme.background }
+                      ]}>
+                        {country.name}
+                      </Text>
+                      <Text style={[
+                        styles.countryToggleCurrency,
+                        { color: theme.textSecondary },
+                        isSelected && { color: theme.background + '80' }
+                      ]}>
+                        {country.symbol} {country.currency}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
 
-              <View style={styles.budgetBreakdownRow}>
-                <Text style={[styles.breakdownValue, { color: theme.text }]}>{percent}%</Text>
-                <Text style={[styles.breakdownValue, { color: theme.text }]}>${Math.round(total).toLocaleString()}</Text>
-                <Text style={[styles.breakdownValue, { color: theme.text }]}>${Math.round(perDay).toLocaleString()}</Text>
-                <Text style={[styles.breakdownValue, { color: theme.text }]}>{currencySymbol}{Math.round(perDayLocal).toLocaleString()}</Text>
-              </View>
+              {/* Selected Country Budget Info */}
+              {selectedBreakdownCountry && (() => {
+                const selectedCountryData = countries.find(c => c.name === selectedBreakdownCountry);
+                if (!selectedCountryData) return null;
+
+                // Calculate budget for this country
+                const countryBudget = totalDaysMulti > 0 ? (totalBudget / totalDaysMulti) * selectedCountryData.days : 0;
+                const countryAccommodation = selectedCountryData.accommodation || 0;
+                const countryBudgetAfterAccommodation = countryBudget - countryAccommodation;
+                const countryItems = getCountryLineItems(selectedBreakdownCountry);
+
+                return (
+                  <>
+                    {/* Country Budget Summary */}
+                    <View style={[styles.countryBreakdownHeader, { backgroundColor: theme.primary + '15', borderColor: theme.primary }]}>
+                      <View style={styles.countryBreakdownInfo}>
+                        <Text style={[styles.countryBreakdownName, { color: theme.text }]}>{selectedCountryData.name}</Text>
+                        <Text style={[styles.countryBreakdownDays, { color: theme.textSecondary }]}>
+                          {selectedCountryData.days} days | {selectedCountryData.symbol} {selectedCountryData.currency}
+                        </Text>
+                      </View>
+                      <View style={styles.countryBreakdownBudget}>
+                        <Text style={[styles.countryBreakdownBudgetLabel, { color: theme.textSecondary }]}>Budget</Text>
+                        <Text style={[styles.countryBreakdownBudgetValue, { color: theme.primary }]}>
+                          ${Math.round(countryBudgetAfterAccommodation).toLocaleString()}
+                        </Text>
+                        <Text style={[styles.countryBreakdownBudgetLocal, { color: theme.textSecondary }]}>
+                          {selectedCountryData.symbol}{Math.round(countryBudgetAfterAccommodation * selectedCountryData.rate).toLocaleString()}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Line Items Header */}
+                    <View style={styles.budgetBreakdownRow}>
+                      <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>%</Text>
+                      <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>TOTAL</Text>
+                      <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>USD/DAY</Text>
+                      <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>{selectedCountryData.currency}/DAY</Text>
+                    </View>
+
+                    {/* Line Items for Selected Country */}
+                    {countryItems.map((item, index) => {
+                      const percent = mode === 'recommended' ? getLineItemPercent(item.name) : item.percent;
+                      const total = (countryBudgetAfterAccommodation * percent) / 100;
+                      const perDay = selectedCountryData.days > 0 ? total / selectedCountryData.days : 0;
+                      const perDayLocal = perDay * selectedCountryData.rate;
+
+                      return (
+                        <View key={index} style={[styles.lineItemCard, {
+                          backgroundColor: theme.cardBackground,
+                          borderColor: theme.border
+                        }]}>
+                          <View style={styles.lineItemHeader}>
+                            <Ionicons name={item.icon} size={18} color={theme.primary} />
+                            <Text style={[styles.lineItemName, { color: theme.text }]}>{item.name}</Text>
+                          </View>
+
+                          {mode === 'manual' && (
+                            <>
+                              <Text style={[styles.sliderValue, { color: theme.primary }]}>{percent}%</Text>
+                              <Slider
+                                style={styles.slider}
+                                minimumValue={0}
+                                maximumValue={100}
+                                step={5}
+                                value={percent}
+                                onValueChange={(value) => updateCountryLineItemPercent(selectedBreakdownCountry, index, value)}
+                                minimumTrackTintColor={theme.primary}
+                                maximumTrackTintColor={theme.border}
+                                thumbTintColor={theme.primary}
+                              />
+                            </>
+                          )}
+
+                          <View style={styles.budgetBreakdownRow}>
+                            <Text style={[styles.breakdownValue, { color: theme.text }]}>{percent}%</Text>
+                            <Text style={[styles.breakdownValue, { color: theme.text }]}>${Math.round(total).toLocaleString()}</Text>
+                            <Text style={[styles.breakdownValue, { color: theme.text }]}>${Math.round(perDay).toLocaleString()}</Text>
+                            <Text style={[styles.breakdownValue, { color: theme.text }]}>{selectedCountryData.symbol}{Math.round(perDayLocal).toLocaleString()}</Text>
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </>
+                );
+              })()}
+            </>
+          )}
+
+          {countries.length === 0 && (
+            <View style={[styles.emptyBreakdownState, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+              <Ionicons name="pie-chart-outline" size={40} color={theme.textSecondary} />
+              <Text style={[styles.emptyBreakdownText, { color: theme.textSecondary }]}>
+                Add countries above to set individual budgets
+              </Text>
             </View>
-          );
-        })}
-
-        {mode === 'manual' && (
-          <TouchableOpacity style={[styles.addItemButton, {
-            backgroundColor: theme.cardBackground,
-            borderColor: theme.border
-          }]} onPress={addCustomLineItem}>
-            <Ionicons name="add-circle" size={24} color={theme.primary} />
-            <Text style={[styles.addItemButtonText, { color: theme.primary }]}>Add More</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+          )}
+        </View>
+      )}
 
       {/* Save Button */}
       <TouchableOpacity style={[styles.saveButton, { backgroundColor: theme.primary }]} onPress={saveBudget}>
@@ -1745,6 +1998,78 @@ const styles = StyleSheet.create({
   totalDaysWarning: {
     fontSize: 12,
     marginTop: 5,
+    textAlign: 'center',
+  },
+  // Country toggle styles for multi-country breakdown
+  countryToggleContainer: {
+    marginBottom: 15,
+  },
+  countryToggleContent: {
+    paddingVertical: 5,
+    gap: 10,
+  },
+  countryToggleButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 2,
+    marginRight: 10,
+    alignItems: 'center',
+    minWidth: 100,
+  },
+  countryToggleText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  countryToggleCurrency: {
+    fontSize: 11,
+    marginTop: 2,
+  },
+  countryBreakdownHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 15,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 15,
+  },
+  countryBreakdownInfo: {
+    flex: 1,
+  },
+  countryBreakdownName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  countryBreakdownDays: {
+    fontSize: 13,
+  },
+  countryBreakdownBudget: {
+    alignItems: 'flex-end',
+  },
+  countryBreakdownBudgetLabel: {
+    fontSize: 11,
+    marginBottom: 2,
+  },
+  countryBreakdownBudgetValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  countryBreakdownBudgetLocal: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  emptyBreakdownState: {
+    padding: 40,
+    alignItems: 'center',
+    borderRadius: 10,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+  },
+  emptyBreakdownText: {
+    fontSize: 14,
+    marginTop: 10,
     textAlign: 'center',
   },
   footer: {

@@ -53,6 +53,9 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
       const markerColor = markerColors[index % markerColors.length];
       const visits = countryVisits[countryName];
 
+      // Count cities in this country
+      const citiesInCountry = visitedCities.filter(c => c.country === countryName).length;
+
       return {
         lat: coords.latitude || 0,
         lng: coords.longitude || 0,
@@ -60,12 +63,13 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
         color: markerColor,
         visits: visits.length > 0 ? visits : ['Date not recorded'],
         visitCount: visits.length || 1,
+        cityCount: citiesInCountry,
         type: 'country',
       };
     }).filter(marker => marker.lat !== 0 || marker.lng !== 0);
-  }, [completedTrips]);
+  }, [completedTrips, visitedCities]);
 
-  // Convert cities to colored dot markers (no labels, clickable)
+  // Convert cities to colored dot markers (hidden by default, shown when country selected)
   const cityMarkers = useMemo(() => {
     return visitedCities.map((city, index) => {
       const cityColor = cityColors[index % cityColors.length];
@@ -83,9 +87,6 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
     }).filter(marker => marker.lat !== 0 || marker.lng !== 0);
   }, [visitedCities]);
 
-  // Combine all markers for HTML elements (both countries and cities will use htmlElements)
-  const allHtmlMarkers = [...countryMarkers, ...cityMarkers];
-
   // Create HTML with globe.gl library
   const html = `
 <!DOCTYPE html>
@@ -102,6 +103,17 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
       pointer-events: auto !important;
     }
 
+    .marker-container.city-marker {
+      display: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .marker-container.city-marker.visible {
+      display: block;
+      opacity: 1;
+    }
+
     .marker-label {
       color: #fff;
       font-size: 11px;
@@ -111,10 +123,16 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
       white-space: nowrap;
       text-shadow: 0 0 4px rgba(0,0,0,0.8);
       cursor: pointer;
+      transition: transform 0.2s ease;
     }
 
     .marker-label:hover {
       transform: scale(1.05);
+    }
+
+    .marker-label.selected {
+      transform: scale(1.1);
+      box-shadow: 0 0 12px rgba(255,255,255,0.5);
     }
 
     .city-dot {
@@ -123,6 +141,12 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
       border-radius: 50%;
       cursor: pointer;
       box-shadow: 0 0 6px rgba(255,255,255,0.5);
+      animation: cityAppear 0.3s ease-out;
+    }
+
+    @keyframes cityAppear {
+      from { transform: scale(0); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
     }
 
     .city-dot:hover {
@@ -140,7 +164,7 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
       padding: 12px 16px;
       color: #fff;
       min-width: 150px;
-      max-width: 200px;
+      max-width: 220px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.5);
       margin-bottom: 8px;
       display: none;
@@ -217,6 +241,22 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
     .popup-visit-item {
       padding: 2px 0;
     }
+
+    .popup-cities-hint {
+      font-size: 10px;
+      color: #4ade80;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .popup-cities-hint::before {
+      content: '●';
+      font-size: 8px;
+    }
   </style>
   <script src="https://unpkg.com/three@0.150.0/build/three.min.js"></script>
   <script src="https://unpkg.com/globe.gl@2.26.0/dist/globe.gl.min.js"></script>
@@ -224,59 +264,160 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
 <body>
   <div id="globeViz"></div>
   <script>
-    const markersData = ${JSON.stringify(allHtmlMarkers)};
+    const countryData = ${JSON.stringify(countryMarkers)};
+    const cityData = ${JSON.stringify(cityMarkers)};
 
     let popupOpen = false;
     let currentPopupEl = null;
     let world = null;
+    let selectedCountry = null;
+    let cityElements = {};
 
-    // Close any open popup
-    function closeAllPopups() {
+    // Close any open popup and hide cities
+    function closeAllPopups(hideCities = true) {
       document.querySelectorAll('.marker-popup.active').forEach(p => {
         p.classList.remove('active');
-        // Reset z-index on the container
         const container = p.closest('.marker-container');
         if (container) {
           container.style.zIndex = '';
         }
       });
+
+      // Remove selected state from country labels
+      document.querySelectorAll('.marker-label.selected').forEach(l => {
+        l.classList.remove('selected');
+      });
+
       popupOpen = false;
       currentPopupEl = null;
+
+      if (hideCities) {
+        // Hide all city markers
+        document.querySelectorAll('.city-marker').forEach(c => {
+          c.classList.remove('visible');
+        });
+        selectedCountry = null;
+      }
+
       if (world && world.controls()) {
         world.controls().autoRotate = true;
       }
     }
 
-    // Toggle popup for a marker
-    function togglePopup(popupEl, event) {
+    // Show cities for a specific country
+    function showCitiesForCountry(countryName) {
+      // First hide all cities
+      document.querySelectorAll('.city-marker').forEach(c => {
+        c.classList.remove('visible');
+      });
+
+      // Show cities for the selected country
+      document.querySelectorAll('.city-marker').forEach(c => {
+        if (c.dataset.country === countryName) {
+          c.classList.add('visible');
+        }
+      });
+
+      selectedCountry = countryName;
+    }
+
+    // Toggle popup for a country marker
+    function toggleCountryPopup(popupEl, labelEl, countryName, cityCount, event) {
+      event.stopPropagation();
+
+      const wasActive = popupEl.classList.contains('active');
+      const wasSelected = selectedCountry === countryName;
+
+      // Close all popups but don't hide cities yet
+      closeAllPopups(false);
+
+      if (!wasActive) {
+        popupEl.classList.add('active');
+        labelEl.classList.add('selected');
+        popupOpen = true;
+        currentPopupEl = popupEl;
+
+        const container = popupEl.closest('.marker-container');
+        if (container) {
+          container.style.zIndex = '10000';
+        }
+
+        // Show cities for this country
+        if (cityCount > 0) {
+          showCitiesForCountry(countryName);
+        }
+
+        if (world && world.controls()) {
+          world.controls().autoRotate = false;
+        }
+      } else {
+        // Clicking again hides cities
+        document.querySelectorAll('.city-marker').forEach(c => {
+          c.classList.remove('visible');
+        });
+        selectedCountry = null;
+      }
+    }
+
+    // Toggle popup for a city marker
+    function toggleCityPopup(popupEl, event) {
       event.stopPropagation();
 
       const wasActive = popupEl.classList.contains('active');
 
-      // Close all other popups
-      closeAllPopups();
+      // Close country popups but keep cities visible
+      document.querySelectorAll('.marker-popup.active').forEach(p => {
+        if (!p.closest('.city-marker')) {
+          p.classList.remove('active');
+          const container = p.closest('.marker-container');
+          if (container) {
+            container.style.zIndex = '';
+          }
+        }
+      });
+      document.querySelectorAll('.marker-label.selected').forEach(l => {
+        l.classList.remove('selected');
+      });
+
+      // Close other city popups
+      document.querySelectorAll('.city-marker .marker-popup.active').forEach(p => {
+        if (p !== popupEl) {
+          p.classList.remove('active');
+          const container = p.closest('.marker-container');
+          if (container) {
+            container.style.zIndex = '';
+          }
+        }
+      });
 
       if (!wasActive) {
         popupEl.classList.add('active');
         popupOpen = true;
         currentPopupEl = popupEl;
-        // Set high z-index on the container to appear above other markers
+
         const container = popupEl.closest('.marker-container');
         if (container) {
           container.style.zIndex = '10000';
         }
+
         if (world && world.controls()) {
           world.controls().autoRotate = false;
         }
+      } else {
+        popupOpen = false;
+        currentPopupEl = null;
       }
     }
 
-    // Close popup when clicking elsewhere
+    // Close popup when clicking elsewhere on globe
     document.addEventListener('click', function(e) {
       if (!e.target.closest('.marker-container')) {
-        closeAllPopups();
+        closeAllPopups(true);
       }
     });
+
+    // Build markers data - countries first, then cities
+    const allMarkersData = [...countryData, ...cityData];
 
     world = Globe()
       (document.getElementById('globeViz'))
@@ -284,7 +425,7 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
       .backgroundColor('#000000')
       .atmosphereColor('#4ade80')
       .atmosphereAltitude(0.15)
-      .htmlElementsData(markersData)
+      .htmlElementsData(allMarkersData)
       .htmlElement(d => {
         const container = document.createElement('div');
         container.className = 'marker-container';
@@ -308,6 +449,11 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
               '</div>';
           }
 
+          let citiesHint = '';
+          if (d.cityCount > 0) {
+            citiesHint = '<div class="popup-cities-hint">' + d.cityCount + ' ' + (d.cityCount === 1 ? 'city' : 'cities') + ' visited</div>';
+          }
+
           popup.innerHTML =
             '<span class="popup-close">&times;</span>' +
             '<div class="popup-header">' +
@@ -315,21 +461,25 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
               '<span class="popup-title">' + d.label + '</span>' +
             '</div>' +
             '<div class="popup-subtitle">Visited ' + d.visitCount + ' time' + (d.visitCount > 1 ? 's' : '') + '</div>' +
-            visitsHtml;
+            visitsHtml +
+            citiesHint;
 
           popup.querySelector('.popup-close').addEventListener('click', function(e) {
             e.stopPropagation();
-            closeAllPopups();
+            closeAllPopups(true);
           });
 
           label.addEventListener('click', function(e) {
-            togglePopup(popup, e);
+            toggleCountryPopup(popup, label, d.label, d.cityCount, e);
           });
 
           container.appendChild(popup);
           container.appendChild(label);
         } else {
-          // City dot
+          // City marker (hidden by default)
+          container.classList.add('city-marker');
+          container.dataset.country = d.country;
+
           const dot = document.createElement('div');
           dot.className = 'city-dot';
           dot.style.backgroundColor = d.color;
@@ -350,11 +500,15 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
 
           popup.querySelector('.popup-close').addEventListener('click', function(e) {
             e.stopPropagation();
-            closeAllPopups();
+            // Just close this popup, keep cities visible
+            popup.classList.remove('active');
+            container.style.zIndex = '';
+            popupOpen = false;
+            currentPopupEl = null;
           });
 
           dot.addEventListener('click', function(e) {
-            togglePopup(popup, e);
+            toggleCityPopup(popup, e);
           });
 
           container.appendChild(popup);
