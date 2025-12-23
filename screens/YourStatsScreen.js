@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppContext } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
+import SpinningGlobe from '../components/SpinningGlobe';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
@@ -200,6 +201,16 @@ export default function YourStatsScreen({ navigation }) {
         })}
       </View>
 
+      {/* Globe with Markers */}
+      {completedTrips.length > 0 && (
+        <View style={styles.globeSection}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Your World</Text>
+          <View style={styles.globeContainer}>
+            <SpinningGlobe completedTrips={completedTrips} visitedCities={visitedCities} />
+          </View>
+        </View>
+      )}
+
       {visitedContinents.length > 0 && (
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Continents Visited</Text>
@@ -325,6 +336,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 10,
     right: 10,
+  },
+  globeSection: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+  },
+  globeContainer: {
+    alignItems: 'center',
   },
   section: {
     padding: 20,

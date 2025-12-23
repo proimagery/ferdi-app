@@ -280,7 +280,7 @@ export default function AddCompletedTripScreen({ navigation }) {
             </View>
 
             {/* Country List */}
-            <ScrollView style={styles.countryPickerList} showsVerticalScrollIndicator={false}>
+            <ScrollView style={styles.countryPickerList} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               {availableCountries
                 .filter(country => country.toLowerCase().includes(searchText.toLowerCase()))
                 .map((country, index) => (

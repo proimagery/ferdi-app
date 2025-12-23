@@ -311,7 +311,7 @@ export default function CreateTripScreen({ navigation, route }) {
                       onChangeText={(text) => setSearchQuery({ ...searchQuery, [index]: text })}
                       autoFocus={true}
                     />
-                    <ScrollView style={styles.dropdownList} nestedScrollEnabled={true}>
+                    <ScrollView style={styles.dropdownList} nestedScrollEnabled={true} keyboardShouldPersistTaps="handled">
                       {getFilteredCountries(index).map((countryName, idx) => (
                         <TouchableOpacity
                           key={idx}
@@ -399,7 +399,7 @@ export default function CreateTripScreen({ navigation, route }) {
       )}
 
       {/* Navigation Buttons */}
-      <View style={styles.buttonContainer}>
+      <View style={[styles.buttonContainer, { paddingBottom: Math.max(insets.bottom, 20) + 10 }]}>
         {step > 1 && (
           <TouchableOpacity style={[styles.backButton, { backgroundColor: theme.border }]} onPress={handleBack}>
             <Text style={[styles.backButtonText, { color: theme.text }]}>Back</Text>

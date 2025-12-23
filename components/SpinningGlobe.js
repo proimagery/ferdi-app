@@ -5,18 +5,35 @@ import { countryCoordinates } from '../utils/coordinates';
 
 const { width } = Dimensions.get('window');
 
+// Multi-color palette for markers
+const markerColors = [
+  '#ff4444', // Red
+  '#4ade80', // Green
+  '#3b82f6', // Blue
+  '#f59e0b', // Orange/Amber
+  '#a855f7', // Purple
+  '#ec4899', // Pink
+  '#14b8a6', // Teal
+  '#f97316', // Orange
+  '#06b6d4', // Cyan
+  '#8b5cf6', // Violet
+  '#22c55e', // Emerald
+  '#eab308', // Yellow
+];
+
 export default function SpinningGlobe({ completedTrips = [], visitedCities = [] }) {
-  // Convert countries to red markers with labels - look up coordinates by country name
+  // Convert countries to multi-colored markers with labels - look up coordinates by country name
   const countryMarkers = useMemo(() => {
-    return completedTrips.map((trip) => {
+    return completedTrips.map((trip, index) => {
       const countryName = trip.country || trip.name || '';
       const coords = countryCoordinates[countryName] || { latitude: 0, longitude: 0 };
+      const markerColor = markerColors[index % markerColors.length];
 
       return {
         lat: trip.latitude || coords.latitude || 0,
         lng: trip.longitude || coords.longitude || 0,
         label: countryName,
-        color: '#ff4444', // Red for countries
+        color: markerColor,
         size: 0.6, // Larger markers for countries
         type: 'country',
       };
@@ -63,13 +80,6 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [] 
       pointer-events: none;
       text-shadow: 0 0 4px rgba(0,0,0,0.8);
     }
-    .country-label {
-      background-color: rgba(255, 68, 68, 0.9);
-    }
-    .city-label {
-      background-color: rgba(59, 130, 246, 0.9);
-      font-size: 10px;
-    }
   </style>
   <script src="https://unpkg.com/three@0.150.0/build/three.min.js"></script>
   <script src="https://unpkg.com/globe.gl@2.26.0/dist/globe.gl.min.js"></script>
@@ -95,7 +105,8 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [] 
       .htmlElement(d => {
         const el = document.createElement('div');
         el.innerHTML = d.label;
-        el.className = 'marker-label ' + (d.type === 'country' ? 'country-label' : 'city-label');
+        el.className = 'marker-label';
+        el.style.backgroundColor = d.color + 'e6'; // Add alpha for slight transparency
         el.style.pointerEvents = 'none';
         return el;
       })

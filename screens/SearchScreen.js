@@ -173,7 +173,7 @@ export default function SearchScreen({ navigation }) {
       </View>
 
       {/* Search Results */}
-      <ScrollView style={styles.resultsContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.resultsContainer} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {searchQuery.trim().length < 2 ? (
           <View style={styles.emptyState}>
             <Ionicons name="search-outline" size={80} color={theme.textSecondary} />

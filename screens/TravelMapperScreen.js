@@ -686,7 +686,7 @@ export default function TravelMapperScreen({ navigation, route }) {
                   </View>
 
                   {/* Country List */}
-                  <ScrollView style={styles.countryPickerList} showsVerticalScrollIndicator={false}>
+                  <ScrollView style={styles.countryPickerList} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                     {countries
                       .filter(country => country.toLowerCase().includes(searchText.toLowerCase()))
                       .map((country, index) => {
@@ -771,7 +771,7 @@ export default function TravelMapperScreen({ navigation, route }) {
                   </TouchableOpacity>
 
                   {/* Address Results */}
-                  <ScrollView style={styles.countryPickerList} showsVerticalScrollIndicator={false}>
+                  <ScrollView style={styles.countryPickerList} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                     {addressResults.length > 0 ? (
                       addressResults.map((result, index) => {
                         const isSelected = selectedLocations.some(loc =>

@@ -509,7 +509,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
             </View>
 
             {/* Country List */}
-            <ScrollView style={styles.countryPickerList} showsVerticalScrollIndicator={false}>
+            <ScrollView style={styles.countryPickerList} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               {allCountryNames
                 .filter(country => country.toLowerCase().includes(searchText.toLowerCase()))
                 .map((country, index) => (
@@ -578,7 +578,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
             </View>
 
             {/* Country List */}
-            <ScrollView style={styles.countryPickerList} showsVerticalScrollIndicator={false}>
+            <ScrollView style={styles.countryPickerList} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               {allCountryNames
                 .filter(country => country.toLowerCase().includes(searchText.toLowerCase()))
                 .filter(country => !countries.some(c => c.name === country))
