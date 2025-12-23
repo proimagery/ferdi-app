@@ -111,7 +111,14 @@ const currencies = [
 
 export default function SettingsScreen({ navigation }) {
   const { theme, isDarkMode, toggleTheme } = useTheme();
-  const { signOut, user } = useAuth();
+  const { signOut, user, isGuest, exitGuestMode } = useAuth();
+
+  // Check if user is a guest (not logged in but using the app)
+  const isGuestUser = !user && isGuest;
+
+  const handleCreateAccount = () => {
+    exitGuestMode();
+  };
   const [selectedLanguage, setSelectedLanguage] = useState('en');
   const [selectedCurrency, setSelectedCurrency] = useState('USD');
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
@@ -407,24 +414,49 @@ export default function SettingsScreen({ navigation }) {
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>ACCOUNT</Text>
         <View style={[styles.sectionContent, { backgroundColor: theme.surface }]}>
-          <SettingItem
-            icon="log-out-outline"
-            title="Sign Out"
-            onPress={() => {
-              Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Sign Out', onPress: signOut },
-              ]);
-            }}
-            showArrow={false}
-          />
-          <SettingItem
-            icon="trash-outline"
-            title="Delete Account"
-            onPress={handleDeleteAccount}
-            showArrow={false}
-            danger
-          />
+          {isGuestUser ? (
+            <>
+              {/* Guest User - Show Create Account option */}
+              <View style={[styles.guestBanner, { backgroundColor: theme.primary + '15', borderBottomColor: theme.border }]}>
+                <Ionicons name="information-circle" size={20} color={theme.primary} />
+                <Text style={[styles.guestBannerText, { color: theme.text }]}>
+                  You're browsing as a guest. Create an account to save trips, budgets, and photos.
+                </Text>
+              </View>
+              <SettingItem
+                icon="person-add-outline"
+                title="Create Account"
+                onPress={handleCreateAccount}
+              />
+              <SettingItem
+                icon="log-in-outline"
+                title="Sign In"
+                onPress={handleCreateAccount}
+              />
+            </>
+          ) : (
+            <>
+              {/* Authenticated User - Show Sign Out and Delete options */}
+              <SettingItem
+                icon="log-out-outline"
+                title="Sign Out"
+                onPress={() => {
+                  Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Sign Out', onPress: signOut },
+                  ]);
+                }}
+                showArrow={false}
+              />
+              <SettingItem
+                icon="trash-outline"
+                title="Delete Account"
+                onPress={handleDeleteAccount}
+                showArrow={false}
+                danger
+              />
+            </>
+          )}
         </View>
       </View>
 
@@ -547,5 +579,17 @@ const styles = StyleSheet.create({
   },
   pickerItemText: {
     fontSize: 16,
+  },
+  guestBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    gap: 10,
+    borderBottomWidth: 1,
+  },
+  guestBannerText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
   },
 });

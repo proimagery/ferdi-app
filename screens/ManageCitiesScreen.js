@@ -18,6 +18,8 @@ import { useAppContext } from '../context/AppContext';
 import { searchCitiesAPI } from '../utils/citySearch';
 import { searchCities as searchLocalCities } from '../utils/cities';
 import { useTheme } from '../context/ThemeContext';
+import { useAuthGuard } from '../hooks/useAuthGuard';
+import AuthPromptModal from '../components/AuthPromptModal';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
@@ -25,6 +27,7 @@ export default function ManageCitiesScreen({ navigation, route }) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const { visitedCities, addVisitedCity, deleteVisitedCity } = useAppContext();
+  const { checkAuth, showAuthModal, setShowAuthModal, featureMessage } = useAuthGuard();
   const [citySearch, setCitySearch] = useState('');
   const [selectedCity, setSelectedCity] = useState(null);
   const [newYear, setNewYear] = useState('');
@@ -111,6 +114,9 @@ export default function ManageCitiesScreen({ navigation, route }) {
   };
 
   const addCity = async () => {
+    // Check if guest user is trying to add a city
+    if (checkAuth('add your travel history')) return;
+
     if (!selectedCity) {
       Alert.alert('Error', 'Please select a city from the list');
       return;
@@ -311,6 +317,13 @@ export default function ManageCitiesScreen({ navigation, route }) {
         <Image source={ferdiLogo} style={styles.footerLogo} resizeMode="contain" />
       </View>
       </ScrollView>
+
+      {/* Auth Prompt Modal */}
+      <AuthPromptModal
+        visible={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        feature={featureMessage}
+      />
     </KeyboardAvoidingView>
   );
 }

@@ -16,6 +16,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppContext } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { countryCoordinates } from '../utils/coordinates';
+import { useAuthGuard } from '../hooks/useAuthGuard';
+import AuthPromptModal from '../components/AuthPromptModal';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
@@ -23,6 +25,7 @@ export default function ManageCountriesScreen({ navigation, route }) {
   const { completedTrips, addCompletedTrip, deleteCompletedTrip } = useAppContext();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
+  const { checkAuth, showAuthModal, setShowAuthModal, featureMessage } = useAuthGuard();
   const [newCountry, setNewCountry] = useState('');
   const [newYear, setNewYear] = useState('');
   const [newMonth, setNewMonth] = useState('');
@@ -60,6 +63,9 @@ export default function ManageCountriesScreen({ navigation, route }) {
   };
 
   const addCountry = () => {
+    // Check if guest user is trying to add a country
+    if (checkAuth('add your travel history')) return;
+
     if (!newCountry.trim()) {
       Alert.alert('Error', 'Please select a country');
       return;
@@ -239,6 +245,13 @@ export default function ManageCountriesScreen({ navigation, route }) {
         <Image source={ferdiLogo} style={styles.footerLogo} resizeMode="contain" />
       </View>
     </ScrollView>
+
+      {/* Auth Prompt Modal */}
+      <AuthPromptModal
+        visible={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        feature={featureMessage}
+      />
     </KeyboardAvoidingView>
   );
 }
