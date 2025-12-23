@@ -167,8 +167,8 @@ export default function DashboardScreen({ navigation }) {
           <Text style={[styles.globeTitle, { color: theme.text }]}>Your Travel Journey</Text>
         </View>
         <Text style={[styles.globeSubtitle, { color: theme.textSecondary }]}>
-          {completedTrips.length + visitedCities.length > 0
-            ? `${completedTrips.length} ${completedTrips.length === 1 ? 'country' : 'countries'} • ${visitedCities.length} ${visitedCities.length === 1 ? 'city' : 'cities'}`
+          {totalCountriesVisited + visitedCities.length > 0
+            ? `${totalCountriesVisited} ${totalCountriesVisited === 1 ? 'country' : 'countries'} • ${visitedCities.length} ${visitedCities.length === 1 ? 'city' : 'cities'}`
             : 'Add countries and cities to see them on your globe'}
         </Text>
         <SpinningGlobe
