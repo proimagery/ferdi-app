@@ -63,11 +63,13 @@ export default function PublicProfileScreen({ navigation, route }) {
   let totalCountriesVisited, uniqueCountries, totalCitiesVisited;
 
   if (isOwnProfile) {
+    // Include countries from completed trips, active trips, and visited cities
     const allCountries = [
       ...completedTrips.map(t => t.country),
-      ...trips.flatMap(t => t.countries.map(c => c.name))
+      ...trips.flatMap(t => t.countries.map(c => c.name)),
+      ...visitedCities.map(c => c.country)
     ];
-    uniqueCountries = [...new Set(allCountries)];
+    uniqueCountries = [...new Set(allCountries.filter(Boolean))];
     totalCountriesVisited = uniqueCountries.length;
     totalCitiesVisited = visitedCities.length;
   } else {

@@ -14,12 +14,13 @@ export default function YourStatsScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const [showGlobeFullscreen, setShowGlobeFullscreen] = useState(false);
 
-  // Calculate statistics - merge completed trips from all sources
+  // Calculate statistics - merge countries from all sources (completed trips, active trips, visited cities)
   const allCountries = [
     ...completedTrips.map(t => t.country),
-    ...trips.flatMap(t => t.countries.map(c => c.name))
+    ...trips.flatMap(t => t.countries.map(c => c.name)),
+    ...visitedCities.map(c => c.country)
   ];
-  const uniqueCountries = [...new Set(allCountries)];
+  const uniqueCountries = [...new Set(allCountries.filter(Boolean))];
   const totalCountriesVisited = uniqueCountries.length;
 
   const totalPlannedTrips = trips.length;
