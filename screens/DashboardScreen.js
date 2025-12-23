@@ -16,14 +16,8 @@ export default function DashboardScreen({ navigation }) {
   const [showRankInfo, setShowRankInfo] = useState(false);
   const [showGlobeFullscreen, setShowGlobeFullscreen] = useState(false);
 
-  // Calculate total unique countries visited (includes countries from completed trips, active trips, and visited cities)
-  const allCountries = [
-    ...completedTrips.map(t => t.country),
-    ...trips.flatMap(t => t.countries.map(c => c.name)),
-    ...visitedCities.map(c => c.country)
-  ];
-  const uniqueCountries = [...new Set(allCountries.filter(Boolean))];
-  const totalCountriesVisited = uniqueCountries.length;
+  // Rank is based only on manually added countries (completedTrips)
+  const totalCountriesVisited = completedTrips.length;
   const travelerRank = getTravelerRank(totalCountriesVisited);
 
   const features = [

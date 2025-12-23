@@ -59,22 +59,14 @@ export default function PublicProfileScreen({ navigation, route }) {
     return <Ionicons name="person" size={60} color={theme.primary} />;
   };
 
-  // Calculate statistics
-  let totalCountriesVisited, uniqueCountries, totalCitiesVisited;
+  // Calculate statistics - countries visited is based only on manually added countries (completedTrips)
+  let totalCountriesVisited, totalCitiesVisited;
 
   if (isOwnProfile) {
-    // Include countries from completed trips, active trips, and visited cities
-    const allCountries = [
-      ...completedTrips.map(t => t.country),
-      ...trips.flatMap(t => t.countries.map(c => c.name)),
-      ...visitedCities.map(c => c.country)
-    ];
-    uniqueCountries = [...new Set(allCountries.filter(Boolean))];
-    totalCountriesVisited = uniqueCountries.length;
+    totalCountriesVisited = completedTrips.length;
     totalCitiesVisited = visitedCities.length;
   } else {
-    uniqueCountries = viewingUser?.countriesVisited || [];
-    totalCountriesVisited = uniqueCountries.length;
+    totalCountriesVisited = viewingUser?.countriesVisited?.length || 0;
     totalCitiesVisited = 0; // Not available for other users
   }
 
