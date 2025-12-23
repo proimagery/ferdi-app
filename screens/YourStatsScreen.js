@@ -32,11 +32,14 @@ export default function YourStatsScreen({ navigation }) {
 
   const stats = [
     {
-      icon: 'airplane',
-      label: 'Completed Trips',
+      icon: 'map',
+      label: 'Countries Visited',
       value: totalCountriesVisited,
       color: '#4ade80',
-      clickable: false,
+      clickable: true,
+      onPress: () => navigation.navigate('ManageCountries', {
+        returnScreen: 'YourStats'
+      }),
     },
     {
       icon: 'calendar',
@@ -46,14 +49,11 @@ export default function YourStatsScreen({ navigation }) {
       clickable: false,
     },
     {
-      icon: 'map',
-      label: 'Countries Visited',
+      icon: 'airplane',
+      label: 'Completed Trips',
       value: completedTrips.length,
       color: '#f472b6',
-      clickable: true,
-      onPress: () => navigation.navigate('ManageCountries', {
-        returnScreen: 'YourStats'
-      }),
+      clickable: false,
     },
     {
       icon: 'business',
