@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,12 +10,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppContext } from '../context/AppContext';
-import { searchCities, getCityCoordinatesFromDB } from '../utils/cities';
-import { countryCoordinates } from '../utils/coordinates';
+import { searchCitiesAPI } from '../utils/citySearch';
+import { searchCities as searchLocalCities } from '../utils/cities';
 import { useTheme } from '../context/ThemeContext';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
@@ -28,25 +29,85 @@ export default function ManageCitiesScreen({ navigation, route }) {
   const [selectedCity, setSelectedCity] = useState(null);
   const [newYear, setNewYear] = useState('');
   const [showCityDropdown, setShowCityDropdown] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState(null);
 
   const returnScreen = route.params?.returnScreen || 'YourStats';
 
-  // Search cities as user types
-  const filteredCities = useMemo(() => {
-    if (citySearch.length < 2) return [];
-    return searchCities(citySearch);
+  // Debounced search effect
+  useEffect(() => {
+    if (citySearch.length < 2) {
+      setSearchResults([]);
+      setShowCityDropdown(false);
+      setSearchError(null);
+      return;
+    }
+
+    // Show dropdown immediately with local results first
+    const localResults = searchLocalCities(citySearch);
+    if (localResults.length > 0) {
+      setSearchResults(localResults);
+      setShowCityDropdown(true);
+    }
+
+    // Set up debounced API search
+    setIsSearching(true);
+    setSearchError(null);
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        const apiResults = await searchCitiesAPI(citySearch);
+
+        if (apiResults.length > 0) {
+          // Merge local and API results, removing duplicates
+          const mergedResults = [...localResults];
+          const existingKeys = new Set(
+            localResults.map(c => `${c.city.toLowerCase()}-${c.country.toLowerCase()}`)
+          );
+
+          for (const result of apiResults) {
+            const key = `${result.city.toLowerCase()}-${result.country.toLowerCase()}`;
+            if (!existingKeys.has(key)) {
+              mergedResults.push(result);
+              existingKeys.add(key);
+            }
+          }
+
+          setSearchResults(mergedResults.slice(0, 20));
+        } else if (localResults.length === 0) {
+          setSearchResults([]);
+        }
+
+        setShowCityDropdown(true);
+      } catch (error) {
+        console.error('Search error:', error);
+        setSearchError('Search failed. Please try again.');
+        // Keep local results if API fails
+        if (localResults.length === 0) {
+          setSearchResults([]);
+        }
+      } finally {
+        setIsSearching(false);
+      }
+    }, 400); // 400ms debounce
+
+    return () => clearTimeout(timeoutId);
   }, [citySearch]);
 
   const selectCity = (city) => {
     setSelectedCity(city);
-    setCitySearch(`${city.city}, ${city.country}`);
+    // Format display name with state for US cities
+    const displayName = city.state && city.country === 'United States'
+      ? `${city.city}, ${city.state}, ${city.country}`
+      : `${city.city}, ${city.country}`;
+    setCitySearch(displayName);
     setShowCityDropdown(false);
   };
 
   const handleCitySearchChange = (text) => {
     setCitySearch(text);
     setSelectedCity(null);
-    setShowCityDropdown(text.length >= 2);
   };
 
   const addCity = async () => {
@@ -55,19 +116,16 @@ export default function ManageCitiesScreen({ navigation, route }) {
       return;
     }
 
-    // Get coordinates from the selected city
-    const coordinates = getCityCoordinatesFromDB(selectedCity.city, selectedCity.country) || {
-      latitude: selectedCity.latitude,
-      longitude: selectedCity.longitude,
-    };
-
     const newCityData = {
       city: selectedCity.city,
       country: selectedCity.country,
+      state: selectedCity.state || '',
       date: newYear.trim() || new Date().getFullYear().toString(),
-      latitude: coordinates.latitude,
-      longitude: coordinates.longitude,
-      name: `${selectedCity.city}, ${selectedCity.country}`,
+      latitude: selectedCity.latitude,
+      longitude: selectedCity.longitude,
+      name: selectedCity.state && selectedCity.country === 'United States'
+        ? `${selectedCity.city}, ${selectedCity.state}, ${selectedCity.country}`
+        : `${selectedCity.city}, ${selectedCity.country}`,
       type: 'city',
     };
 
@@ -75,6 +133,7 @@ export default function ManageCitiesScreen({ navigation, route }) {
     setCitySearch('');
     setSelectedCity(null);
     setNewYear('');
+    setSearchResults([]);
 
     Alert.alert('Success', `${newCityData.city} added to your visited cities!`);
   };
@@ -94,6 +153,14 @@ export default function ManageCitiesScreen({ navigation, route }) {
         },
       ]
     );
+  };
+
+  // Format city display in dropdown
+  const formatCityDisplay = (city) => {
+    if (city.state && city.country === 'United States') {
+      return `${city.city}, ${city.state}`;
+    }
+    return city.city;
   };
 
   return (
@@ -118,33 +185,44 @@ export default function ManageCitiesScreen({ navigation, route }) {
               color: theme.text,
               marginBottom: 0,
             }]}
-            placeholder="Search for a city..."
+            placeholder="Search for any city worldwide..."
             placeholderTextColor={theme.textSecondary}
             value={citySearch}
             onChangeText={handleCitySearchChange}
+            autoCorrect={false}
+            autoCapitalize="words"
           />
           {selectedCity && (
             <View style={styles.selectedIndicator}>
               <Ionicons name="checkmark-circle" size={24} color={theme.primary} />
             </View>
           )}
+          {isSearching && !selectedCity && (
+            <View style={styles.searchingIndicator}>
+              <ActivityIndicator size="small" color={theme.primary} />
+            </View>
+          )}
         </View>
 
-        {showCityDropdown && filteredCities.length > 0 && (
+        {showCityDropdown && searchResults.length > 0 && (
           <View style={[styles.dropdownContainer, {
             backgroundColor: theme.cardBackground,
             borderColor: theme.border
           }]}>
             <ScrollView style={styles.dropdownList} nestedScrollEnabled={true} keyboardShouldPersistTaps="handled">
-              {filteredCities.map((city, index) => (
+              {searchResults.map((city, index) => (
                 <TouchableOpacity
-                  key={index}
+                  key={`${city.city}-${city.country}-${city.state || ''}-${index}`}
                   style={[styles.dropdownItem, { borderBottomColor: theme.border }]}
                   onPress={() => selectCity(city)}
                 >
                   <View style={styles.cityDropdownItem}>
-                    <Text style={[styles.dropdownItemText, { color: theme.text }]}>{city.city}</Text>
-                    <Text style={[styles.dropdownItemCountry, { color: theme.primary }]}>{city.country}</Text>
+                    <Text style={[styles.dropdownItemText, { color: theme.text }]}>
+                      {formatCityDisplay(city)}
+                    </Text>
+                    <Text style={[styles.dropdownItemCountry, { color: theme.primary }]}>
+                      {city.country}
+                    </Text>
                   </View>
                 </TouchableOpacity>
               ))}
@@ -152,9 +230,20 @@ export default function ManageCitiesScreen({ navigation, route }) {
           </View>
         )}
 
-        {showCityDropdown && filteredCities.length === 0 && citySearch.length >= 2 && (
+        {showCityDropdown && searchResults.length === 0 && citySearch.length >= 2 && !isSearching && (
           <View style={[styles.noResults, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
-            <Text style={[styles.noResultsText, { color: theme.textSecondary }]}>No cities found matching "{citySearch}"</Text>
+            <Text style={[styles.noResultsText, { color: theme.textSecondary }]}>
+              {searchError || `No cities found matching "${citySearch}"`}
+            </Text>
+          </View>
+        )}
+
+        {isSearching && searchResults.length === 0 && citySearch.length >= 2 && (
+          <View style={[styles.noResults, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+            <ActivityIndicator size="small" color={theme.primary} style={{ marginBottom: 8 }} />
+            <Text style={[styles.noResultsText, { color: theme.textSecondary }]}>
+              Searching worldwide...
+            </Text>
           </View>
         )}
 
@@ -203,7 +292,9 @@ export default function ManageCitiesScreen({ navigation, route }) {
                 <Ionicons name="business" size={24} color="#3b82f6" />
                 <View style={styles.cityDetails}>
                   <Text style={[styles.cityName, { color: theme.text }]}>{city.city}</Text>
-                  <Text style={[styles.cityCountry, { color: theme.primary }]}>{city.country}</Text>
+                  <Text style={[styles.cityCountry, { color: theme.primary }]}>
+                    {city.state ? `${city.state}, ${city.country}` : city.country}
+                  </Text>
                   <Text style={[styles.cityDate, { color: theme.textSecondary }]}>{city.date}</Text>
                 </View>
               </View>
@@ -326,43 +417,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#888',
   },
-  dropdownButton: {
-    backgroundColor: '#1a1a1a',
-    borderWidth: 1,
-    borderColor: '#2a2a2a',
-    borderRadius: 10,
-    padding: 15,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 15,
-  },
-  dropdownButtonTextPlaceholder: {
-    fontSize: 16,
-    color: '#666',
-  },
-  dropdownButtonTextSelected: {
-    fontSize: 16,
-    color: '#ffffff',
-  },
   dropdownContainer: {
     backgroundColor: '#1a1a1a',
     borderWidth: 1,
     borderColor: '#2a2a2a',
     borderRadius: 10,
-    marginBottom: 15,
+    marginTop: 5,
+    marginBottom: 10,
     overflow: 'hidden',
   },
-  searchInput: {
-    backgroundColor: '#0a0a0a',
-    borderBottomWidth: 1,
-    borderColor: '#2a2a2a',
-    padding: 15,
-    color: '#ffffff',
-    fontSize: 16,
-  },
   dropdownList: {
-    maxHeight: 200,
+    maxHeight: 250,
   },
   dropdownItem: {
     padding: 15,
@@ -381,6 +446,11 @@ const styles = StyleSheet.create({
     right: 15,
     top: 12,
   },
+  searchingIndicator: {
+    position: 'absolute',
+    right: 15,
+    top: 15,
+  },
   cityDropdownItem: {
     flexDirection: 'column',
   },
@@ -393,6 +463,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 10,
     marginTop: 5,
+    alignItems: 'center',
   },
   noResultsText: {
     fontSize: 14,
