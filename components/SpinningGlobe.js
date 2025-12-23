@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
+import { View, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
 import { WebView } from 'react-native-webview';
+import { Ionicons } from '@expo/vector-icons';
 import { countryCoordinates } from '../utils/coordinates';
 
 const { width } = Dimensions.get('window');
@@ -21,44 +22,69 @@ const markerColors = [
   '#eab308', // Yellow
 ];
 
-export default function SpinningGlobe({ completedTrips = [], visitedCities = [] }) {
-  // Convert countries to multi-colored markers with labels - look up coordinates by country name
+// City marker colors (different from country colors)
+const cityColors = [
+  '#60a5fa', // Light Blue
+  '#34d399', // Emerald
+  '#fbbf24', // Amber
+  '#f472b6', // Pink
+  '#a78bfa', // Purple
+  '#fb923c', // Orange
+];
+
+export default function SpinningGlobe({ completedTrips = [], visitedCities = [], onFullscreen, isFullscreen = false }) {
+  // Convert countries to multi-colored markers with labels and visit info
   const countryMarkers = useMemo(() => {
-    return completedTrips.map((trip, index) => {
+    // Group trips by country to get all visit dates
+    const countryVisits = {};
+    completedTrips.forEach(trip => {
       const countryName = trip.country || trip.name || '';
+      if (!countryName) return;
+      if (!countryVisits[countryName]) {
+        countryVisits[countryName] = [];
+      }
+      if (trip.date || trip.year) {
+        countryVisits[countryName].push(trip.date || trip.year);
+      }
+    });
+
+    return Object.keys(countryVisits).map((countryName, index) => {
       const coords = countryCoordinates[countryName] || { latitude: 0, longitude: 0 };
       const markerColor = markerColors[index % markerColors.length];
+      const visits = countryVisits[countryName];
 
       return {
-        lat: trip.latitude || coords.latitude || 0,
-        lng: trip.longitude || coords.longitude || 0,
+        lat: coords.latitude || 0,
+        lng: coords.longitude || 0,
         label: countryName,
         color: markerColor,
-        size: 0.6, // Larger markers for countries
+        visits: visits.length > 0 ? visits : ['Date not recorded'],
+        visitCount: visits.length || 1,
         type: 'country',
       };
-    }).filter(marker => marker.lat !== 0 || marker.lng !== 0); // Filter out markers with no coordinates
+    }).filter(marker => marker.lat !== 0 || marker.lng !== 0);
   }, [completedTrips]);
 
-  // Convert cities to blue markers with labels
+  // Convert cities to colored dot markers (no labels, clickable)
   const cityMarkers = useMemo(() => {
-    return visitedCities.map((city) => {
-      const countryName = city.country || '';
-      const coords = countryCoordinates[countryName] || { latitude: 0, longitude: 0 };
+    return visitedCities.map((city, index) => {
+      const cityColor = cityColors[index % cityColors.length];
 
       return {
-        lat: city.latitude || coords.latitude || 0,
-        lng: city.longitude || coords.longitude || 0,
-        label: city.city || city.name || 'City',
-        color: '#3b82f6', // Blue for cities
-        size: 0.4, // Smaller markers for cities
+        lat: city.latitude || 0,
+        lng: city.longitude || 0,
+        city: city.city || city.name || 'Unknown City',
+        country: city.country || '',
+        date: city.date || '',
+        color: cityColor,
+        size: 1.5,
         type: 'city',
       };
     }).filter(marker => marker.lat !== 0 || marker.lng !== 0);
   }, [visitedCities]);
 
-  // Combine all markers
-  const allMarkers = [...countryMarkers, ...cityMarkers];
+  // Combine all markers for HTML elements (both countries and cities will use htmlElements)
+  const allHtmlMarkers = [...countryMarkers, ...cityMarkers];
 
   // Create HTML with globe.gl library
   const html = `
@@ -70,6 +96,12 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [] 
   <style>
     body { margin: 0; background: #000; overflow: hidden; }
     #globeViz { width: 100vw; height: 100vh; }
+
+    .marker-container {
+      position: relative;
+      pointer-events: auto !important;
+    }
+
     .marker-label {
       color: #fff;
       font-size: 11px;
@@ -77,8 +109,113 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [] 
       padding: 3px 8px;
       border-radius: 4px;
       white-space: nowrap;
-      pointer-events: none;
       text-shadow: 0 0 4px rgba(0,0,0,0.8);
+      cursor: pointer;
+    }
+
+    .marker-label:hover {
+      transform: scale(1.05);
+    }
+
+    .city-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 6px rgba(255,255,255,0.5);
+    }
+
+    .city-dot:hover {
+      transform: scale(1.2);
+    }
+
+    .marker-popup {
+      position: absolute;
+      left: 50%;
+      bottom: 100%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.95);
+      border: 2px solid;
+      border-radius: 12px;
+      padding: 12px 16px;
+      color: #fff;
+      min-width: 150px;
+      max-width: 200px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      margin-bottom: 8px;
+      display: none;
+      z-index: 1000;
+    }
+
+    .marker-popup.active {
+      display: block;
+      animation: fadeIn 0.2s ease-out;
+      z-index: 10000;
+    }
+
+    .marker-container:has(.marker-popup.active) {
+      z-index: 10000 !important;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateX(-50%) scale(0.9); }
+      to { opacity: 1; transform: translateX(-50%) scale(1); }
+    }
+
+    .popup-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .popup-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .popup-title {
+      font-size: 14px;
+      font-weight: bold;
+      word-wrap: break-word;
+    }
+
+    .popup-subtitle {
+      font-size: 11px;
+      color: #9ca3af;
+      margin-bottom: 4px;
+    }
+
+    .popup-info {
+      font-size: 11px;
+      color: #d1d5db;
+    }
+
+    .popup-close {
+      position: absolute;
+      top: 4px;
+      right: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      color: #9ca3af;
+      line-height: 1;
+      padding: 2px;
+    }
+
+    .popup-close:hover {
+      color: #fff;
+    }
+
+    .popup-visits {
+      font-size: 11px;
+      color: #d1d5db;
+      margin-top: 4px;
+    }
+
+    .popup-visit-item {
+      padding: 2px 0;
     }
   </style>
   <script src="https://unpkg.com/three@0.150.0/build/three.min.js"></script>
@@ -87,35 +224,171 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [] 
 <body>
   <div id="globeViz"></div>
   <script>
-    const markerData = ${JSON.stringify(allMarkers)};
+    const markersData = ${JSON.stringify(allHtmlMarkers)};
 
-    const world = Globe()
+    let popupOpen = false;
+    let currentPopupEl = null;
+    let world = null;
+
+    // Close any open popup
+    function closeAllPopups() {
+      document.querySelectorAll('.marker-popup.active').forEach(p => {
+        p.classList.remove('active');
+        // Reset z-index on the container
+        const container = p.closest('.marker-container');
+        if (container) {
+          container.style.zIndex = '';
+        }
+      });
+      popupOpen = false;
+      currentPopupEl = null;
+      if (world && world.controls()) {
+        world.controls().autoRotate = true;
+      }
+    }
+
+    // Toggle popup for a marker
+    function togglePopup(popupEl, event) {
+      event.stopPropagation();
+
+      const wasActive = popupEl.classList.contains('active');
+
+      // Close all other popups
+      closeAllPopups();
+
+      if (!wasActive) {
+        popupEl.classList.add('active');
+        popupOpen = true;
+        currentPopupEl = popupEl;
+        // Set high z-index on the container to appear above other markers
+        const container = popupEl.closest('.marker-container');
+        if (container) {
+          container.style.zIndex = '10000';
+        }
+        if (world && world.controls()) {
+          world.controls().autoRotate = false;
+        }
+      }
+    }
+
+    // Close popup when clicking elsewhere
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.marker-container')) {
+        closeAllPopups();
+      }
+    });
+
+    world = Globe()
       (document.getElementById('globeViz'))
       .globeImageUrl('https://unpkg.com/three-globe@2.27.2/example/img/earth-blue-marble.jpg')
       .backgroundColor('#000000')
       .atmosphereColor('#4ade80')
       .atmosphereAltitude(0.15)
-      .pointsData(markerData)
-      .pointAltitude(0.01)
-      .pointColor(d => d.color)
-      .pointRadius(d => d.size)
-      .pointResolution(12)
-      // Add labels using HTML elements
-      .htmlElementsData(markerData)
+      .htmlElementsData(markersData)
       .htmlElement(d => {
-        const el = document.createElement('div');
-        el.innerHTML = d.label;
-        el.className = 'marker-label';
-        el.style.backgroundColor = d.color + 'e6'; // Add alpha for slight transparency
-        el.style.pointerEvents = 'none';
-        return el;
+        const container = document.createElement('div');
+        container.className = 'marker-container';
+
+        if (d.type === 'country') {
+          // Country label
+          const label = document.createElement('div');
+          label.className = 'marker-label';
+          label.innerHTML = d.label;
+          label.style.backgroundColor = d.color + 'e6';
+
+          // Popup for country
+          const popup = document.createElement('div');
+          popup.className = 'marker-popup';
+          popup.style.borderColor = d.color;
+
+          let visitsHtml = '';
+          if (d.visits && d.visits.length > 0) {
+            visitsHtml = '<div class="popup-visits">' +
+              d.visits.map(v => '<div class="popup-visit-item">• ' + v + '</div>').join('') +
+              '</div>';
+          }
+
+          popup.innerHTML =
+            '<span class="popup-close">&times;</span>' +
+            '<div class="popup-header">' +
+              '<div class="popup-dot" style="background-color: ' + d.color + ';"></div>' +
+              '<span class="popup-title">' + d.label + '</span>' +
+            '</div>' +
+            '<div class="popup-subtitle">Visited ' + d.visitCount + ' time' + (d.visitCount > 1 ? 's' : '') + '</div>' +
+            visitsHtml;
+
+          popup.querySelector('.popup-close').addEventListener('click', function(e) {
+            e.stopPropagation();
+            closeAllPopups();
+          });
+
+          label.addEventListener('click', function(e) {
+            togglePopup(popup, e);
+          });
+
+          container.appendChild(popup);
+          container.appendChild(label);
+        } else {
+          // City dot
+          const dot = document.createElement('div');
+          dot.className = 'city-dot';
+          dot.style.backgroundColor = d.color;
+
+          // Popup for city
+          const popup = document.createElement('div');
+          popup.className = 'marker-popup';
+          popup.style.borderColor = d.color;
+
+          popup.innerHTML =
+            '<span class="popup-close">&times;</span>' +
+            '<div class="popup-header">' +
+              '<div class="popup-dot" style="background-color: ' + d.color + ';"></div>' +
+              '<span class="popup-title">' + d.city + '</span>' +
+            '</div>' +
+            '<div class="popup-subtitle">' + d.country + '</div>' +
+            '<div class="popup-info">Visited: ' + (d.date || 'Date not recorded') + '</div>';
+
+          popup.querySelector('.popup-close').addEventListener('click', function(e) {
+            e.stopPropagation();
+            closeAllPopups();
+          });
+
+          dot.addEventListener('click', function(e) {
+            togglePopup(popup, e);
+          });
+
+          container.appendChild(popup);
+          container.appendChild(dot);
+        }
+
+        return container;
       })
       .htmlAltitude(0.02);
 
     // Auto-rotate
     world.controls().autoRotate = true;
-    world.controls().autoRotateSpeed = 0.8;
-    world.controls().enableZoom = false;
+    world.controls().autoRotateSpeed = ${isFullscreen ? 0.5 : 0.8};
+    world.controls().enableZoom = ${isFullscreen ? 'true' : 'false'};
+    ${isFullscreen ? `
+    world.controls().minDistance = 120;
+    world.controls().maxDistance = 500;
+    world.controls().zoomSpeed = 0.8;
+    world.controls().rotateSpeed = 0.8;
+
+    // Stop auto-rotate when user interacts
+    let interactionTimeout;
+    const stopAutoRotate = () => {
+      world.controls().autoRotate = false;
+      clearTimeout(interactionTimeout);
+      interactionTimeout = setTimeout(() => {
+        // Only resume auto-rotate if popup is not open
+        if (!popupOpen) {
+          world.controls().autoRotate = true;
+        }
+      }, 3000);
+    };
+    document.getElementById('globeViz').addEventListener('pointerdown', stopAutoRotate);
+    ` : ''}
 
     // Set initial view
     world.pointOfView({ altitude: 2.5 });
@@ -130,18 +403,25 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [] 
   `;
 
   return (
-    <View style={styles.container}>
-      <WebView
-        source={{ html }}
-        style={styles.webview}
-        scrollEnabled={false}
-        bounces={false}
-        javaScriptEnabled={true}
-        domStorageEnabled={true}
-        startInLoadingState={false}
-        scalesPageToFit={true}
-        originWhitelist={['*']}
-      />
+    <View style={isFullscreen ? styles.fullscreenContainer : styles.container}>
+      <View style={styles.webviewWrapper}>
+        <WebView
+          source={{ html }}
+          style={styles.webview}
+          scrollEnabled={false}
+          bounces={false}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          startInLoadingState={false}
+          scalesPageToFit={true}
+          originWhitelist={['*']}
+        />
+      </View>
+      {!isFullscreen && onFullscreen && (
+        <TouchableOpacity style={styles.fullscreenButton} onPress={onFullscreen} activeOpacity={0.7}>
+          <Ionicons name="expand" size={20} color="#fff" />
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -157,8 +437,25 @@ const styles = StyleSheet.create({
     borderColor: '#2a2a2a',
     marginBottom: 20,
   },
+  fullscreenContainer: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+  webviewWrapper: {
+    ...StyleSheet.absoluteFillObject,
+  },
   webview: {
     flex: 1,
     backgroundColor: '#000000',
+  },
+  fullscreenButton: {
+    position: 'absolute',
+    bottom: 12,
+    right: 12,
+    backgroundColor: 'rgba(74, 222, 128, 0.9)',
+    borderRadius: 8,
+    padding: 8,
+    zIndex: 10,
+    elevation: 10,
   },
 });

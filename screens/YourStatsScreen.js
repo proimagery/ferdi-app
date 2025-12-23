@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Modal, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppContext } from '../context/AppContext';
@@ -12,6 +12,7 @@ export default function YourStatsScreen({ navigation }) {
   const { completedTrips, visitedCities, trips } = useAppContext();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
+  const [showGlobeFullscreen, setShowGlobeFullscreen] = useState(false);
 
   // Calculate statistics - merge completed trips from all sources
   const allCountries = [
@@ -206,10 +207,40 @@ export default function YourStatsScreen({ navigation }) {
         <View style={styles.globeSection}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Your World</Text>
           <View style={styles.globeContainer}>
-            <SpinningGlobe completedTrips={completedTrips} visitedCities={visitedCities} />
+            <SpinningGlobe
+              completedTrips={completedTrips}
+              visitedCities={visitedCities}
+              onFullscreen={() => setShowGlobeFullscreen(true)}
+            />
           </View>
         </View>
       )}
+
+      {/* Fullscreen Globe Modal */}
+      <Modal
+        visible={showGlobeFullscreen}
+        animationType="fade"
+        statusBarTranslucent={true}
+        onRequestClose={() => setShowGlobeFullscreen(false)}
+      >
+        <View style={styles.fullscreenModal}>
+          <StatusBar hidden />
+          <SpinningGlobe
+            completedTrips={completedTrips}
+            visitedCities={visitedCities}
+            isFullscreen={true}
+          />
+          <TouchableOpacity
+            style={[styles.closeButton, { top: insets.top + 10 }]}
+            onPress={() => setShowGlobeFullscreen(false)}
+          >
+            <Ionicons name="close" size={28} color="#fff" />
+          </TouchableOpacity>
+          <View style={[styles.fullscreenHint, { bottom: insets.bottom + 20 }]}>
+            <Text style={styles.hintText}>Pinch to zoom • Drag to rotate</Text>
+          </View>
+        </View>
+      </Modal>
 
       {visitedContinents.length > 0 && (
         <View style={styles.section}>
@@ -419,5 +450,26 @@ const styles = StyleSheet.create({
   footerLogo: {
     width: 400,
     height: 120,
+  },
+  fullscreenModal: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  closeButton: {
+    position: 'absolute',
+    right: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 20,
+    padding: 8,
+  },
+  fullscreenHint: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  hintText: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 14,
   },
 });

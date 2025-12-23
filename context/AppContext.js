@@ -1,6 +1,8 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
+import { getCityCoordinatesFromDB } from '../utils/cities';
+import { countryCoordinates } from '../utils/coordinates';
 
 const AppContext = createContext();
 
@@ -420,12 +422,21 @@ export const AppProvider = ({ children }) => {
       return;
     }
 
-    const formattedCities = data.map(city => ({
-      id: city.id,
-      city: city.city_name,
-      country: city.country,
-      date: city.visit_date,
-    }));
+    const formattedCities = data.map(city => {
+      // Try to get city coordinates from cities database
+      const cityCoords = getCityCoordinatesFromDB(city.city_name, city.country);
+      // Fall back to country coordinates if city not found
+      const countryCoords = countryCoordinates[city.country] || { latitude: 0, longitude: 0 };
+
+      return {
+        id: city.id,
+        city: city.city_name,
+        country: city.country,
+        date: city.visit_date,
+        latitude: cityCoords?.latitude || countryCoords.latitude || 0,
+        longitude: cityCoords?.longitude || countryCoords.longitude || 0,
+      };
+    });
 
     setVisitedCities(formattedCities);
   };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppContext } from '../context/AppContext';
-import { getCityCoordinates, countryCoordinates } from '../utils/coordinates';
+import { searchCities, getCityCoordinatesFromDB } from '../utils/cities';
+import { countryCoordinates } from '../utils/coordinates';
 import { useTheme } from '../context/ThemeContext';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
@@ -23,54 +24,56 @@ export default function ManageCitiesScreen({ navigation, route }) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const { visitedCities, addVisitedCity, deleteVisitedCity } = useAppContext();
-  const [newCity, setNewCity] = useState('');
-  const [newCountry, setNewCountry] = useState('');
+  const [citySearch, setCitySearch] = useState('');
+  const [selectedCity, setSelectedCity] = useState(null);
   const [newYear, setNewYear] = useState('');
-  const [dropdownVisible, setDropdownVisible] = useState(false);
-  const [countrySearch, setCountrySearch] = useState('');
+  const [showCityDropdown, setShowCityDropdown] = useState(false);
 
   const returnScreen = route.params?.returnScreen || 'YourStats';
 
-  // List of all countries for dropdown
-  const allCountries = Object.keys(countryCoordinates).sort();
+  // Search cities as user types
+  const filteredCities = useMemo(() => {
+    if (citySearch.length < 2) return [];
+    return searchCities(citySearch);
+  }, [citySearch]);
 
-  // Filter countries based on search
-  const filteredCountries = allCountries.filter(country =>
-    country.toLowerCase().includes(countrySearch.toLowerCase())
-  );
+  const selectCity = (city) => {
+    setSelectedCity(city);
+    setCitySearch(`${city.city}, ${city.country}`);
+    setShowCityDropdown(false);
+  };
 
-  const selectCountry = (country) => {
-    setNewCountry(country);
-    setDropdownVisible(false);
-    setCountrySearch('');
+  const handleCitySearchChange = (text) => {
+    setCitySearch(text);
+    setSelectedCity(null);
+    setShowCityDropdown(text.length >= 2);
   };
 
   const addCity = async () => {
-    if (!newCity.trim()) {
-      Alert.alert('Error', 'Please enter a city name');
-      return;
-    }
-    if (!newCountry.trim()) {
-      Alert.alert('Error', 'Please select a country');
+    if (!selectedCity) {
+      Alert.alert('Error', 'Please select a city from the list');
       return;
     }
 
-    // Get approximate coordinates (use country center for now)
-    const coordinates = await getCityCoordinates(newCity.trim(), newCountry);
+    // Get coordinates from the selected city
+    const coordinates = getCityCoordinatesFromDB(selectedCity.city, selectedCity.country) || {
+      latitude: selectedCity.latitude,
+      longitude: selectedCity.longitude,
+    };
 
     const newCityData = {
-      city: newCity.trim(),
-      country: newCountry.trim(),
+      city: selectedCity.city,
+      country: selectedCity.country,
       date: newYear.trim() || new Date().getFullYear().toString(),
       latitude: coordinates.latitude,
       longitude: coordinates.longitude,
-      name: `${newCity.trim()}, ${newCountry.trim()}`,
-      type: 'city', // Mark as city for globe rendering
+      name: `${selectedCity.city}, ${selectedCity.country}`,
+      type: 'city',
     };
 
     addVisitedCity(newCityData);
-    setNewCity('');
-    setNewCountry('');
+    setCitySearch('');
+    setSelectedCity(null);
     setNewYear('');
 
     Alert.alert('Success', `${newCityData.city} added to your visited cities!`);
@@ -107,62 +110,51 @@ export default function ManageCitiesScreen({ navigation, route }) {
 
       <View style={styles.addSection}>
         <Text style={[styles.sectionTitle, { color: theme.text }]}>Add New City</Text>
-        <TextInput
-          style={[styles.input, {
-            backgroundColor: theme.inputBackground,
-            borderColor: theme.inputBorder,
-            color: theme.text
-          }]}
-          placeholder="City name"
-          placeholderTextColor={theme.textSecondary}
-          value={newCity}
-          onChangeText={setNewCity}
-        />
-
-        <TouchableOpacity
-          style={[styles.dropdownButton, {
-            backgroundColor: theme.cardBackground,
-            borderColor: theme.border
-          }]}
-          onPress={() => setDropdownVisible(!dropdownVisible)}
-        >
-          <Text style={newCountry ? [styles.dropdownButtonTextSelected, { color: theme.text }] : [styles.dropdownButtonTextPlaceholder, { color: theme.textSecondary }]}>
-            {newCountry || 'Select a country'}
-          </Text>
-          <Ionicons
-            name={dropdownVisible ? 'chevron-up' : 'chevron-down'}
-            size={20}
-            color={theme.primary}
+        <View style={styles.searchContainer}>
+          <TextInput
+            style={[styles.input, {
+              backgroundColor: theme.inputBackground,
+              borderColor: selectedCity ? theme.primary : theme.inputBorder,
+              color: theme.text,
+              marginBottom: 0,
+            }]}
+            placeholder="Search for a city..."
+            placeholderTextColor={theme.textSecondary}
+            value={citySearch}
+            onChangeText={handleCitySearchChange}
           />
-        </TouchableOpacity>
+          {selectedCity && (
+            <View style={styles.selectedIndicator}>
+              <Ionicons name="checkmark-circle" size={24} color={theme.primary} />
+            </View>
+          )}
+        </View>
 
-        {dropdownVisible && (
+        {showCityDropdown && filteredCities.length > 0 && (
           <View style={[styles.dropdownContainer, {
             backgroundColor: theme.cardBackground,
             borderColor: theme.border
           }]}>
-            <TextInput
-              style={[styles.searchInput, {
-                backgroundColor: theme.inputBackground,
-                borderColor: theme.inputBorder,
-                color: theme.text
-              }]}
-              placeholder="Search countries..."
-              placeholderTextColor={theme.textSecondary}
-              value={countrySearch}
-              onChangeText={setCountrySearch}
-            />
-            <ScrollView style={styles.dropdownList} nestedScrollEnabled={true}>
-              {filteredCountries.map((country, index) => (
+            <ScrollView style={styles.dropdownList} nestedScrollEnabled={true} keyboardShouldPersistTaps="handled">
+              {filteredCities.map((city, index) => (
                 <TouchableOpacity
                   key={index}
                   style={[styles.dropdownItem, { borderBottomColor: theme.border }]}
-                  onPress={() => selectCountry(country)}
+                  onPress={() => selectCity(city)}
                 >
-                  <Text style={[styles.dropdownItemText, { color: theme.text }]}>{country}</Text>
+                  <View style={styles.cityDropdownItem}>
+                    <Text style={[styles.dropdownItemText, { color: theme.text }]}>{city.city}</Text>
+                    <Text style={[styles.dropdownItemCountry, { color: theme.primary }]}>{city.country}</Text>
+                  </View>
                 </TouchableOpacity>
               ))}
             </ScrollView>
+          </View>
+        )}
+
+        {showCityDropdown && filteredCities.length === 0 && citySearch.length >= 2 && (
+          <View style={[styles.noResults, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+            <Text style={[styles.noResultsText, { color: theme.textSecondary }]}>No cities found matching "{citySearch}"</Text>
           </View>
         )}
 
@@ -170,7 +162,8 @@ export default function ManageCitiesScreen({ navigation, route }) {
           style={[styles.input, {
             backgroundColor: theme.inputBackground,
             borderColor: theme.inputBorder,
-            color: theme.text
+            color: theme.text,
+            marginTop: 15,
           }]}
           placeholder="Year visited (optional)"
           placeholderTextColor={theme.textSecondary}
@@ -178,7 +171,14 @@ export default function ManageCitiesScreen({ navigation, route }) {
           value={newYear}
           onChangeText={setNewYear}
         />
-        <TouchableOpacity style={[styles.addButton, { backgroundColor: theme.primary }]} onPress={addCity}>
+        <TouchableOpacity
+          style={[styles.addButton, {
+            backgroundColor: selectedCity ? theme.primary : theme.textSecondary,
+            opacity: selectedCity ? 1 : 0.6,
+          }]}
+          onPress={addCity}
+          disabled={!selectedCity}
+        >
           <Ionicons name="add-circle" size={24} color={theme.background} />
           <Text style={[styles.addButtonText, { color: theme.background }]}>Add City</Text>
         </TouchableOpacity>
@@ -372,6 +372,31 @@ const styles = StyleSheet.create({
   dropdownItemText: {
     fontSize: 16,
     color: '#ffffff',
+  },
+  searchContainer: {
+    position: 'relative',
+  },
+  selectedIndicator: {
+    position: 'absolute',
+    right: 15,
+    top: 12,
+  },
+  cityDropdownItem: {
+    flexDirection: 'column',
+  },
+  dropdownItemCountry: {
+    fontSize: 13,
+    marginTop: 2,
+  },
+  noResults: {
+    padding: 15,
+    borderWidth: 1,
+    borderRadius: 10,
+    marginTop: 5,
+  },
+  noResultsText: {
+    fontSize: 14,
+    textAlign: 'center',
   },
   footer: {
     alignItems: 'center',

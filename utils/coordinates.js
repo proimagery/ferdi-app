@@ -262,9 +262,21 @@ export const countryCoordinates = {
   'Zanzibar': { latitude: -6.1659, longitude: 39.2026 },
 };
 
-// Function to get coordinates for a city (placeholder - can be expanded)
+// Function to get coordinates for a city
+// First tries to find exact city coordinates from the cities database
+// Falls back to country center if city not found
 export const getCityCoordinates = async (cityName, countryName) => {
-  // For now, return approximate country center
-  // In production, you could use a geocoding API
+  // Try to import and use the cities database
+  try {
+    const { getCityCoordinatesFromDB } = require('./cities');
+    const cityCoords = getCityCoordinatesFromDB(cityName, countryName);
+    if (cityCoords) {
+      return cityCoords;
+    }
+  } catch (e) {
+    // Cities database not available, fall back to country center
+  }
+
+  // Fall back to country center
   return countryCoordinates[countryName] || { latitude: 0, longitude: 0 };
 };
