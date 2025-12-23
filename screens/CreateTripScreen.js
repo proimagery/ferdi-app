@@ -118,7 +118,9 @@ export default function CreateTripScreen({ navigation, route }) {
 
   const formatDate = (date) => {
     if (!date) return '';
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    // Handle both Date objects and date strings
+    const dateObj = date instanceof Date ? date : new Date(date);
+    return dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   const onDateChange = (event, selectedDate) => {
