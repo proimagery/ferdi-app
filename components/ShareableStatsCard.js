@@ -140,34 +140,47 @@ const ShareableStatsCard = forwardRef(({
         {/* Header with app name */}
         <Text style={styles.appName}>Ferdi App</Text>
 
-        {/* World Map with SVG-like outline */}
+        {/* World Map with realistic outline */}
         <View style={styles.mapContainer}>
-          {/* Simplified world map using path-like shapes */}
+          {/* Map outline - simplified continent paths */}
           <View style={styles.mapOutline}>
-            {/* North America */}
-            <View style={[styles.landmass, { left: '5%', top: '12%', width: '22%', height: '38%' }]}>
-              <View style={[styles.landShape, styles.northAmerica]} />
-            </View>
+            {/* North America - Greenland */}
+            <View style={[styles.land, { left: '18%', top: '8%', width: '8%', height: '12%', borderRadius: 4 }]} />
+            {/* North America - Canada/USA */}
+            <View style={[styles.land, { left: '5%', top: '15%', width: '24%', height: '22%', borderTopLeftRadius: 10, borderTopRightRadius: 15, borderBottomLeftRadius: 5, borderBottomRightRadius: 8 }]} />
+            {/* North America - Mexico/Central America */}
+            <View style={[styles.land, { left: '8%', top: '35%', width: '12%', height: '15%', borderRadius: 4 }]} />
             {/* South America */}
-            <View style={[styles.landmass, { left: '15%', top: '48%', width: '14%', height: '42%' }]}>
-              <View style={[styles.landShape, styles.southAmerica]} />
-            </View>
-            {/* Europe */}
-            <View style={[styles.landmass, { left: '42%', top: '10%', width: '18%', height: '28%' }]}>
-              <View style={[styles.landShape, styles.europe]} />
-            </View>
+            <View style={[styles.land, { left: '18%', top: '48%', width: '12%', height: '38%', borderTopLeftRadius: 8, borderTopRightRadius: 6, borderBottomLeftRadius: 3, borderBottomRightRadius: 5 }]} />
+
+            {/* Europe - UK/Ireland */}
+            <View style={[styles.land, { left: '42%', top: '18%', width: '4%', height: '8%', borderRadius: 3 }]} />
+            {/* Europe - Scandinavia */}
+            <View style={[styles.land, { left: '48%', top: '8%', width: '8%', height: '18%', borderRadius: 4 }]} />
+            {/* Europe - Main */}
+            <View style={[styles.land, { left: '44%', top: '22%', width: '14%', height: '14%', borderRadius: 5 }]} />
+
             {/* Africa */}
-            <View style={[styles.landmass, { left: '40%', top: '32%', width: '22%', height: '48%' }]}>
-              <View style={[styles.landShape, styles.africa]} />
-            </View>
-            {/* Asia */}
-            <View style={[styles.landmass, { left: '55%', top: '8%', width: '40%', height: '50%' }]}>
-              <View style={[styles.landShape, styles.asia]} />
-            </View>
+            <View style={[styles.land, { left: '42%', top: '38%', width: '18%', height: '35%', borderTopLeftRadius: 8, borderTopRightRadius: 10, borderBottomLeftRadius: 5, borderBottomRightRadius: 8 }]} />
+
+            {/* Asia - Russia */}
+            <View style={[styles.land, { left: '55%', top: '8%', width: '35%', height: '18%', borderRadius: 6 }]} />
+            {/* Asia - Middle East */}
+            <View style={[styles.land, { left: '58%', top: '28%', width: '10%', height: '14%', borderRadius: 5 }]} />
+            {/* Asia - India */}
+            <View style={[styles.land, { left: '68%', top: '32%', width: '10%', height: '16%', borderRadius: 6 }]} />
+            {/* Asia - China/East Asia */}
+            <View style={[styles.land, { left: '72%', top: '18%', width: '18%', height: '22%', borderRadius: 8 }]} />
+            {/* Asia - Southeast Asia */}
+            <View style={[styles.land, { left: '78%', top: '42%', width: '14%', height: '18%', borderRadius: 5 }]} />
+
             {/* Australia */}
-            <View style={[styles.landmass, { left: '78%', top: '58%', width: '18%', height: '28%' }]}>
-              <View style={[styles.landShape, styles.australia]} />
-            </View>
+            <View style={[styles.land, { left: '80%', top: '62%', width: '14%', height: '18%', borderRadius: 6 }]} />
+            {/* New Zealand */}
+            <View style={[styles.land, { left: '92%', top: '75%', width: '4%', height: '10%', borderRadius: 3 }]} />
+
+            {/* Japan */}
+            <View style={[styles.land, { left: '88%', top: '25%', width: '4%', height: '12%', borderRadius: 3 }]} />
           </View>
 
           {/* Markers */}
@@ -246,14 +259,14 @@ const ShareableStatsCard = forwardRef(({
           )}
           <View style={styles.storeBadgesContainer}>
             <View style={styles.storeBadge}>
-              <Ionicons name="logo-apple" size={12} color="#fff" />
+              <Ionicons name="logo-apple" size={14} color="#fff" />
               <View>
                 <Text style={styles.storeSmallText}>Download on the</Text>
                 <Text style={styles.storeBigText}>App Store</Text>
               </View>
             </View>
             <View style={styles.storeBadge}>
-              <Ionicons name="logo-google-playstore" size={12} color="#fff" />
+              <Ionicons name="logo-google-playstore" size={14} color="#fff" />
               <View>
                 <Text style={styles.storeSmallText}>GET IT ON</Text>
                 <Text style={styles.storeBigText}>Google Play</Text>
@@ -262,15 +275,21 @@ const ShareableStatsCard = forwardRef(({
           </View>
         </View>
 
-        {/* Flag ribbon */}
+        {/* Flag ribbon - overlapping style */}
         <View style={styles.flagRibbon}>
           {displayFlags.map((country, index) => (
-            <View key={index} style={styles.flagCircle}>
+            <View
+              key={index}
+              style={[
+                styles.flagCircle,
+                { marginLeft: index === 0 ? 0 : -8, zIndex: displayFlags.length - index }
+              ]}
+            >
               <Text style={styles.flag}>{countryFlags[country] || '🏳️'}</Text>
             </View>
           ))}
           {remainingCount > 0 && (
-            <View style={styles.moreFlags}>
+            <View style={[styles.moreFlags, { marginLeft: -8, zIndex: 0 }]}>
               <Text style={styles.moreFlagsText}>+{remainingCount}</Text>
             </View>
           )}
@@ -312,60 +331,33 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   mapContainer: {
-    height: CARD_SIZE * 0.3,
+    height: CARD_SIZE * 0.32,
     position: 'relative',
-    borderWidth: 1,
-    borderColor: 'rgba(74, 222, 128, 0.2)',
-    borderRadius: 8,
     overflow: 'hidden',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: 'transparent',
   },
   mapOutline: {
     ...StyleSheet.absoluteFillObject,
   },
-  landmass: {
+  land: {
     position: 'absolute',
-  },
-  landShape: {
-    width: '100%',
-    height: '100%',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
+    borderColor: 'rgba(255, 255, 255, 0.5)',
     backgroundColor: 'transparent',
-  },
-  northAmerica: {
-    borderRadius: 8,
-    transform: [{ skewY: '-5deg' }],
-  },
-  southAmerica: {
-    borderRadius: 6,
-    transform: [{ skewX: '5deg' }],
-  },
-  europe: {
-    borderRadius: 4,
-  },
-  africa: {
-    borderRadius: 8,
-    transform: [{ skewX: '-3deg' }],
-  },
-  asia: {
-    borderRadius: 10,
-    transform: [{ skewY: '3deg' }],
-  },
-  australia: {
-    borderRadius: 6,
   },
   marker: {
     position: 'absolute',
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
     backgroundColor: '#4ade80',
-    marginLeft: -3,
-    marginTop: -3,
+    marginLeft: -3.5,
+    marginTop: -3.5,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
   },
   statsSection: {
-    marginTop: 8,
+    marginTop: 6,
   },
   statsTitleRow: {
     flexDirection: 'row',
@@ -393,7 +385,7 @@ const styles = StyleSheet.create({
   },
   statsRow: {
     flexDirection: 'row',
-    marginBottom: 4,
+    marginBottom: 3,
   },
   statItem: {
     flex: 1,
@@ -449,21 +441,21 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   ferdiIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 10,
   },
   ferdiIconPlaceholder: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 10,
     backgroundColor: '#1a3a5c',
     alignItems: 'center',
     justifyContent: 'center',
   },
   ferdiIconText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
   },
   storeBadgesContainer: {
@@ -475,11 +467,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#000',
     borderWidth: 1,
-    borderColor: '#555',
-    borderRadius: 4,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    gap: 3,
+    borderColor: '#666',
+    borderRadius: 5,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    gap: 4,
   },
   storeSmallText: {
     color: '#fff',
@@ -487,23 +479,23 @@ const styles = StyleSheet.create({
   },
   storeBigText: {
     color: '#fff',
-    fontSize: 8,
+    fontSize: 9,
     fontWeight: 'bold',
   },
   flagRibbon: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 6,
-    paddingVertical: 4,
-    gap: 3,
+    marginTop: 8,
+    paddingHorizontal: 20,
   },
   flagCircle: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#222',
+    borderWidth: 2,
+    borderColor: '#333',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -512,10 +504,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   moreFlags: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: '#4ade80',
+    borderWidth: 2,
+    borderColor: '#333',
     alignItems: 'center',
     justifyContent: 'center',
   },
