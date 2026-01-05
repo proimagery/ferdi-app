@@ -1,11 +1,11 @@
 import React, { forwardRef } from 'react';
-import { View, Text, StyleSheet, Image, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getTravelerRank } from '../utils/rankingSystem';
 import { countryCoordinates } from '../utils/coordinates';
 
 const { width: screenWidth } = Dimensions.get('window');
-const CARD_SIZE = Math.min(screenWidth - 40, 400); // 1:1 aspect ratio
+const CARD_SIZE = Math.min(screenWidth - 40, 380); // 1:1 aspect ratio
 
 // Country to flag emoji mapping (common countries)
 const countryFlags = {
@@ -88,16 +88,15 @@ const ShareableStatsCard = forwardRef(({
   const topCountry = Object.entries(countryCounts)
     .sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
 
-  // Get flags for display (up to 15 unique)
+  // Get flags for display (up to 12 unique)
   const uniqueCountries = [...new Set(completedTrips.map(t => t.country))];
-  const displayFlags = uniqueCountries.slice(0, 15);
-  const remainingCount = uniqueCountries.length - 15;
+  const displayFlags = uniqueCountries.slice(0, 12);
+  const remainingCount = uniqueCountries.length - 12;
 
-  // Create marker positions for the map (simplified world map coordinates)
+  // Create marker positions for the map
   const markers = completedTrips.map(trip => {
     const coords = countryCoordinates[trip.country];
     if (!coords) return null;
-    // Convert lat/lng to x/y percentages for the map
     const x = ((coords.longitude + 180) / 360) * 100;
     const y = ((90 - coords.latitude) / 180) * 100;
     return { x, y, country: trip.country };
@@ -115,9 +114,7 @@ const ShareableStatsCard = forwardRef(({
 
         {/* World Map with markers */}
         <View style={styles.mapContainer}>
-          {/* Simple world map outline using SVG-like shapes */}
           <View style={styles.mapOutline}>
-            {/* Simplified continent shapes */}
             <View style={[styles.continent, styles.northAmerica]} />
             <View style={[styles.continent, styles.southAmerica]} />
             <View style={[styles.continent, styles.europe]} />
@@ -125,8 +122,6 @@ const ShareableStatsCard = forwardRef(({
             <View style={[styles.continent, styles.asia]} />
             <View style={[styles.continent, styles.oceania]} />
           </View>
-
-          {/* Markers */}
           {markers.map((marker, index) => (
             <View
               key={index}
@@ -139,37 +134,32 @@ const ShareableStatsCard = forwardRef(({
         </View>
 
         {/* Stats Section Title */}
-        <View style={styles.statsTitleContainer}>
-          <Text style={styles.statsTitle}>Ferdi Stats</Text>
-          <View style={styles.titleUnderline} />
-        </View>
+        <Text style={styles.statsTitle}>Ferdi Stats</Text>
+        <View style={styles.titleUnderline} />
 
-        {/* Stats Grid */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statsLeft}>
-            <View style={styles.statRow}>
+        {/* Stats and Rank Row */}
+        <View style={styles.statsRow}>
+          {/* Stats Grid */}
+          <View style={styles.statsGrid}>
+            <View style={styles.statItem}>
               <Text style={styles.statLabel}>Continents</Text>
-              <Text style={styles.statLabel}>Countries</Text>
-            </View>
-            <View style={styles.statRow}>
               <Text style={styles.statValue}>{visitedContinents.length}</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>Countries</Text>
               <Text style={styles.statValue}>{totalCountries}</Text>
             </View>
-
-            <View style={styles.statRow}>
+            <View style={styles.statItem}>
               <Text style={styles.statLabel}>Cities</Text>
-              <Text style={styles.statLabel}>% of Globe</Text>
-            </View>
-            <View style={styles.statRow}>
               <Text style={styles.statValue}>{totalCities}</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>% of Globe</Text>
               <Text style={styles.statValue}>{worldCoverage}%</Text>
             </View>
-
-            <View style={styles.statRow}>
+            <View style={[styles.statItem, styles.topCountryItem]}>
               <Text style={styles.statLabel}>Top Country</Text>
-            </View>
-            <View style={styles.statRow}>
-              <Text style={styles.statValue}>{topCountry}</Text>
+              <Text style={[styles.statValue, styles.topCountryValue]} numberOfLines={1}>{topCountry}</Text>
             </View>
           </View>
 
@@ -185,21 +175,19 @@ const ShareableStatsCard = forwardRef(({
           </View>
         </View>
 
-        {/* App Store badges and logo */}
+        {/* Bottom Section with App Store badges */}
         <View style={styles.bottomSection}>
-          <View style={styles.appInfo}>
-            <View style={styles.ferdiIconPlaceholder}>
-              <Text style={styles.ferdiIconText}>F</Text>
+          <View style={styles.ferdiIconPlaceholder}>
+            <Text style={styles.ferdiIconText}>F</Text>
+          </View>
+          <View style={styles.storeBadges}>
+            <View style={styles.storeBadge}>
+              <Ionicons name="logo-apple" size={10} color="#fff" />
+              <Text style={styles.storeBadgeText}>App Store</Text>
             </View>
-            <View style={styles.storeBadges}>
-              <View style={styles.storeBadge}>
-                <Ionicons name="logo-apple" size={10} color="#fff" />
-                <Text style={styles.storeBadgeText}>App Store</Text>
-              </View>
-              <View style={styles.storeBadge}>
-                <Ionicons name="logo-google-playstore" size={10} color="#fff" />
-                <Text style={styles.storeBadgeText}>Google Play</Text>
-              </View>
+            <View style={styles.storeBadge}>
+              <Ionicons name="logo-google-playstore" size={10} color="#fff" />
+              <Text style={styles.storeBadgeText}>Google Play</Text>
             </View>
           </View>
         </View>
@@ -240,27 +228,21 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#4ade80',
     borderRadius: 16,
-    shadowColor: '#4ade80',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
   },
   content: {
     flex: 1,
-    padding: 16,
+    padding: 12,
   },
   appName: {
-    position: 'absolute',
-    top: 12,
-    right: 16,
     color: '#fff',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
     fontStyle: 'italic',
+    textAlign: 'right',
+    marginBottom: 4,
   },
   mapContainer: {
-    height: CARD_SIZE * 0.35,
-    marginTop: 8,
+    height: CARD_SIZE * 0.28,
     position: 'relative',
     borderWidth: 1,
     borderColor: 'rgba(74, 222, 128, 0.3)',
@@ -327,95 +309,90 @@ const styles = StyleSheet.create({
     backgroundColor: '#4ade80',
     marginLeft: -4,
     marginTop: -4,
-    shadowColor: '#4ade80',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 4,
-  },
-  statsTitleContainer: {
-    marginTop: 12,
-    marginBottom: 8,
   },
   statsTitle: {
     color: '#fff',
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: 'bold',
     fontStyle: 'italic',
+    marginTop: 10,
   },
   titleUnderline: {
     height: 2,
     backgroundColor: '#4ade80',
-    marginTop: 4,
-    width: '40%',
+    marginTop: 2,
+    marginBottom: 8,
+    width: '35%',
   },
-  statsContainer: {
+  statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    flex: 1,
+    alignItems: 'flex-start',
   },
-  statsLeft: {
+  statsGrid: {
     flex: 1,
-  },
-  statRow: {
     flexDirection: 'row',
-    marginBottom: 2,
+    flexWrap: 'wrap',
+  },
+  statItem: {
+    width: '50%',
+    marginBottom: 6,
+  },
+  topCountryItem: {
+    width: '100%',
   },
   statLabel: {
     color: '#888',
-    fontSize: 11,
-    width: '50%',
+    fontSize: 10,
   },
   statValue: {
     color: '#4ade80',
     fontSize: 18,
     fontWeight: 'bold',
-    width: '50%',
+  },
+  topCountryValue: {
+    fontSize: 16,
   },
   rankContainer: {
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingLeft: 10,
+    marginLeft: 10,
   },
   rankLabel: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: 'bold',
     fontStyle: 'italic',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   rankBadge: {
     backgroundColor: '#4ade80',
-    borderRadius: 50,
-    width: 80,
-    height: 80,
+    borderRadius: 40,
+    width: 70,
+    height: 70,
     alignItems: 'center',
     justifyContent: 'center',
   },
   rankName: {
     color: '#000',
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: 'bold',
     textAlign: 'center',
+    paddingHorizontal: 4,
   },
   rankLevel: {
     color: '#000',
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: 'bold',
   },
   bottomSection: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
     alignItems: 'center',
     marginTop: 8,
-  },
-  appInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: 8,
   },
   ferdiIconPlaceholder: {
-    width: 36,
-    height: 36,
+    width: 32,
+    height: 32,
     borderRadius: 8,
     backgroundColor: '#1a3a5c',
     alignItems: 'center',
@@ -423,11 +400,12 @@ const styles = StyleSheet.create({
   },
   ferdiIconText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
   },
   storeBadges: {
-    gap: 4,
+    flexDirection: 'row',
+    gap: 6,
   },
   storeBadge: {
     flexDirection: 'row',
@@ -448,25 +426,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 20,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+    borderRadius: 16,
+    paddingVertical: 5,
+    paddingHorizontal: 8,
     marginTop: 8,
   },
   flag: {
-    fontSize: 16,
-    marginHorizontal: 2,
+    fontSize: 14,
+    marginHorizontal: 1,
   },
   moreFlags: {
     backgroundColor: '#4ade80',
-    borderRadius: 10,
-    paddingHorizontal: 6,
+    borderRadius: 8,
+    paddingHorizontal: 5,
     paddingVertical: 2,
-    marginLeft: 4,
+    marginLeft: 3,
   },
   moreFlagsText: {
     color: '#000',
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: 'bold',
   },
 });
