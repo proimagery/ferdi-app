@@ -7,6 +7,31 @@ import { countryCoordinates } from '../utils/coordinates';
 const { width: screenWidth } = Dimensions.get('window');
 const CARD_SIZE = Math.min(screenWidth - 40, 380);
 
+// Simple dotted world map pattern - dots at each continent location
+const worldMapDots = [
+  // North America
+  { x: 15, y: 25 }, { x: 18, y: 22 }, { x: 12, y: 28 }, { x: 20, y: 30 }, { x: 16, y: 35 },
+  { x: 22, y: 25 }, { x: 10, y: 32 }, { x: 8, y: 38 }, { x: 14, y: 40 }, { x: 18, y: 38 },
+  { x: 12, y: 45 }, { x: 15, y: 48 },
+  // South America
+  { x: 25, y: 55 }, { x: 27, y: 60 }, { x: 24, y: 65 }, { x: 26, y: 70 }, { x: 28, y: 75 },
+  { x: 23, y: 80 }, { x: 25, y: 85 }, { x: 22, y: 58 }, { x: 30, y: 62 },
+  // Europe
+  { x: 48, y: 22 }, { x: 50, y: 25 }, { x: 52, y: 28 }, { x: 45, y: 30 }, { x: 55, y: 25 },
+  { x: 47, y: 32 }, { x: 53, y: 30 }, { x: 42, y: 28 }, { x: 58, y: 22 },
+  // Africa
+  { x: 50, y: 45 }, { x: 52, y: 50 }, { x: 48, y: 55 }, { x: 55, y: 48 }, { x: 53, y: 60 },
+  { x: 50, y: 65 }, { x: 56, y: 55 }, { x: 45, y: 50 }, { x: 58, y: 45 },
+  // Asia
+  { x: 65, y: 18 }, { x: 70, y: 20 }, { x: 75, y: 22 }, { x: 80, y: 25 }, { x: 85, y: 28 },
+  { x: 62, y: 25 }, { x: 68, y: 30 }, { x: 72, y: 35 }, { x: 78, y: 32 }, { x: 82, y: 38 },
+  { x: 88, y: 30 }, { x: 75, y: 40 }, { x: 80, y: 45 }, { x: 70, y: 38 }, { x: 65, y: 35 },
+  // Australia
+  { x: 85, y: 65 }, { x: 88, y: 62 }, { x: 82, y: 68 }, { x: 90, y: 70 }, { x: 86, y: 72 },
+  // New Zealand
+  { x: 95, y: 78 }, { x: 96, y: 82 },
+];
+
 // Try to load Ferdi icon
 let ferdiIcon = null;
 try {
@@ -140,53 +165,23 @@ const ShareableStatsCard = forwardRef(({
         {/* Header with app name */}
         <Text style={styles.appName}>Ferdi App</Text>
 
-        {/* World Map with realistic outline */}
+        {/* World Map with dotted outline */}
         <View style={styles.mapContainer}>
-          {/* Map outline - simplified continent paths */}
-          <View style={styles.mapOutline}>
-            {/* North America - Greenland */}
-            <View style={[styles.land, { left: '18%', top: '8%', width: '8%', height: '12%', borderRadius: 4 }]} />
-            {/* North America - Canada/USA */}
-            <View style={[styles.land, { left: '5%', top: '15%', width: '24%', height: '22%', borderTopLeftRadius: 10, borderTopRightRadius: 15, borderBottomLeftRadius: 5, borderBottomRightRadius: 8 }]} />
-            {/* North America - Mexico/Central America */}
-            <View style={[styles.land, { left: '8%', top: '35%', width: '12%', height: '15%', borderRadius: 4 }]} />
-            {/* South America */}
-            <View style={[styles.land, { left: '18%', top: '48%', width: '12%', height: '38%', borderTopLeftRadius: 8, borderTopRightRadius: 6, borderBottomLeftRadius: 3, borderBottomRightRadius: 5 }]} />
+          {/* Background dots forming world map shape */}
+          {worldMapDots.map((dot, index) => (
+            <View
+              key={`bg-${index}`}
+              style={[
+                styles.mapDot,
+                { left: `${dot.x}%`, top: `${dot.y}%` }
+              ]}
+            />
+          ))}
 
-            {/* Europe - UK/Ireland */}
-            <View style={[styles.land, { left: '42%', top: '18%', width: '4%', height: '8%', borderRadius: 3 }]} />
-            {/* Europe - Scandinavia */}
-            <View style={[styles.land, { left: '48%', top: '8%', width: '8%', height: '18%', borderRadius: 4 }]} />
-            {/* Europe - Main */}
-            <View style={[styles.land, { left: '44%', top: '22%', width: '14%', height: '14%', borderRadius: 5 }]} />
-
-            {/* Africa */}
-            <View style={[styles.land, { left: '42%', top: '38%', width: '18%', height: '35%', borderTopLeftRadius: 8, borderTopRightRadius: 10, borderBottomLeftRadius: 5, borderBottomRightRadius: 8 }]} />
-
-            {/* Asia - Russia */}
-            <View style={[styles.land, { left: '55%', top: '8%', width: '35%', height: '18%', borderRadius: 6 }]} />
-            {/* Asia - Middle East */}
-            <View style={[styles.land, { left: '58%', top: '28%', width: '10%', height: '14%', borderRadius: 5 }]} />
-            {/* Asia - India */}
-            <View style={[styles.land, { left: '68%', top: '32%', width: '10%', height: '16%', borderRadius: 6 }]} />
-            {/* Asia - China/East Asia */}
-            <View style={[styles.land, { left: '72%', top: '18%', width: '18%', height: '22%', borderRadius: 8 }]} />
-            {/* Asia - Southeast Asia */}
-            <View style={[styles.land, { left: '78%', top: '42%', width: '14%', height: '18%', borderRadius: 5 }]} />
-
-            {/* Australia */}
-            <View style={[styles.land, { left: '80%', top: '62%', width: '14%', height: '18%', borderRadius: 6 }]} />
-            {/* New Zealand */}
-            <View style={[styles.land, { left: '92%', top: '75%', width: '4%', height: '10%', borderRadius: 3 }]} />
-
-            {/* Japan */}
-            <View style={[styles.land, { left: '88%', top: '25%', width: '4%', height: '12%', borderRadius: 3 }]} />
-          </View>
-
-          {/* Markers */}
+          {/* User's visited country markers (green, larger) */}
           {markers.map((marker, index) => (
             <View
-              key={index}
+              key={`marker-${index}`}
               style={[
                 styles.marker,
                 { left: `${marker.x}%`, top: `${marker.y}%` }
@@ -336,25 +331,30 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: 'transparent',
   },
-  mapOutline: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  land: {
+  mapDot: {
     position: 'absolute',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
-    backgroundColor: 'transparent',
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    marginLeft: -2,
+    marginTop: -2,
   },
   marker: {
     position: 'absolute',
-    width: 7,
-    height: 7,
-    borderRadius: 4,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     backgroundColor: '#4ade80',
-    marginLeft: -3.5,
-    marginTop: -3.5,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
+    marginLeft: -5,
+    marginTop: -5,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.9)',
+    shadowColor: '#4ade80',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
+    elevation: 5,
   },
   statsSection: {
     marginTop: 6,
