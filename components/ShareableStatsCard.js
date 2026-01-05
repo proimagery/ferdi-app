@@ -1,36 +1,67 @@
 import React, { forwardRef } from 'react';
 import { View, Text, StyleSheet, Dimensions, Image } from 'react-native';
+import Svg, { Path, Circle, G } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { getTravelerRank } from '../utils/rankingSystem';
 import { countryCoordinates } from '../utils/coordinates';
 
 const { width: screenWidth } = Dimensions.get('window');
 const CARD_SIZE = Math.min(screenWidth - 40, 380);
+const MAP_HEIGHT = CARD_SIZE * 0.32;
 
-// Simple dotted world map pattern - dots at each continent location
-const worldMapDots = [
-  // North America
-  { x: 15, y: 25 }, { x: 18, y: 22 }, { x: 12, y: 28 }, { x: 20, y: 30 }, { x: 16, y: 35 },
-  { x: 22, y: 25 }, { x: 10, y: 32 }, { x: 8, y: 38 }, { x: 14, y: 40 }, { x: 18, y: 38 },
-  { x: 12, y: 45 }, { x: 15, y: 48 },
+// Simplified but recognizable world map SVG paths
+const worldMapPath = `
+  M18,22 L22,18 L28,17 L32,20 L30,26 L26,30 L22,28 L18,24 Z
+  M32,15 L38,12 L42,14 L40,20 L34,18 Z
+  M20,32 L24,30 L28,34 L26,42 L22,48 L18,46 L16,38 Z
+  M26,52 L30,48 L34,52 L36,62 L34,74 L30,82 L26,78 L24,68 L24,58 Z
+  M44,20 L48,18 L52,22 L50,28 L46,26 Z
+  M48,16 L50,14 L54,16 L56,22 L52,24 L48,20 Z
+  M52,18 L58,14 L64,16 L68,20 L72,18 L78,20 L82,24 L80,30 L74,32 L68,30 L62,28 L56,26 L52,22 Z
+  M48,32 L54,30 L60,34 L62,44 L58,56 L52,64 L46,60 L44,48 L46,38 Z
+  M62,28 L66,24 L72,26 L74,32 L70,36 L64,34 Z
+  M72,28 L78,24 L86,26 L92,30 L90,38 L84,42 L78,40 L74,34 Z
+  M78,38 L84,36 L90,40 L92,48 L88,54 L82,52 L78,46 Z
+  M86,44 L92,42 L96,48 L94,56 L88,58 L84,52 Z
+  M86,62 L92,58 L98,62 L100,72 L96,78 L90,76 L86,68 Z
+  M102,78 L106,76 L108,82 L104,86 L100,82 Z
+`;
+
+// Alternative: More detailed and accurate world map paths
+const continentPaths = {
+  // North America (main landmass)
+  northAmerica: "M15,28 Q18,22 25,20 Q32,18 38,22 Q42,26 40,34 Q38,38 35,40 Q32,42 28,40 Q24,38 22,36 Q20,34 18,32 Q16,30 15,28",
+  // Greenland
+  greenland: "M38,14 Q42,12 46,14 Q48,18 46,22 Q42,24 38,22 Q36,18 38,14",
+  // Central America
+  centralAmerica: "M22,42 Q25,40 28,42 Q30,46 28,50 Q25,52 22,50 Q20,46 22,42",
   // South America
-  { x: 25, y: 55 }, { x: 27, y: 60 }, { x: 24, y: 65 }, { x: 26, y: 70 }, { x: 28, y: 75 },
-  { x: 23, y: 80 }, { x: 25, y: 85 }, { x: 22, y: 58 }, { x: 30, y: 62 },
+  southAmerica: "M28,54 Q34,50 38,54 Q42,60 40,72 Q38,82 34,88 Q30,90 26,86 Q24,78 24,68 Q26,58 28,54",
   // Europe
-  { x: 48, y: 22 }, { x: 50, y: 25 }, { x: 52, y: 28 }, { x: 45, y: 30 }, { x: 55, y: 25 },
-  { x: 47, y: 32 }, { x: 53, y: 30 }, { x: 42, y: 28 }, { x: 58, y: 22 },
+  europe: "M48,22 Q52,18 58,20 Q62,22 64,26 Q62,30 58,32 Q54,30 50,28 Q48,26 48,22",
+  // UK
+  uk: "M44,24 Q46,22 48,24 Q48,28 46,30 Q44,28 44,24",
   // Africa
-  { x: 50, y: 45 }, { x: 52, y: 50 }, { x: 48, y: 55 }, { x: 55, y: 48 }, { x: 53, y: 60 },
-  { x: 50, y: 65 }, { x: 56, y: 55 }, { x: 45, y: 50 }, { x: 58, y: 45 },
-  // Asia
-  { x: 65, y: 18 }, { x: 70, y: 20 }, { x: 75, y: 22 }, { x: 80, y: 25 }, { x: 85, y: 28 },
-  { x: 62, y: 25 }, { x: 68, y: 30 }, { x: 72, y: 35 }, { x: 78, y: 32 }, { x: 82, y: 38 },
-  { x: 88, y: 30 }, { x: 75, y: 40 }, { x: 80, y: 45 }, { x: 70, y: 38 }, { x: 65, y: 35 },
+  africa: "M46,38 Q52,34 58,38 Q62,44 62,54 Q60,66 54,74 Q48,78 44,72 Q42,62 42,52 Q44,44 46,38",
+  // Russia/Northern Asia
+  russia: "M62,18 Q72,14 85,16 Q95,20 98,28 Q96,34 88,36 Q78,34 68,32 Q62,28 62,18",
+  // Middle East
+  middleEast: "M60,34 Q66,32 70,36 Q72,42 68,46 Q64,44 60,40 Q58,36 60,34",
+  // India
+  india: "M70,42 Q76,38 80,44 Q82,52 78,58 Q72,56 68,50 Q68,44 70,42",
+  // China/East Asia
+  eastAsia: "M78,28 Q86,24 92,28 Q96,34 94,42 Q88,46 82,44 Q78,38 78,28",
+  // Southeast Asia
+  southeastAsia: "M80,50 Q86,48 90,52 Q92,60 88,66 Q82,64 78,58 Q78,54 80,50",
+  // Japan
+  japan: "M94,30 Q96,28 98,32 Q98,38 96,40 Q94,38 94,30",
   // Australia
-  { x: 85, y: 65 }, { x: 88, y: 62 }, { x: 82, y: 68 }, { x: 90, y: 70 }, { x: 86, y: 72 },
+  australia: "M84,70 Q92,66 98,72 Q102,80 98,88 Q92,92 86,88 Q82,82 84,70",
   // New Zealand
-  { x: 95, y: 78 }, { x: 96, y: 82 },
-];
+  newZealand: "M104,86 Q106,84 108,88 Q108,94 106,96 Q104,94 104,86",
+  // Indonesia
+  indonesia: "M82,62 Q88,60 92,64 Q90,68 86,68 Q82,66 82,62",
+};
 
 // Try to load Ferdi icon
 let ferdiIcon = null;
@@ -165,29 +196,47 @@ const ShareableStatsCard = forwardRef(({
         {/* Header with app name */}
         <Text style={styles.appName}>Ferdi App</Text>
 
-        {/* World Map with dotted outline */}
+        {/* World Map SVG */}
         <View style={styles.mapContainer}>
-          {/* Background dots forming world map shape */}
-          {worldMapDots.map((dot, index) => (
-            <View
-              key={`bg-${index}`}
-              style={[
-                styles.mapDot,
-                { left: `${dot.x}%`, top: `${dot.y}%` }
-              ]}
-            />
-          ))}
+          <Svg
+            width="100%"
+            height="100%"
+            viewBox="0 0 120 100"
+            preserveAspectRatio="xMidYMid meet"
+          >
+            {/* World map continent outlines */}
+            <G>
+              {Object.values(continentPaths).map((path, index) => (
+                <Path
+                  key={`continent-${index}`}
+                  d={path}
+                  fill="rgba(255, 255, 255, 0.15)"
+                  stroke="rgba(255, 255, 255, 0.5)"
+                  strokeWidth="0.5"
+                />
+              ))}
+            </G>
 
-          {/* User's visited country markers (green, larger) */}
-          {markers.map((marker, index) => (
-            <View
-              key={`marker-${index}`}
-              style={[
-                styles.marker,
-                { left: `${marker.x}%`, top: `${marker.y}%` }
-              ]}
-            />
-          ))}
+            {/* Markers for visited countries */}
+            <G>
+              {markers.map((marker, index) => {
+                // Convert percentage coordinates to SVG viewBox coordinates
+                const svgX = (marker.x / 100) * 120;
+                const svgY = (marker.y / 100) * 100;
+                return (
+                  <Circle
+                    key={`marker-${index}`}
+                    cx={svgX}
+                    cy={svgY}
+                    r="3"
+                    fill="#4ade80"
+                    stroke="rgba(255, 255, 255, 0.9)"
+                    strokeWidth="0.8"
+                  />
+                );
+              })}
+            </G>
+          </Svg>
         </View>
 
         {/* Stats Section */}
@@ -326,35 +375,10 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   mapContainer: {
-    height: CARD_SIZE * 0.32,
+    height: MAP_HEIGHT,
     position: 'relative',
     overflow: 'hidden',
     backgroundColor: 'transparent',
-  },
-  mapDot: {
-    position: 'absolute',
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    marginLeft: -2,
-    marginTop: -2,
-  },
-  marker: {
-    position: 'absolute',
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#4ade80',
-    marginLeft: -5,
-    marginTop: -5,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.9)',
-    shadowColor: '#4ade80',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 4,
-    elevation: 5,
   },
   statsSection: {
     marginTop: 6,
