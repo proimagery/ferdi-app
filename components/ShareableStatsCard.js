@@ -9,58 +9,42 @@ const { width: screenWidth } = Dimensions.get('window');
 const CARD_SIZE = Math.min(screenWidth - 40, 380);
 const MAP_HEIGHT = CARD_SIZE * 0.32;
 
-// Simplified but recognizable world map SVG paths
-const worldMapPath = `
-  M18,22 L22,18 L28,17 L32,20 L30,26 L26,30 L22,28 L18,24 Z
-  M32,15 L38,12 L42,14 L40,20 L34,18 Z
-  M20,32 L24,30 L28,34 L26,42 L22,48 L18,46 L16,38 Z
-  M26,52 L30,48 L34,52 L36,62 L34,74 L30,82 L26,78 L24,68 L24,58 Z
-  M44,20 L48,18 L52,22 L50,28 L46,26 Z
-  M48,16 L50,14 L54,16 L56,22 L52,24 L48,20 Z
-  M52,18 L58,14 L64,16 L68,20 L72,18 L78,20 L82,24 L80,30 L74,32 L68,30 L62,28 L56,26 L52,22 Z
-  M48,32 L54,30 L60,34 L62,44 L58,56 L52,64 L46,60 L44,48 L46,38 Z
-  M62,28 L66,24 L72,26 L74,32 L70,36 L64,34 Z
-  M72,28 L78,24 L86,26 L92,30 L90,38 L84,42 L78,40 L74,34 Z
-  M78,38 L84,36 L90,40 L92,48 L88,54 L82,52 L78,46 Z
-  M86,44 L92,42 L96,48 L94,56 L88,58 L84,52 Z
-  M86,62 L92,58 L98,62 L100,72 L96,78 L90,76 L86,68 Z
-  M102,78 L106,76 L108,82 L104,86 L100,82 Z
-`;
-
-// Alternative: More detailed and accurate world map paths
-const continentPaths = {
-  // North America (main landmass)
-  northAmerica: "M15,28 Q18,22 25,20 Q32,18 38,22 Q42,26 40,34 Q38,38 35,40 Q32,42 28,40 Q24,38 22,36 Q20,34 18,32 Q16,30 15,28",
+// World map paths - realistic continent outlines (viewBox 0 0 100 50)
+const mapPaths = {
+  // North America
+  na: "M5,8 C8,6 12,5 16,6 C20,5 24,4 28,5 C30,6 32,8 30,11 C28,14 26,16 24,18 C22,20 20,22 18,23 C16,22 14,20 12,18 C10,16 8,14 6,12 C5,10 5,9 5,8 Z",
   // Greenland
-  greenland: "M38,14 Q42,12 46,14 Q48,18 46,22 Q42,24 38,22 Q36,18 38,14",
+  gl: "M32,4 C34,3 36,3 38,4 C39,5 39,7 38,8 C36,9 34,9 32,8 C31,7 31,5 32,4 Z",
   // Central America
-  centralAmerica: "M22,42 Q25,40 28,42 Q30,46 28,50 Q25,52 22,50 Q20,46 22,42",
+  ca: "M18,24 C19,23 20,24 21,25 C22,27 21,29 20,30 C19,29 18,27 17,26 C17,25 17,24 18,24 Z",
   // South America
-  southAmerica: "M28,54 Q34,50 38,54 Q42,60 40,72 Q38,82 34,88 Q30,90 26,86 Q24,78 24,68 Q26,58 28,54",
+  sa: "M22,31 C24,30 26,31 28,33 C30,36 31,40 30,44 C29,47 27,49 25,48 C23,47 22,44 21,40 C20,36 21,33 22,31 Z",
   // Europe
-  europe: "M48,22 Q52,18 58,20 Q62,22 64,26 Q62,30 58,32 Q54,30 50,28 Q48,26 48,22",
-  // UK
-  uk: "M44,24 Q46,22 48,24 Q48,28 46,30 Q44,28 44,24",
+  eu: "M46,8 C48,7 50,7 52,8 C54,9 56,10 57,12 C56,14 54,15 52,15 C50,15 48,14 46,13 C45,11 45,9 46,8 Z",
+  // UK/Ireland
+  uk: "M42,10 C43,9 44,10 44,11 C44,12 43,13 42,12 C41,11 41,10 42,10 Z",
+  // Scandinavia
+  sc: "M50,4 C52,3 54,4 55,6 C55,8 54,10 52,10 C50,10 49,8 49,6 C49,5 49,4 50,4 Z",
   // Africa
-  africa: "M46,38 Q52,34 58,38 Q62,44 62,54 Q60,66 54,74 Q48,78 44,72 Q42,62 42,52 Q44,44 46,38",
-  // Russia/Northern Asia
-  russia: "M62,18 Q72,14 85,16 Q95,20 98,28 Q96,34 88,36 Q78,34 68,32 Q62,28 62,18",
+  af: "M46,18 C49,17 52,18 54,21 C56,25 56,30 55,35 C54,39 51,42 48,41 C45,40 43,36 43,31 C43,26 44,21 46,18 Z",
+  // Russia/Asia North
+  ru: "M58,5 C64,4 72,5 80,6 C86,7 92,9 95,12 C94,14 90,15 85,15 C78,15 70,14 64,13 C60,12 57,10 57,8 C57,6 57,5 58,5 Z",
   // Middle East
-  middleEast: "M60,34 Q66,32 70,36 Q72,42 68,46 Q64,44 60,40 Q58,36 60,34",
+  me: "M56,16 C58,15 61,16 63,18 C64,20 64,22 62,24 C60,24 58,23 56,21 C55,19 55,17 56,16 Z",
   // India
-  india: "M70,42 Q76,38 80,44 Q82,52 78,58 Q72,56 68,50 Q68,44 70,42",
+  in: "M66,20 C68,19 71,20 73,23 C74,26 74,30 72,32 C70,32 68,30 66,27 C65,24 65,21 66,20 Z",
   // China/East Asia
-  eastAsia: "M78,28 Q86,24 92,28 Q96,34 94,42 Q88,46 82,44 Q78,38 78,28",
+  cn: "M74,12 C78,11 83,12 87,14 C90,16 92,19 91,22 C89,24 85,25 81,24 C77,23 74,20 73,17 C73,14 73,12 74,12 Z",
   // Southeast Asia
-  southeastAsia: "M80,50 Q86,48 90,52 Q92,60 88,66 Q82,64 78,58 Q78,54 80,50",
+  sea: "M76,26 C79,25 82,27 84,30 C85,33 84,36 82,37 C79,37 77,35 76,32 C75,29 75,27 76,26 Z",
   // Japan
-  japan: "M94,30 Q96,28 98,32 Q98,38 96,40 Q94,38 94,30",
-  // Australia
-  australia: "M84,70 Q92,66 98,72 Q102,80 98,88 Q92,92 86,88 Q82,82 84,70",
-  // New Zealand
-  newZealand: "M104,86 Q106,84 108,88 Q108,94 106,96 Q104,94 104,86",
+  jp: "M90,14 C91,13 92,14 92,16 C92,18 91,20 90,19 C89,18 89,15 90,14 Z",
   // Indonesia
-  indonesia: "M82,62 Q88,60 92,64 Q90,68 86,68 Q82,66 82,62",
+  id: "M78,38 C81,37 85,38 88,40 C89,41 88,43 86,43 C83,43 80,42 78,40 C77,39 77,38 78,38 Z",
+  // Australia
+  au: "M82,42 C86,41 90,42 93,45 C95,48 95,52 93,54 C90,55 86,54 83,51 C81,48 81,44 82,42 Z",
+  // New Zealand
+  nz: "M96,52 C97,51 98,52 98,54 C98,56 97,57 96,56 C95,55 95,53 96,52 Z",
 };
 
 // Try to load Ferdi icon
@@ -201,18 +185,18 @@ const ShareableStatsCard = forwardRef(({
           <Svg
             width="100%"
             height="100%"
-            viewBox="0 0 120 100"
+            viewBox="0 0 100 60"
             preserveAspectRatio="xMidYMid meet"
           >
             {/* World map continent outlines */}
             <G>
-              {Object.values(continentPaths).map((path, index) => (
+              {Object.values(mapPaths).map((path, index) => (
                 <Path
-                  key={`continent-${index}`}
+                  key={`map-${index}`}
                   d={path}
-                  fill="rgba(255, 255, 255, 0.15)"
+                  fill="none"
                   stroke="rgba(255, 255, 255, 0.5)"
-                  strokeWidth="0.5"
+                  strokeWidth="0.4"
                 />
               ))}
             </G>
@@ -221,17 +205,17 @@ const ShareableStatsCard = forwardRef(({
             <G>
               {markers.map((marker, index) => {
                 // Convert percentage coordinates to SVG viewBox coordinates
-                const svgX = (marker.x / 100) * 120;
-                const svgY = (marker.y / 100) * 100;
+                const svgX = marker.x;
+                const svgY = (marker.y / 100) * 60;
                 return (
                   <Circle
                     key={`marker-${index}`}
                     cx={svgX}
                     cy={svgY}
-                    r="3"
+                    r="2"
                     fill="#4ade80"
                     stroke="rgba(255, 255, 255, 0.9)"
-                    strokeWidth="0.8"
+                    strokeWidth="0.5"
                   />
                 );
               })}
