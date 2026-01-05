@@ -341,6 +341,7 @@ export default function YourStatsScreen({ navigation }) {
                 ref={shareCardRef}
                 completedTrips={completedTrips}
                 visitedCities={visitedCities}
+                trips={trips}
                 profile={profile}
               />
             </View>

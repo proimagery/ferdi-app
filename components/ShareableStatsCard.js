@@ -1,16 +1,24 @@
 import React, { forwardRef } from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getTravelerRank } from '../utils/rankingSystem';
 import { countryCoordinates } from '../utils/coordinates';
 
 const { width: screenWidth } = Dimensions.get('window');
-const CARD_SIZE = Math.min(screenWidth - 40, 380); // 1:1 aspect ratio
+const CARD_SIZE = Math.min(screenWidth - 40, 380);
 
-// Country to flag emoji mapping (common countries)
+// Try to load Ferdi icon
+let ferdiIcon = null;
+try {
+  ferdiIcon = require('../assets/ferdi icon.png');
+} catch (e) {
+  // Icon not found, will use fallback
+}
+
+// Country to flag emoji mapping
 const countryFlags = {
   'USA': '🇺🇸', 'United States': '🇺🇸', 'Canada': '🇨🇦', 'Mexico': '🇲🇽',
-  'UK': '🇬🇧', 'England': '🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'France': '🇫🇷', 'Germany': '🇩🇪', 'Italy': '🇮🇹',
+  'UK': '🇬🇧', 'United Kingdom': '🇬🇧', 'England': '🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'France': '🇫🇷', 'Germany': '🇩🇪', 'Italy': '🇮🇹',
   'Spain': '🇪🇸', 'Portugal': '🇵🇹', 'Netherlands': '🇳🇱', 'Belgium': '🇧🇪',
   'Switzerland': '🇨🇭', 'Austria': '🇦🇹', 'Greece': '🇬🇷', 'Turkey': '🇹🇷',
   'Japan': '🇯🇵', 'China': '🇨🇳', 'South Korea': '🇰🇷', 'India': '🇮🇳',
@@ -32,6 +40,7 @@ const countryFlags = {
   'Latvia': '🇱🇻', 'Lithuania': '🇱🇹', 'Luxembourg': '🇱🇺', 'Malta': '🇲🇹',
   'Cyprus': '🇨🇾', 'Albania': '🇦🇱', 'Serbia': '🇷🇸', 'Montenegro': '🇲🇪',
   'Fiji': '🇫🇯', 'Bahamas': '🇧🇸', 'Barbados': '🇧🇧', 'Trinidad and Tobago': '🇹🇹',
+  'Scotland': '🏴󠁧󠁢󠁳󠁣󠁴󠁿', 'Wales': '🏴󠁧󠁢󠁷󠁬󠁳󠁿',
 };
 
 // Continent mapping
@@ -40,7 +49,8 @@ const continentMap = {
   'Mexico': 'North America', 'Cuba': 'North America', 'Jamaica': 'North America',
   'Costa Rica': 'North America', 'Panama': 'North America', 'Guatemala': 'North America',
   'France': 'Europe', 'Italy': 'Europe', 'Spain': 'Europe', 'Germany': 'Europe',
-  'UK': 'Europe', 'England': 'Europe', 'Netherlands': 'Europe', 'Belgium': 'Europe',
+  'UK': 'Europe', 'United Kingdom': 'Europe', 'England': 'Europe', 'Scotland': 'Europe', 'Wales': 'Europe',
+  'Netherlands': 'Europe', 'Belgium': 'Europe',
   'Switzerland': 'Europe', 'Austria': 'Europe', 'Greece': 'Europe', 'Portugal': 'Europe',
   'Poland': 'Europe', 'Sweden': 'Europe', 'Norway': 'Europe', 'Denmark': 'Europe',
   'Finland': 'Europe', 'Iceland': 'Europe', 'Ireland': 'Europe', 'Croatia': 'Europe',
@@ -60,6 +70,7 @@ const continentMap = {
 const ShareableStatsCard = forwardRef(({
   completedTrips = [],
   visitedCities = [],
+  trips = [],
   profile = {},
 }, ref) => {
   // Calculate stats
@@ -88,10 +99,27 @@ const ShareableStatsCard = forwardRef(({
   const topCountry = Object.entries(countryCounts)
     .sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
 
-  // Get flags for display (up to 12 unique)
+  // Calculate total days traveled from trips
+  let totalDays = 0;
+  if (trips && trips.length > 0) {
+    trips.forEach(trip => {
+      if (trip.countries) {
+        trip.countries.forEach(country => {
+          if (country.startDate && country.endDate) {
+            const start = typeof country.startDate === 'string' ? new Date(country.startDate) : country.startDate;
+            const end = typeof country.endDate === 'string' ? new Date(country.endDate) : country.endDate;
+            const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+            if (days > 0) totalDays += days;
+          }
+        });
+      }
+    });
+  }
+
+  // Get flags for display (up to 10 unique)
   const uniqueCountries = [...new Set(completedTrips.map(t => t.country))];
-  const displayFlags = uniqueCountries.slice(0, 12);
-  const remainingCount = uniqueCountries.length - 12;
+  const displayFlags = uniqueCountries.slice(0, 10);
+  const remainingCount = uniqueCountries.length - 10;
 
   // Create marker positions for the map
   const markers = completedTrips.map(trip => {
@@ -112,16 +140,37 @@ const ShareableStatsCard = forwardRef(({
         {/* Header with app name */}
         <Text style={styles.appName}>Ferdi App</Text>
 
-        {/* World Map with markers */}
+        {/* World Map with SVG-like outline */}
         <View style={styles.mapContainer}>
+          {/* Simplified world map using path-like shapes */}
           <View style={styles.mapOutline}>
-            <View style={[styles.continent, styles.northAmerica]} />
-            <View style={[styles.continent, styles.southAmerica]} />
-            <View style={[styles.continent, styles.europe]} />
-            <View style={[styles.continent, styles.africa]} />
-            <View style={[styles.continent, styles.asia]} />
-            <View style={[styles.continent, styles.oceania]} />
+            {/* North America */}
+            <View style={[styles.landmass, { left: '5%', top: '12%', width: '22%', height: '38%' }]}>
+              <View style={[styles.landShape, styles.northAmerica]} />
+            </View>
+            {/* South America */}
+            <View style={[styles.landmass, { left: '15%', top: '48%', width: '14%', height: '42%' }]}>
+              <View style={[styles.landShape, styles.southAmerica]} />
+            </View>
+            {/* Europe */}
+            <View style={[styles.landmass, { left: '42%', top: '10%', width: '18%', height: '28%' }]}>
+              <View style={[styles.landShape, styles.europe]} />
+            </View>
+            {/* Africa */}
+            <View style={[styles.landmass, { left: '40%', top: '32%', width: '22%', height: '48%' }]}>
+              <View style={[styles.landShape, styles.africa]} />
+            </View>
+            {/* Asia */}
+            <View style={[styles.landmass, { left: '55%', top: '8%', width: '40%', height: '50%' }]}>
+              <View style={[styles.landShape, styles.asia]} />
+            </View>
+            {/* Australia */}
+            <View style={[styles.landmass, { left: '78%', top: '58%', width: '18%', height: '28%' }]}>
+              <View style={[styles.landShape, styles.australia]} />
+            </View>
           </View>
+
+          {/* Markers */}
           {markers.map((marker, index) => (
             <View
               key={index}
@@ -133,61 +182,82 @@ const ShareableStatsCard = forwardRef(({
           ))}
         </View>
 
-        {/* Stats Section Title */}
-        <Text style={styles.statsTitle}>Ferdi Stats</Text>
-        <View style={styles.titleUnderline} />
-
-        {/* Stats and Rank Row */}
-        <View style={styles.statsRow}>
-          {/* Stats Grid */}
-          <View style={styles.statsGrid}>
-            <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Continents</Text>
-              <Text style={styles.statValue}>{visitedContinents.length}</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Countries</Text>
-              <Text style={styles.statValue}>{totalCountries}</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Cities</Text>
-              <Text style={styles.statValue}>{totalCities}</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statLabel}>% of Globe</Text>
-              <Text style={styles.statValue}>{worldCoverage}%</Text>
-            </View>
-            <View style={[styles.statItem, styles.topCountryItem]}>
-              <Text style={styles.statLabel}>Top Country</Text>
-              <Text style={[styles.statValue, styles.topCountryValue]} numberOfLines={1}>{topCountry}</Text>
-            </View>
+        {/* Stats Section */}
+        <View style={styles.statsSection}>
+          <View style={styles.statsTitleRow}>
+            <Text style={styles.statsTitle}>Ferdi Stats</Text>
+            <View style={styles.titleUnderline} />
           </View>
 
-          {/* Rank Badge */}
-          <View style={styles.rankContainer}>
-            <Text style={styles.rankLabel}>Rank</Text>
-            <View style={styles.rankBadge}>
-              <Text style={styles.rankName}>{rankName}</Text>
-              {rankLevel && (
-                <Text style={styles.rankLevel}>Lvl.{rankLevel}</Text>
-              )}
+          <View style={styles.statsAndRankRow}>
+            {/* Stats Grid */}
+            <View style={styles.statsGrid}>
+              <View style={styles.statsRow}>
+                <View style={styles.statItem}>
+                  <Text style={styles.statLabel}>Continents</Text>
+                  <Text style={styles.statValue}>{visitedContinents.length}</Text>
+                </View>
+                <View style={styles.statItem}>
+                  <Text style={styles.statLabel}>Countries</Text>
+                  <Text style={styles.statValue}>{totalCountries}</Text>
+                </View>
+              </View>
+              <View style={styles.statsRow}>
+                <View style={styles.statItem}>
+                  <Text style={styles.statLabel}>Cities</Text>
+                  <Text style={styles.statValue}>{totalCities}</Text>
+                </View>
+                <View style={styles.statItem}>
+                  <Text style={styles.statLabel}>% of Globe</Text>
+                  <Text style={styles.statValue}>{worldCoverage}%</Text>
+                </View>
+              </View>
+              <View style={styles.statsRow}>
+                <View style={styles.statItem}>
+                  <Text style={styles.statLabel}>Top Country</Text>
+                  <Text style={styles.statValueSmall} numberOfLines={1}>{topCountry}</Text>
+                </View>
+                <View style={styles.statItem}>
+                  <Text style={styles.statLabel}>Days Traveled</Text>
+                  <Text style={styles.statValueSmall}>{totalDays || '-'}</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Rank Badge */}
+            <View style={styles.rankContainer}>
+              <Text style={styles.rankLabel}>Rank</Text>
+              <View style={styles.rankBadge}>
+                <Text style={styles.rankName}>{rankName}</Text>
+                <Text style={styles.rankLevel}>Lvl.{rankLevel || '1'}</Text>
+              </View>
             </View>
           </View>
         </View>
 
-        {/* Bottom Section with App Store badges */}
+        {/* Bottom Section with App icon and Store badges */}
         <View style={styles.bottomSection}>
-          <View style={styles.ferdiIconPlaceholder}>
-            <Text style={styles.ferdiIconText}>F</Text>
-          </View>
-          <View style={styles.storeBadges}>
+          {ferdiIcon ? (
+            <Image source={ferdiIcon} style={styles.ferdiIcon} resizeMode="contain" />
+          ) : (
+            <View style={styles.ferdiIconPlaceholder}>
+              <Text style={styles.ferdiIconText}>F</Text>
+            </View>
+          )}
+          <View style={styles.storeBadgesContainer}>
             <View style={styles.storeBadge}>
-              <Ionicons name="logo-apple" size={10} color="#fff" />
-              <Text style={styles.storeBadgeText}>App Store</Text>
+              <Ionicons name="logo-apple" size={12} color="#fff" />
+              <View>
+                <Text style={styles.storeSmallText}>Download on the</Text>
+                <Text style={styles.storeBigText}>App Store</Text>
+              </View>
             </View>
             <View style={styles.storeBadge}>
-              <Ionicons name="logo-google-playstore" size={10} color="#fff" />
-              <Text style={styles.storeBadgeText}>Google Play</Text>
+              <Ionicons name="logo-google-playstore" size={12} color="#fff" />
+              <View>
+                <Text style={styles.storeSmallText}>GET IT ON</Text>
+                <Text style={styles.storeBigText}>Google Play</Text>
+              </View>
             </View>
           </View>
         </View>
@@ -195,9 +265,9 @@ const ShareableStatsCard = forwardRef(({
         {/* Flag ribbon */}
         <View style={styles.flagRibbon}>
           {displayFlags.map((country, index) => (
-            <Text key={index} style={styles.flag}>
-              {countryFlags[country] || '🏳️'}
-            </Text>
+            <View key={index} style={styles.flagCircle}>
+              <Text style={styles.flag}>{countryFlags[country] || '🏳️'}</Text>
+            </View>
           ))}
           {remainingCount > 0 && (
             <View style={styles.moreFlags}>
@@ -242,157 +312,150 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   mapContainer: {
-    height: CARD_SIZE * 0.28,
+    height: CARD_SIZE * 0.3,
     position: 'relative',
     borderWidth: 1,
-    borderColor: 'rgba(74, 222, 128, 0.3)',
+    borderColor: 'rgba(74, 222, 128, 0.2)',
     borderRadius: 8,
     overflow: 'hidden',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   mapOutline: {
     ...StyleSheet.absoluteFillObject,
-    opacity: 0.3,
   },
-  continent: {
+  landmass: {
     position: 'absolute',
-    backgroundColor: 'transparent',
+  },
+  landShape: {
+    width: '100%',
+    height: '100%',
     borderWidth: 1,
-    borderColor: '#fff',
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+    backgroundColor: 'transparent',
   },
   northAmerica: {
-    left: '5%',
-    top: '15%',
-    width: '20%',
-    height: '35%',
-    borderRadius: 20,
+    borderRadius: 8,
+    transform: [{ skewY: '-5deg' }],
   },
   southAmerica: {
-    left: '18%',
-    top: '50%',
-    width: '12%',
-    height: '35%',
-    borderRadius: 15,
+    borderRadius: 6,
+    transform: [{ skewX: '5deg' }],
   },
   europe: {
-    left: '42%',
-    top: '15%',
-    width: '15%',
-    height: '25%',
-    borderRadius: 10,
+    borderRadius: 4,
   },
   africa: {
-    left: '42%',
-    top: '35%',
-    width: '18%',
-    height: '40%',
-    borderRadius: 15,
+    borderRadius: 8,
+    transform: [{ skewX: '-3deg' }],
   },
   asia: {
-    left: '55%',
-    top: '10%',
-    width: '35%',
-    height: '45%',
-    borderRadius: 20,
-  },
-  oceania: {
-    left: '75%',
-    top: '60%',
-    width: '18%',
-    height: '25%',
     borderRadius: 10,
+    transform: [{ skewY: '3deg' }],
+  },
+  australia: {
+    borderRadius: 6,
   },
   marker: {
     position: 'absolute',
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: '#4ade80',
-    marginLeft: -4,
-    marginTop: -4,
+    marginLeft: -3,
+    marginTop: -3,
+  },
+  statsSection: {
+    marginTop: 8,
+  },
+  statsTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
   },
   statsTitle: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     fontStyle: 'italic',
-    marginTop: 10,
   },
   titleUnderline: {
+    flex: 1,
     height: 2,
     backgroundColor: '#4ade80',
-    marginTop: 2,
-    marginBottom: 8,
-    width: '35%',
+    marginLeft: 8,
   },
-  statsRow: {
+  statsAndRankRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
   },
   statsGrid: {
     flex: 1,
+  },
+  statsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    marginBottom: 4,
   },
   statItem: {
-    width: '50%',
-    marginBottom: 6,
-  },
-  topCountryItem: {
-    width: '100%',
+    flex: 1,
   },
   statLabel: {
     color: '#888',
-    fontSize: 10,
+    fontSize: 9,
   },
   statValue: {
     color: '#4ade80',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
   },
-  topCountryValue: {
-    fontSize: 16,
+  statValueSmall: {
+    color: '#4ade80',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   rankContainer: {
     alignItems: 'center',
-    marginLeft: 10,
+    marginLeft: 8,
   },
   rankLabel: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
     fontStyle: 'italic',
-    marginBottom: 4,
+    marginBottom: 3,
   },
   rankBadge: {
     backgroundColor: '#4ade80',
-    borderRadius: 40,
-    width: 70,
-    height: 70,
+    borderRadius: 35,
+    width: 65,
+    height: 65,
     alignItems: 'center',
     justifyContent: 'center',
   },
   rankName: {
     color: '#000',
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: 'bold',
     textAlign: 'center',
-    paddingHorizontal: 4,
   },
   rankLevel: {
     color: '#000',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
   },
   bottomSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 6,
     gap: 8,
   },
+  ferdiIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+  },
   ferdiIconPlaceholder: {
-    width: 32,
-    height: 32,
+    width: 36,
+    height: 36,
     borderRadius: 8,
     backgroundColor: '#1a3a5c',
     alignItems: 'center',
@@ -400,47 +463,61 @@ const styles = StyleSheet.create({
   },
   ferdiIconText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
   },
-  storeBadges: {
+  storeBadgesContainer: {
     flexDirection: 'row',
     gap: 6,
   },
   storeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#222',
-    paddingHorizontal: 6,
-    paddingVertical: 3,
+    backgroundColor: '#000',
+    borderWidth: 1,
+    borderColor: '#555',
     borderRadius: 4,
-    gap: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    gap: 3,
   },
-  storeBadgeText: {
+  storeSmallText: {
+    color: '#fff',
+    fontSize: 5,
+  },
+  storeBigText: {
     color: '#fff',
     fontSize: 8,
+    fontWeight: 'bold',
   },
   flagRibbon: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 6,
+    paddingVertical: 4,
+    gap: 3,
+  },
+  flagCircle: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 16,
-    paddingVertical: 5,
-    paddingHorizontal: 8,
-    marginTop: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
   flag: {
-    fontSize: 14,
-    marginHorizontal: 1,
+    fontSize: 16,
   },
   moreFlags: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     backgroundColor: '#4ade80',
-    borderRadius: 8,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    marginLeft: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   moreFlagsText: {
     color: '#000',
