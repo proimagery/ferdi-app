@@ -32,7 +32,7 @@ const cityColors = [
   '#fb923c', // Orange
 ];
 
-export default function SpinningGlobe({ completedTrips = [], visitedCities = [], onFullscreen, isFullscreen = false }) {
+export default function SpinningGlobe({ completedTrips = [], visitedCities = [], onFullscreen, onDownload, isFullscreen = false }) {
   // Convert countries to multi-colored markers with labels and visit info
   const countryMarkers = useMemo(() => {
     // Group trips by country to get all visit dates
@@ -571,10 +571,19 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
           originWhitelist={['*']}
         />
       </View>
-      {!isFullscreen && onFullscreen && (
-        <TouchableOpacity style={styles.fullscreenButton} onPress={onFullscreen} activeOpacity={0.7}>
-          <Ionicons name="expand" size={20} color="#fff" />
-        </TouchableOpacity>
+      {!isFullscreen && (
+        <View style={styles.buttonRow}>
+          {onDownload && (
+            <TouchableOpacity style={styles.actionButton} onPress={onDownload} activeOpacity={0.7}>
+              <Ionicons name="download" size={20} color="#fff" />
+            </TouchableOpacity>
+          )}
+          {onFullscreen && (
+            <TouchableOpacity style={styles.actionButton} onPress={onFullscreen} activeOpacity={0.7}>
+              <Ionicons name="expand" size={20} color="#fff" />
+            </TouchableOpacity>
+          )}
+        </View>
       )}
     </View>
   );
@@ -602,14 +611,18 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
-  fullscreenButton: {
+  buttonRow: {
     position: 'absolute',
     bottom: 12,
     right: 12,
+    flexDirection: 'row',
+    gap: 8,
+    zIndex: 10,
+    elevation: 10,
+  },
+  actionButton: {
     backgroundColor: 'rgba(74, 222, 128, 0.9)',
     borderRadius: 8,
     padding: 8,
-    zIndex: 10,
-    elevation: 10,
   },
 });
