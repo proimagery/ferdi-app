@@ -86,10 +86,11 @@ export default function LeaderboardScreen({ navigation }) {
         })
       );
 
-      // Filter out nulls and users with 0 countries, then sort by country count
+      // Filter out nulls and users with 0 countries, sort by country count, limit to top 50
       const sortedData = leaderboardEntries
         .filter(entry => entry !== null && entry.countryCount > 0)
-        .sort((a, b) => b.countryCount - a.countryCount);
+        .sort((a, b) => b.countryCount - a.countryCount)
+        .slice(0, 50); // Limit to top 50 travelers
 
       setLeaderboardData(sortedData);
     } catch (error) {
@@ -148,7 +149,7 @@ export default function LeaderboardScreen({ navigation }) {
           <Text style={[styles.headerTitle, { color: theme.text }]}>Leaderboard</Text>
         </View>
         <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>
-          Top travelers worldwide
+          Top 50 travelers worldwide
         </Text>
       </View>
 

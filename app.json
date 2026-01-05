@@ -2,7 +2,7 @@
   "expo": {
     "name": "Ferdi",
     "slug": "ferdi-app",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "orientation": "portrait",
     "icon": "./assets/ferdi icon.png",
     "userInterfaceStyle": "automatic",
@@ -17,7 +17,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.proimagery.ferdi",
-      "buildNumber": "5",
+      "buildNumber": "6",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "This app uses your location to show your position on travel maps.",
         "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload travel photos.",
@@ -27,7 +27,7 @@
     },
     "android": {
       "package": "com.ferdi.app",
-      "versionCode": 5,
+      "versionCode": 6,
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyBtzMruCCMpiFfqfdhLtoHWfSk3TZ5UvJ8"
