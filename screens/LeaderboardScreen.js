@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,25 +6,123 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
-import { getLeaderboard } from '../utils/mockUsers';
+import { useAuth } from '../context/AuthContext';
 import Avatar from '../components/Avatar';
 import { getTravelerRank } from '../utils/rankingSystem';
+import { supabase } from '../lib/supabase';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function LeaderboardScreen({ navigation }) {
   const { theme } = useTheme();
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [selectedTab, setSelectedTab] = useState('allTime'); // 'month', 'year', 'allTime'
+  const [leaderboardData, setLeaderboardData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const leaderboardData = getLeaderboard(selectedTab);
+  const fetchLeaderboard = useCallback(async () => {
+    try {
+      // Fetch all profiles
+      const { data: profiles, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, name, username, location, bio, avatar, avatar_type');
 
-  const handleViewProfile = (user) => {
-    navigation.navigate('PublicProfile', { user });
+      if (profileError) {
+        console.log('Error fetching profiles:', profileError);
+        return;
+      }
+
+      // For each profile, count their completed trips (countries visited)
+      const leaderboardEntries = await Promise.all(
+        profiles.map(async (profile) => {
+          // Get count of completed trips for this user
+          let query = supabase
+            .from('completed_trips')
+            .select('id, country, created_at')
+            .eq('user_id', profile.id);
+
+          // Apply time filter based on selected tab
+          if (selectedTab === 'month') {
+            const startOfMonth = new Date();
+            startOfMonth.setDate(1);
+            startOfMonth.setHours(0, 0, 0, 0);
+            query = query.gte('created_at', startOfMonth.toISOString());
+          } else if (selectedTab === 'year') {
+            const startOfYear = new Date();
+            startOfYear.setMonth(0, 1);
+            startOfYear.setHours(0, 0, 0, 0);
+            query = query.gte('created_at', startOfYear.toISOString());
+          }
+
+          const { data: trips, error: tripError } = await query;
+
+          if (tripError) {
+            console.log('Error fetching trips for user:', profile.id, tripError);
+            return null;
+          }
+
+          // Get unique countries
+          const uniqueCountries = [...new Set(trips?.map(t => t.country) || [])];
+
+          return {
+            id: profile.id,
+            name: profile.name || profile.username || 'Traveler',
+            username: profile.username,
+            location: profile.location || '',
+            bio: profile.bio || '',
+            avatar: profile.avatar,
+            avatarType: profile.avatar_type || 'default',
+            countriesVisited: uniqueCountries,
+            countryCount: uniqueCountries.length,
+          };
+        })
+      );
+
+      // Filter out nulls and users with 0 countries, then sort by country count
+      const sortedData = leaderboardEntries
+        .filter(entry => entry !== null && entry.countryCount > 0)
+        .sort((a, b) => b.countryCount - a.countryCount);
+
+      setLeaderboardData(sortedData);
+    } catch (error) {
+      console.log('Error in fetchLeaderboard:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [selectedTab]);
+
+  useEffect(() => {
+    setLoading(true);
+    fetchLeaderboard();
+  }, [fetchLeaderboard]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchLeaderboard();
+  }, [fetchLeaderboard]);
+
+  const handleViewProfile = (leaderboardUser) => {
+    // Format user data for PublicProfile screen
+    const formattedUser = {
+      id: leaderboardUser.id,
+      name: leaderboardUser.name,
+      username: leaderboardUser.username,
+      location: leaderboardUser.location,
+      bio: leaderboardUser.bio,
+      avatar: leaderboardUser.avatar,
+      avatarType: leaderboardUser.avatarType,
+      countriesVisited: leaderboardUser.countriesVisited,
+    };
+    navigation.navigate('PublicProfile', { user: formattedUser });
   };
 
   const getRankColor = (position) => {
@@ -104,69 +202,109 @@ export default function LeaderboardScreen({ navigation }) {
       </View>
 
       {/* Leaderboard List */}
-      <ScrollView style={styles.leaderboardList} showsVerticalScrollIndicator={false}>
-        {leaderboardData.map((user, index) => {
-          const rank = getTravelerRank(user.countriesVisited.length);
-          const rankColor = getRankColor(index);
-          const rankIcon = getRankIcon(index);
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.primary} />
+          <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
+            Loading leaderboard...
+          </Text>
+        </View>
+      ) : leaderboardData.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="trophy-outline" size={60} color={theme.textSecondary} />
+          <Text style={[styles.emptyTitle, { color: theme.text }]}>No Travelers Yet</Text>
+          <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+            {selectedTab === 'month'
+              ? 'No countries have been added this month yet.'
+              : selectedTab === 'year'
+              ? 'No countries have been added this year yet.'
+              : 'Be the first to add countries to your travel history!'}
+          </Text>
+        </View>
+      ) : (
+        <ScrollView
+          style={styles.leaderboardList}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={theme.primary}
+              colors={[theme.primary]}
+            />
+          }
+        >
+          {leaderboardData.map((leaderboardUser, index) => {
+            const rank = getTravelerRank(leaderboardUser.countryCount);
+            const rankColor = getRankColor(index);
+            const rankIcon = getRankIcon(index);
+            const isCurrentUser = leaderboardUser.id === user?.id;
 
-          return (
-            <TouchableOpacity
-              key={user.id}
-              style={[styles.leaderboardCard, {
-                backgroundColor: theme.cardBackground,
-                borderColor: index < 3 ? rankColor : theme.border,
-                borderWidth: index < 3 ? 2 : 1,
-              }]}
-              onPress={() => handleViewProfile(user)}
-            >
-              {/* Rank Number */}
-              <View style={[styles.rankNumber, { backgroundColor: rankColor + '20' }]}>
-                <Ionicons name={rankIcon} size={18} color={rankColor} />
-                <Text style={[styles.rankText, { color: rankColor }]}>
-                  #{index + 1}
-                </Text>
-              </View>
-
-              {/* User Info */}
-              <Avatar
-                avatar={user.avatar}
-                avatarType={user.avatarType}
-                size={50}
-              />
-              <View style={styles.userInfo}>
-                <Text style={[styles.userName, { color: theme.text }]} numberOfLines={1}>
-                  {user.name}
-                </Text>
-                <Text style={[styles.userLocation, { color: theme.textSecondary }]} numberOfLines={1}>
-                  {user.location}
-                </Text>
-                <View style={styles.rankBadge}>
-                  <Ionicons name="star" size={12} color={theme.primary} />
-                  <Text style={[styles.rankBadgeText, { color: theme.primary }]}>
-                    {rank}
+            return (
+              <TouchableOpacity
+                key={leaderboardUser.id}
+                style={[styles.leaderboardCard, {
+                  backgroundColor: isCurrentUser ? theme.primary + '15' : theme.cardBackground,
+                  borderColor: index < 3 ? rankColor : (isCurrentUser ? theme.primary : theme.border),
+                  borderWidth: index < 3 || isCurrentUser ? 2 : 1,
+                }]}
+                onPress={() => handleViewProfile(leaderboardUser)}
+              >
+                {/* Rank Number */}
+                <View style={[styles.rankNumber, { backgroundColor: rankColor + '20' }]}>
+                  <Ionicons name={rankIcon} size={18} color={rankColor} />
+                  <Text style={[styles.rankText, { color: rankColor }]}>
+                    #{index + 1}
                   </Text>
                 </View>
-              </View>
 
-              {/* Country Count */}
-              <View style={styles.countrySection}>
-                <Text style={[styles.countryCount, { color: theme.primary }]}>
-                  {user.countriesVisited.length}
-                </Text>
-                <Text style={[styles.countryLabel, { color: theme.textSecondary }]}>
-                  countries
-                </Text>
-              </View>
-            </TouchableOpacity>
-          );
-        })}
+                {/* User Info */}
+                <Avatar
+                  avatar={leaderboardUser.avatar}
+                  avatarType={leaderboardUser.avatarType}
+                  size={50}
+                />
+                <View style={styles.userInfo}>
+                  <View style={styles.nameRow}>
+                    <Text style={[styles.userName, { color: theme.text }]} numberOfLines={1}>
+                      {leaderboardUser.name}
+                    </Text>
+                    {isCurrentUser && (
+                      <View style={[styles.youBadge, { backgroundColor: theme.primary }]}>
+                        <Text style={[styles.youBadgeText, { color: theme.background }]}>You</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={[styles.userLocation, { color: theme.textSecondary }]} numberOfLines={1}>
+                    {leaderboardUser.location || (leaderboardUser.username ? `@${leaderboardUser.username}` : 'Traveler')}
+                  </Text>
+                  <View style={styles.rankBadge}>
+                    <Ionicons name="star" size={12} color={theme.primary} />
+                    <Text style={[styles.rankBadgeText, { color: theme.primary }]}>
+                      {rank}
+                    </Text>
+                  </View>
+                </View>
 
-        {/* Footer */}
-        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
-          <Image source={ferdiLogo} style={styles.footerLogo} resizeMode="contain" />
-        </View>
-      </ScrollView>
+                {/* Country Count */}
+                <View style={styles.countrySection}>
+                  <Text style={[styles.countryCount, { color: theme.primary }]}>
+                    {leaderboardUser.countryCount}
+                  </Text>
+                  <Text style={[styles.countryLabel, { color: theme.textSecondary }]}>
+                    countries
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+
+          {/* Footer */}
+          <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+            <Image source={ferdiLogo} style={styles.footerLogo} resizeMode="contain" />
+          </View>
+        </ScrollView>
+      )}
     </View>
   );
 }
@@ -214,6 +352,31 @@ const styles = StyleSheet.create({
   },
   tabTextActive: {
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 14,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+    gap: 12,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  emptyText: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
   leaderboardList: {
     flex: 1,
     paddingHorizontal: 20,
@@ -246,10 +409,25 @@ const styles = StyleSheet.create({
   userInfo: {
     flex: 1,
   },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   userName: {
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 2,
+    flexShrink: 1,
+  },
+  youBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  youBadgeText: {
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   userLocation: {
     fontSize: 12,

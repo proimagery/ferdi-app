@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
@@ -8,6 +8,10 @@ import { AppProvider, useAppContext } from './context/AppContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { presetAvatars } from './utils/presetAvatars';
+import { configureNotifications } from './utils/notifications';
+
+// Configure notifications on app start
+configureNotifications();
 
 // Import all screens
 import HomeScreen from './screens/HomeScreen';

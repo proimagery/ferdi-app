@@ -10,7 +10,7 @@ import { getTravelerRank, allRanks } from '../utils/rankingSystem';
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function DashboardScreen({ navigation }) {
-  const { completedTrips, visitedCities, trips } = useAppContext();
+  const { completedTrips, visitedCities, trips, buddyRequestProfiles } = useAppContext();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const [showRankInfo, setShowRankInfo] = useState(false);
@@ -87,19 +87,29 @@ export default function DashboardScreen({ navigation }) {
       </View>
 
       <View style={styles.grid}>
-        {features.map((feature, index) => (
-          <TouchableOpacity
-            key={index}
-            style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
-            onPress={() => navigation.navigate(feature.screen)}
-          >
-            <View style={[styles.iconContainer, { backgroundColor: feature.color + '20' }]}>
-              <Ionicons name={feature.icon} size={32} color={feature.color} />
-            </View>
-            <Text style={[styles.cardTitle, { color: theme.text }]}>{feature.title}</Text>
-            <Text style={[styles.cardDescription, { color: theme.textSecondary }]}>{feature.description}</Text>
-          </TouchableOpacity>
-        ))}
+        {features.map((feature, index) => {
+          const hasBadge = feature.screen === 'TravelBuddies' && buddyRequestProfiles.length > 0;
+          return (
+            <TouchableOpacity
+              key={index}
+              style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+              onPress={() => navigation.navigate(feature.screen)}
+            >
+              <View style={[styles.iconContainer, { backgroundColor: feature.color + '20' }]}>
+                <Ionicons name={feature.icon} size={32} color={feature.color} />
+                {hasBadge && (
+                  <View style={styles.notificationBadge}>
+                    <Text style={styles.notificationBadgeText}>
+                      {buddyRequestProfiles.length > 9 ? '9+' : buddyRequestProfiles.length}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              <Text style={[styles.cardTitle, { color: theme.text }]}>{feature.title}</Text>
+              <Text style={[styles.cardDescription, { color: theme.textSecondary }]}>{feature.description}</Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {/* Rank Display Section */}
@@ -242,6 +252,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 15,
+    position: 'relative',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#ef4444',
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 5,
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  notificationBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: 'bold',
   },
   cardTitle: {
     fontSize: 18,

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ const ferdiLogo = require('../assets/Ferdi-transparent.png');
 export default function TravelBuddiesScreen({ navigation }) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
+  const [selectedTab, setSelectedTab] = useState('buddies'); // 'buddies' or 'requests'
   const {
     travelBuddyProfiles,
     buddyRequestProfiles,
@@ -66,6 +67,151 @@ export default function TravelBuddiesScreen({ navigation }) {
     );
   };
 
+  const renderBuddiesList = () => {
+    if (travelBuddyProfiles.length === 0) {
+      return (
+        <View style={styles.emptyState}>
+          <Ionicons name="people-outline" size={80} color={theme.textSecondary} />
+          <Text style={[styles.emptyTitle, { color: theme.text }]}>
+            No Travel Buddies Yet
+          </Text>
+          <Text style={[styles.emptySubtitle, { color: theme.textSecondary }]}>
+            Search for travelers and add them as buddies
+          </Text>
+          <TouchableOpacity
+            style={[styles.searchButton, { backgroundColor: theme.primary }]}
+            onPress={() => navigation.navigate('Search')}
+          >
+            <Ionicons name="search" size={20} color={theme.background} />
+            <Text style={[styles.searchButtonText, { color: theme.background }]}>
+              Search Travelers
+            </Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.listContainer}>
+        {travelBuddyProfiles.map((user) => (
+          <View
+            key={user.id}
+            style={[styles.buddyCard, {
+              backgroundColor: theme.cardBackground,
+              borderColor: theme.border
+            }]}
+          >
+            <TouchableOpacity
+              style={styles.buddyInfo}
+              onPress={() => handleViewProfile(user)}
+            >
+              <Avatar
+                avatar={user.avatar}
+                avatarType={user.avatarType}
+                size={50}
+              />
+              <View style={styles.buddyDetails}>
+                <Text style={[styles.buddyName, { color: theme.text }]}>
+                  {user.name}
+                </Text>
+                {user.username ? (
+                  <Text style={[styles.buddyUsername, { color: theme.primary }]}>
+                    @{user.username}
+                  </Text>
+                ) : null}
+                <Text style={[styles.buddyLocation, { color: theme.textSecondary }]}>
+                  {user.location}
+                </Text>
+                {user.countriesVisited && user.countriesVisited.length > 0 && (
+                  <View style={styles.countryCount}>
+                    <Ionicons name="earth" size={14} color={theme.primary} />
+                    <Text style={[styles.countryCountText, { color: theme.primary }]}>
+                      {user.countriesVisited.length} countries
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.removeButton, { borderColor: theme.danger }]}
+              onPress={() => handleRemoveBuddy(user.id, user.name)}
+            >
+              <Ionicons name="person-remove" size={18} color={theme.danger} />
+            </TouchableOpacity>
+          </View>
+        ))}
+      </View>
+    );
+  };
+
+  const renderRequestsList = () => {
+    if (buddyRequestProfiles.length === 0) {
+      return (
+        <View style={styles.emptyState}>
+          <Ionicons name="mail-outline" size={80} color={theme.textSecondary} />
+          <Text style={[styles.emptyTitle, { color: theme.text }]}>
+            No Pending Requests
+          </Text>
+          <Text style={[styles.emptySubtitle, { color: theme.textSecondary }]}>
+            When someone sends you a buddy request, it will appear here
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.listContainer}>
+        {buddyRequestProfiles.map((requestUser) => (
+          <View
+            key={requestUser.id}
+            style={[styles.requestCard, {
+              backgroundColor: theme.cardBackground,
+              borderColor: theme.primary
+            }]}
+          >
+            <TouchableOpacity
+              style={styles.buddyInfo}
+              onPress={() => handleViewProfile(requestUser)}
+            >
+              <Avatar
+                avatar={requestUser.avatar}
+                avatarType={requestUser.avatarType}
+                size={50}
+              />
+              <View style={styles.buddyDetails}>
+                <Text style={[styles.buddyName, { color: theme.text }]}>
+                  {requestUser.name}
+                </Text>
+                {requestUser.username ? (
+                  <Text style={[styles.buddyUsername, { color: theme.primary }]}>
+                    @{requestUser.username}
+                  </Text>
+                ) : null}
+                <Text style={[styles.buddyLocation, { color: theme.textSecondary }]}>
+                  {requestUser.location}
+                </Text>
+              </View>
+            </TouchableOpacity>
+            <View style={styles.requestActions}>
+              <TouchableOpacity
+                style={[styles.acceptButton, { backgroundColor: theme.primary }]}
+                onPress={() => handleAcceptRequest(requestUser.id, requestUser.name)}
+              >
+                <Ionicons name="checkmark" size={20} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.declineButton, { borderColor: theme.danger }]}
+                onPress={() => handleRejectRequest(requestUser.id, requestUser.name)}
+              >
+                <Ionicons name="close" size={20} color={theme.danger} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        ))}
+      </View>
+    );
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Header */}
@@ -79,145 +225,67 @@ export default function TravelBuddiesScreen({ navigation }) {
         </Text>
       </View>
 
-      {/* Buddies List */}
-      <ScrollView style={styles.buddiesList} showsVerticalScrollIndicator={false}>
-
-        {/* Pending Requests Section */}
-        {buddyRequestProfiles.length > 0 && (
-          <View style={styles.requestsSection}>
-            <View style={styles.sectionHeader}>
-              <View style={[styles.requestBadge, { backgroundColor: theme.danger }]}>
-                <Ionicons name="person-add" size={16} color="#fff" />
-                <Text style={styles.requestBadgeText}>{buddyRequestProfiles.length}</Text>
+      {/* Toggle Tabs */}
+      <View style={[styles.tabsContainer, { backgroundColor: theme.cardBackground }]}>
+        <TouchableOpacity
+          style={[
+            styles.tab,
+            selectedTab === 'buddies' && [styles.tabActive, { backgroundColor: theme.primary }]
+          ]}
+          onPress={() => setSelectedTab('buddies')}
+        >
+          <Ionicons
+            name="people"
+            size={18}
+            color={selectedTab === 'buddies' ? theme.background : theme.textSecondary}
+          />
+          <Text style={[
+            styles.tabText,
+            { color: theme.textSecondary },
+            selectedTab === 'buddies' && [styles.tabTextActive, { color: theme.background }]
+          ]}>
+            Travel Buddies
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.tab,
+            selectedTab === 'requests' && [styles.tabActive, { backgroundColor: theme.primary }]
+          ]}
+          onPress={() => setSelectedTab('requests')}
+        >
+          <View style={styles.tabWithBadge}>
+            <Ionicons
+              name="mail"
+              size={18}
+              color={selectedTab === 'requests' ? theme.background : theme.textSecondary}
+            />
+            {buddyRequestProfiles.length > 0 && selectedTab !== 'requests' && (
+              <View style={[styles.tabBadge, { backgroundColor: theme.danger }]}>
+                <Text style={styles.tabBadgeText}>{buddyRequestProfiles.length}</Text>
               </View>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Pending Requests</Text>
-            </View>
-            {buddyRequestProfiles.map((requestUser) => (
-              <View
-                key={requestUser.id}
-                style={[styles.requestCard, {
-                  backgroundColor: theme.cardBackground,
-                  borderColor: theme.primary
-                }]}
-              >
-                <TouchableOpacity
-                  style={styles.buddyInfo}
-                  onPress={() => handleViewProfile(requestUser)}
-                >
-                  <Avatar
-                    avatar={requestUser.avatar}
-                    avatarType={requestUser.avatarType}
-                    size={50}
-                  />
-                  <View style={styles.buddyDetails}>
-                    <Text style={[styles.buddyName, { color: theme.text }]}>
-                      {requestUser.name}
-                    </Text>
-                    {requestUser.username ? (
-                      <Text style={[styles.buddyUsername, { color: theme.primary }]}>
-                        @{requestUser.username}
-                      </Text>
-                    ) : null}
-                    <Text style={[styles.buddyLocation, { color: theme.textSecondary }]}>
-                      {requestUser.location}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-                <View style={styles.requestActions}>
-                  <TouchableOpacity
-                    style={[styles.acceptButton, { backgroundColor: theme.primary }]}
-                    onPress={() => handleAcceptRequest(requestUser.id, requestUser.name)}
-                  >
-                    <Ionicons name="checkmark" size={20} color="#fff" />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.declineButton, { borderColor: theme.danger }]}
-                    onPress={() => handleRejectRequest(requestUser.id, requestUser.name)}
-                  >
-                    <Ionicons name="close" size={20} color={theme.danger} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {/* Existing Buddies */}
-        {travelBuddyProfiles.length === 0 && buddyRequestProfiles.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons name="people-outline" size={80} color={theme.textSecondary} />
-            <Text style={[styles.emptyTitle, { color: theme.text }]}>
-              No Travel Buddies Yet
-            </Text>
-            <Text style={[styles.emptySubtitle, { color: theme.textSecondary }]}>
-              Search for travelers and add them as buddies
-            </Text>
-            <TouchableOpacity
-              style={[styles.searchButton, { backgroundColor: theme.primary }]}
-              onPress={() => navigation.navigate('Search')}
-            >
-              <Ionicons name="search" size={20} color={theme.background} />
-              <Text style={[styles.searchButtonText, { color: theme.background }]}>
-                Search Travelers
-              </Text>
-            </TouchableOpacity>
-          </View>
-        ) : travelBuddyProfiles.length > 0 ? (
-          <View style={styles.buddiesContainer}>
-            {buddyRequestProfiles.length > 0 && (
-              <Text style={[styles.sectionTitle, { color: theme.text, marginBottom: 15 }]}>
-                Your Buddies
-              </Text>
             )}
-            {travelBuddyProfiles.map((user) => (
-              <View
-                key={user.id}
-                style={[styles.buddyCard, {
-                  backgroundColor: theme.cardBackground,
-                  borderColor: theme.border
-                }]}
-              >
-                <TouchableOpacity
-                  style={styles.buddyInfo}
-                  onPress={() => handleViewProfile(user)}
-                >
-                  <Avatar
-                    avatar={user.avatar}
-                    avatarType={user.avatarType}
-                    size={50}
-                  />
-                  <View style={styles.buddyDetails}>
-                    <Text style={[styles.buddyName, { color: theme.text }]}>
-                      {user.name}
-                    </Text>
-                    {user.username ? (
-                      <Text style={[styles.buddyUsername, { color: theme.primary }]}>
-                        @{user.username}
-                      </Text>
-                    ) : null}
-                    <Text style={[styles.buddyLocation, { color: theme.textSecondary }]}>
-                      {user.location}
-                    </Text>
-                    {user.countriesVisited && user.countriesVisited.length > 0 && (
-                      <View style={styles.countryCount}>
-                        <Ionicons name="earth" size={14} color={theme.primary} />
-                        <Text style={[styles.countryCountText, { color: theme.primary }]}>
-                          {user.countriesVisited.length} countries
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.removeButton, { borderColor: theme.danger }]}
-                  onPress={() => handleRemoveBuddy(user.id, user.name)}
-                >
-                  <Ionicons name="person-remove" size={18} color={theme.danger} />
-                </TouchableOpacity>
-              </View>
-            ))}
           </View>
-        ) : null}
+          <Text style={[
+            styles.tabText,
+            { color: theme.textSecondary },
+            selectedTab === 'requests' && [styles.tabTextActive, { color: theme.background }]
+          ]}>
+            Buddy Requests
+          </Text>
+          {buddyRequestProfiles.length > 0 && selectedTab === 'requests' && (
+            <View style={[styles.tabBadgeActive, { backgroundColor: theme.background }]}>
+              <Text style={[styles.tabBadgeTextActive, { color: theme.primary }]}>
+                {buddyRequestProfiles.length}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {/* Content */}
+      <ScrollView style={styles.contentList} showsVerticalScrollIndicator={false}>
+        {selectedTab === 'buddies' ? renderBuddiesList() : renderRequestsList()}
 
         {/* Footer */}
         <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
@@ -250,9 +318,68 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginLeft: 38,
   },
-  buddiesList: {
+  tabsContainer: {
+    flexDirection: 'row',
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 12,
+    padding: 4,
+  },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  tabActive: {
+  },
+  tabText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  tabTextActive: {
+  },
+  tabWithBadge: {
+    position: 'relative',
+  },
+  tabBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -8,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  tabBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  tabBadgeActive: {
+    marginLeft: 6,
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 5,
+  },
+  tabBadgeTextActive: {
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  contentList: {
     flex: 1,
     paddingHorizontal: 20,
+  },
+  listContainer: {
+    paddingBottom: 20,
   },
   emptyState: {
     alignItems: 'center',
@@ -269,6 +396,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 20,
     textAlign: 'center',
+    paddingHorizontal: 20,
   },
   searchButton: {
     flexDirection: 'row',
@@ -281,9 +409,6 @@ const styles = StyleSheet.create({
   searchButtonText: {
     fontSize: 16,
     fontWeight: '600',
-  },
-  buddiesContainer: {
-    paddingBottom: 20,
   },
   buddyCard: {
     flexDirection: 'row',
@@ -299,11 +424,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
     gap: 12,
-  },
-  avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
   },
   buddyDetails: {
     flex: 1,
@@ -321,32 +441,6 @@ const styles = StyleSheet.create({
   buddyLocation: {
     fontSize: 13,
     marginBottom: 4,
-  },
-  requestsSection: {
-    marginBottom: 25,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 15,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  requestBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-  },
-  requestBadgeText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 14,
   },
   requestCard: {
     flexDirection: 'row',

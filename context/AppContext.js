@@ -1,8 +1,9 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { getCityCoordinatesFromDB } from '../utils/cities';
 import { countryCoordinates } from '../utils/coordinates';
+import { scheduleBuddyRequestNotification, setBadgeCount } from '../utils/notifications';
 
 const AppContext = createContext();
 
@@ -42,6 +43,9 @@ export const AppProvider = ({ children }) => {
   const [buddyRequests, setBuddyRequests] = useState([]); // Incoming requests (user IDs)
   const [buddyRequestProfiles, setBuddyRequestProfiles] = useState([]); // Full profile data of requesters
   const [sentRequests, setSentRequests] = useState([]); // Outgoing requests the user has sent
+
+  // Track previous request IDs to detect new requests for notifications
+  const previousRequestIds = useRef([]);
 
   // ============================================
   // LOAD ALL USER DATA ON LOGIN
@@ -722,9 +726,30 @@ export const AppProvider = ({ children }) => {
             avatarType: p.avatar_type || 'default',
           }));
           setBuddyRequestProfiles(formattedProfiles);
+
+          // Check for new requests and send notifications
+          const newRequestIds = incomingRequestIds.filter(
+            id => !previousRequestIds.current.includes(id)
+          );
+
+          // Send notification for each new request
+          for (const newId of newRequestIds) {
+            const newRequester = formattedProfiles.find(p => p.id === newId);
+            if (newRequester) {
+              scheduleBuddyRequestNotification(newRequester.name);
+            }
+          }
+
+          // Update the app badge count
+          setBadgeCount(incomingRequestIds.length);
+
+          // Update previous request IDs
+          previousRequestIds.current = incomingRequestIds;
         }
       } else {
         setBuddyRequestProfiles([]);
+        setBadgeCount(0);
+        previousRequestIds.current = [];
       }
     } catch (err) {
       console.error('Error loading travel buddies:', err);
@@ -766,7 +791,14 @@ export const AppProvider = ({ children }) => {
     // Move from requests to buddies
     const requestProfile = buddyRequestProfiles.find(p => p.id === buddyId);
 
-    setBuddyRequests(prev => prev.filter(id => id !== buddyId));
+    setBuddyRequests(prev => {
+      const newRequests = prev.filter(id => id !== buddyId);
+      // Update badge count
+      setBadgeCount(newRequests.length);
+      // Update ref for notification tracking
+      previousRequestIds.current = newRequests;
+      return newRequests;
+    });
     setBuddyRequestProfiles(prev => prev.filter(p => p.id !== buddyId));
     setTravelBuddies(prev => [...prev, buddyId]);
 
@@ -788,7 +820,14 @@ export const AppProvider = ({ children }) => {
   };
 
   const rejectBuddyRequest = async (buddyId) => {
-    setBuddyRequests(prev => prev.filter(id => id !== buddyId));
+    setBuddyRequests(prev => {
+      const newRequests = prev.filter(id => id !== buddyId);
+      // Update badge count
+      setBadgeCount(newRequests.length);
+      // Update ref for notification tracking
+      previousRequestIds.current = newRequests;
+      return newRequests;
+    });
     setBuddyRequestProfiles(prev => prev.filter(p => p.id !== buddyId));
 
     if (!user) return;
