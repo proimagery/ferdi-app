@@ -1,6 +1,7 @@
 import React, { forwardRef, useMemo } from 'react';
 import { View, Text, StyleSheet, Dimensions, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import CountryFlag from 'react-native-country-flag';
 import { getTravelerRank } from '../utils/rankingSystem';
 import { countryCoordinates } from '../utils/coordinates';
 
@@ -12,40 +13,51 @@ const MAP_WIDTH = CARD_SIZE - 24; // Account for padding
 // Google Maps API key
 const GOOGLE_MAPS_API_KEY = 'AIzaSyBtzMruCCMpiFfqfdhLtoHWfSk3TZ5UvJ8';
 
-// Try to load Ferdi icon
-let ferdiIcon = null;
-try {
-  ferdiIcon = require('../assets/ferdi icon.png');
-} catch (e) {
-  // Icon not found, will use fallback
-}
+// Load Ferdi assets
+const ferdiIcon = require('../assets/ferdi icon.png');
+const ferdiAppAsset = require('../assets/Ferdi App Asset.png');
+const ferdiStatsAsset = require('../assets/Ferdi Stats Asset.png');
 
-// Country to flag emoji mapping
-const countryFlags = {
-  'USA': '🇺🇸', 'United States': '🇺🇸', 'Canada': '🇨🇦', 'Mexico': '🇲🇽',
-  'UK': '🇬🇧', 'United Kingdom': '🇬🇧', 'England': '🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'France': '🇫🇷', 'Germany': '🇩🇪', 'Italy': '🇮🇹',
-  'Spain': '🇪🇸', 'Portugal': '🇵🇹', 'Netherlands': '🇳🇱', 'Belgium': '🇧🇪',
-  'Switzerland': '🇨🇭', 'Austria': '🇦🇹', 'Greece': '🇬🇷', 'Turkey': '🇹🇷',
-  'Japan': '🇯🇵', 'China': '🇨🇳', 'South Korea': '🇰🇷', 'India': '🇮🇳',
-  'Thailand': '🇹🇭', 'Vietnam': '🇻🇳', 'Singapore': '🇸🇬', 'Malaysia': '🇲🇾',
-  'Indonesia': '🇮🇩', 'Philippines': '🇵🇭', 'Australia': '🇦🇺', 'New Zealand': '🇳🇿',
-  'Brazil': '🇧🇷', 'Argentina': '🇦🇷', 'Chile': '🇨🇱', 'Peru': '🇵🇪', 'Colombia': '🇨🇴',
-  'Egypt': '🇪🇬', 'South Africa': '🇿🇦', 'Morocco': '🇲🇦', 'Kenya': '🇰🇪',
-  'United Arab Emirates': '🇦🇪', 'Saudi Arabia': '🇸🇦', 'Israel': '🇮🇱',
-  'Russia': '🇷🇺', 'Poland': '🇵🇱', 'Czech Republic': '🇨🇿', 'Hungary': '🇭🇺',
-  'Sweden': '🇸🇪', 'Norway': '🇳🇴', 'Denmark': '🇩🇰', 'Finland': '🇫🇮', 'Iceland': '🇮🇸',
-  'Ireland': '🇮🇪', 'Croatia': '🇭🇷', 'Romania': '🇷🇴', 'Bulgaria': '🇧🇬',
-  'Costa Rica': '🇨🇷', 'Panama': '🇵🇦', 'Cuba': '🇨🇺', 'Jamaica': '🇯🇲',
-  'Hong Kong': '🇭🇰', 'Taiwan': '🇹🇼', 'Maldives': '🇲🇻', 'Sri Lanka': '🇱🇰',
-  'Nepal': '🇳🇵', 'Cambodia': '🇰🇭', 'Laos': '🇱🇦', 'Myanmar': '🇲🇲',
-  'Ecuador': '🇪🇨', 'Bolivia': '🇧🇴', 'Uruguay': '🇺🇾', 'Paraguay': '🇵🇾',
-  'Tanzania': '🇹🇿', 'Ethiopia': '🇪🇹', 'Tunisia': '🇹🇳', 'Madagascar': '🇲🇬',
-  'Qatar': '🇶🇦', 'Kuwait': '🇰🇼', 'Bahrain': '🇧🇭', 'Oman': '🇴🇲', 'Jordan': '🇯🇴',
-  'Lebanon': '🇱🇧', 'Slovakia': '🇸🇰', 'Slovenia': '🇸🇮', 'Estonia': '🇪🇪',
-  'Latvia': '🇱🇻', 'Lithuania': '🇱🇹', 'Luxembourg': '🇱🇺', 'Malta': '🇲🇹',
-  'Cyprus': '🇨🇾', 'Albania': '🇦🇱', 'Serbia': '🇷🇸', 'Montenegro': '🇲🇪',
-  'Fiji': '🇫🇯', 'Bahamas': '🇧🇸', 'Barbados': '🇧🇧', 'Trinidad and Tobago': '🇹🇹',
-  'Scotland': '🏴󠁧󠁢󠁳󠁣󠁴󠁿', 'Wales': '🏴󠁧󠁢󠁷󠁬󠁳󠁿',
+// Country name to ISO 2-letter code mapping
+const countryToIsoCode = {
+  'USA': 'us', 'United States': 'us', 'Canada': 'ca', 'Mexico': 'mx',
+  'UK': 'gb', 'United Kingdom': 'gb', 'England': 'gb', 'France': 'fr', 'Germany': 'de', 'Italy': 'it',
+  'Spain': 'es', 'Portugal': 'pt', 'Netherlands': 'nl', 'Belgium': 'be',
+  'Switzerland': 'ch', 'Austria': 'at', 'Greece': 'gr', 'Turkey': 'tr',
+  'Japan': 'jp', 'China': 'cn', 'South Korea': 'kr', 'India': 'in',
+  'Thailand': 'th', 'Vietnam': 'vn', 'Singapore': 'sg', 'Malaysia': 'my',
+  'Indonesia': 'id', 'Philippines': 'ph', 'Australia': 'au', 'New Zealand': 'nz',
+  'Brazil': 'br', 'Argentina': 'ar', 'Chile': 'cl', 'Peru': 'pe', 'Colombia': 'co',
+  'Egypt': 'eg', 'South Africa': 'za', 'Morocco': 'ma', 'Kenya': 'ke',
+  'United Arab Emirates': 'ae', 'Saudi Arabia': 'sa', 'Israel': 'il',
+  'Russia': 'ru', 'Poland': 'pl', 'Czech Republic': 'cz', 'Hungary': 'hu',
+  'Sweden': 'se', 'Norway': 'no', 'Denmark': 'dk', 'Finland': 'fi', 'Iceland': 'is',
+  'Ireland': 'ie', 'Croatia': 'hr', 'Romania': 'ro', 'Bulgaria': 'bg',
+  'Costa Rica': 'cr', 'Panama': 'pa', 'Cuba': 'cu', 'Jamaica': 'jm',
+  'Hong Kong': 'hk', 'Taiwan': 'tw', 'Maldives': 'mv', 'Sri Lanka': 'lk',
+  'Nepal': 'np', 'Cambodia': 'kh', 'Laos': 'la', 'Myanmar': 'mm',
+  'Ecuador': 'ec', 'Bolivia': 'bo', 'Uruguay': 'uy', 'Paraguay': 'py',
+  'Tanzania': 'tz', 'Ethiopia': 'et', 'Tunisia': 'tn', 'Madagascar': 'mg',
+  'Qatar': 'qa', 'Kuwait': 'kw', 'Bahrain': 'bh', 'Oman': 'om', 'Jordan': 'jo',
+  'Lebanon': 'lb', 'Slovakia': 'sk', 'Slovenia': 'si', 'Estonia': 'ee',
+  'Latvia': 'lv', 'Lithuania': 'lt', 'Luxembourg': 'lu', 'Malta': 'mt',
+  'Cyprus': 'cy', 'Albania': 'al', 'Serbia': 'rs', 'Montenegro': 'me',
+  'Fiji': 'fj', 'Bahamas': 'bs', 'Barbados': 'bb', 'Trinidad and Tobago': 'tt',
+  'Scotland': 'gb', 'Wales': 'gb', 'Guatemala': 'gt', 'Honduras': 'hn',
+  'El Salvador': 'sv', 'Nicaragua': 'ni', 'Belize': 'bz', 'Dominican Republic': 'do',
+  'Puerto Rico': 'pr', 'Haiti': 'ht', 'Venezuela': 've', 'Guyana': 'gy',
+  'Suriname': 'sr', 'Nigeria': 'ng', 'Ghana': 'gh', 'Senegal': 'sn',
+  'Uganda': 'ug', 'Rwanda': 'rw', 'Botswana': 'bw', 'Namibia': 'na',
+  'Zimbabwe': 'zw', 'Zambia': 'zm', 'Mozambique': 'mz', 'Angola': 'ao',
+  'Algeria': 'dz', 'Libya': 'ly', 'Iraq': 'iq', 'Iran': 'ir', 'Pakistan': 'pk',
+  'Bangladesh': 'bd', 'Afghanistan': 'af', 'Uzbekistan': 'uz', 'Kazakhstan': 'kz',
+  'Mongolia': 'mn', 'North Korea': 'kp', 'Brunei': 'bn', 'Timor-Leste': 'tl',
+  'Papua New Guinea': 'pg', 'Solomon Islands': 'sb', 'Vanuatu': 'vu', 'Samoa': 'ws',
+  'Tonga': 'to', 'Palau': 'pw', 'Micronesia': 'fm', 'Guam': 'gu',
+  'Ukraine': 'ua', 'Belarus': 'by', 'Moldova': 'md', 'Georgia': 'ge',
+  'Armenia': 'am', 'Azerbaijan': 'az', 'North Macedonia': 'mk', 'Bosnia and Herzegovina': 'ba',
+  'Kosovo': 'xk', 'Monaco': 'mc', 'Liechtenstein': 'li', 'San Marino': 'sm',
+  'Andorra': 'ad', 'Vatican City': 'va',
 };
 
 // Continent mapping
@@ -121,10 +133,9 @@ const ShareableStatsCard = forwardRef(({
     });
   }
 
-  // Get flags for display (up to 10 unique)
+  // Get flags for display (up to 6 unique in header)
   const uniqueCountries = [...new Set(completedTrips.map(t => t.country))];
-  const displayFlags = uniqueCountries.slice(0, 10);
-  const remainingCount = uniqueCountries.length - 10;
+  const displayFlags = uniqueCountries.slice(0, 6);
 
   // Create marker positions for Google Maps
   const markers = useMemo(() => {
@@ -153,10 +164,21 @@ const ShareableStatsCard = forwardRef(({
     params.append('style', 'feature:landscape|color:0x1a1a1a');
     params.append('style', 'feature:administrative.country|element:geometry.stroke|color:0x333333');
 
-    // Add markers for visited countries (limit to avoid URL length issues)
+    // Add markers for visited countries with multiple colors for visual pop
+    const markerColors = [
+      '0x4ade80', // green
+      '0xf472b6', // pink
+      '0x60a5fa', // blue
+      '0xfbbf24', // yellow/gold
+      '0xa78bfa', // purple
+      '0xf87171', // red/coral
+      '0x34d399', // teal
+      '0xfb923c', // orange
+    ];
     const uniqueMarkers = [...new Map(markers.map(m => [m.country, m])).values()];
-    uniqueMarkers.slice(0, 50).forEach(marker => {
-      params.append('markers', `color:0x4ade80|size:tiny|${marker.lat},${marker.lng}`);
+    uniqueMarkers.slice(0, 50).forEach((marker, index) => {
+      const color = markerColors[index % markerColors.length];
+      params.append('markers', `color:${color}|size:tiny|${marker.lat},${marker.lng}`);
     });
 
     return `${baseUrl}?${params.toString()}`;
@@ -169,8 +191,36 @@ const ShareableStatsCard = forwardRef(({
 
       {/* Main content */}
       <View style={styles.content}>
-        {/* Header with app name */}
-        <Text style={styles.appName}>Ferdi App</Text>
+        {/* Header row with flags on left, app name on right */}
+        <View style={styles.headerRow}>
+          {/* Flag ribbon - top left */}
+          <View style={styles.flagRibbon}>
+            {displayFlags.slice(0, 6).map((country, index) => {
+              const isoCode = countryToIsoCode[country];
+              return (
+                <View
+                  key={index}
+                  style={[
+                    styles.flagCircle,
+                    { marginLeft: index === 0 ? 0 : -6, zIndex: displayFlags.length - index }
+                  ]}
+                >
+                  {isoCode ? (
+                    <CountryFlag isoCode={isoCode} size={24} style={styles.flagImage} />
+                  ) : (
+                    <Text style={styles.flag}>?</Text>
+                  )}
+                </View>
+              );
+            })}
+            {uniqueCountries.length > 6 && (
+              <View style={[styles.moreFlags, { marginLeft: -6, zIndex: 0 }]}>
+                <Text style={styles.moreFlagsText}>+{uniqueCountries.length - 6}</Text>
+              </View>
+            )}
+          </View>
+          <Image source={ferdiAppAsset} style={styles.appNameImage} resizeMode="cover" />
+        </View>
 
         {/* World Map from Google Static Maps */}
         <View style={styles.mapContainer}>
@@ -184,7 +234,7 @@ const ShareableStatsCard = forwardRef(({
         {/* Stats Section */}
         <View style={styles.statsSection}>
           <View style={styles.statsTitleRow}>
-            <Text style={styles.statsTitle}>Ferdi Stats</Text>
+            <Image source={ferdiStatsAsset} style={styles.statsTitleImage} resizeMode="cover" />
             <View style={styles.titleUnderline} />
           </View>
 
@@ -225,7 +275,10 @@ const ShareableStatsCard = forwardRef(({
 
             {/* Rank Badge */}
             <View style={styles.rankContainer}>
-              <Text style={styles.rankLabel}>Rank</Text>
+              <View style={styles.rankLabelRow}>
+                <Ionicons name="trophy" size={12} color="#FFD700" />
+                <Text style={styles.rankLabel}>My Rank</Text>
+              </View>
               <View style={styles.rankBadge}>
                 <Text style={styles.rankName}>{rankName}</Text>
                 <Text style={styles.rankLevel}>Lvl.{rankLevel || '1'}</Text>
@@ -245,14 +298,14 @@ const ShareableStatsCard = forwardRef(({
           )}
           <View style={styles.storeBadgesContainer}>
             <View style={styles.storeBadge}>
-              <Ionicons name="logo-apple" size={14} color="#fff" />
+              <Ionicons name="logo-apple" size={12} color="#fff" />
               <View>
                 <Text style={styles.storeSmallText}>Download on the</Text>
                 <Text style={styles.storeBigText}>App Store</Text>
               </View>
             </View>
             <View style={styles.storeBadge}>
-              <Ionicons name="logo-google-playstore" size={14} color="#fff" />
+              <Ionicons name="logo-google-playstore" size={12} color="#fff" />
               <View>
                 <Text style={styles.storeSmallText}>GET IT ON</Text>
                 <Text style={styles.storeBigText}>Google Play</Text>
@@ -261,25 +314,6 @@ const ShareableStatsCard = forwardRef(({
           </View>
         </View>
 
-        {/* Flag ribbon - overlapping style */}
-        <View style={styles.flagRibbon}>
-          {displayFlags.map((country, index) => (
-            <View
-              key={index}
-              style={[
-                styles.flagCircle,
-                { marginLeft: index === 0 ? 0 : -8, zIndex: displayFlags.length - index }
-              ]}
-            >
-              <Text style={styles.flag}>{countryFlags[country] || '🏳️'}</Text>
-            </View>
-          ))}
-          {remainingCount > 0 && (
-            <View style={[styles.moreFlags, { marginLeft: -8, zIndex: 0 }]}>
-              <Text style={styles.moreFlagsText}>+{remainingCount}</Text>
-            </View>
-          )}
-        </View>
       </View>
     </View>
   );
@@ -308,6 +342,12 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 12,
   },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   appName: {
     color: '#fff',
     fontSize: 14,
@@ -315,6 +355,15 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     textAlign: 'right',
     marginBottom: 4,
+  },
+  appNameImage: {
+    height: 28,
+    width: 112,
+    minHeight: 28,
+    minWidth: 112,
+    flexShrink: 0,
+    transform: [{ scale: 1.4 }, { translateY: 2 }],
+    marginRight: 8,
   },
   mapContainer: {
     height: MAP_HEIGHT,
@@ -340,6 +389,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     fontStyle: 'italic',
+  },
+  statsTitleImage: {
+    height: 24,
+    width: 120,
+    minHeight: 24,
+    minWidth: 120,
+    flexShrink: 0,
+    transform: [{ scale: 1.5 }],
+    marginLeft: 12,
   },
   titleUnderline: {
     flex: 1,
@@ -378,13 +436,19 @@ const styles = StyleSheet.create({
   rankContainer: {
     alignItems: 'center',
     marginLeft: 8,
+    transform: [{ translateX: -25 }, { translateY: 10 }],
+  },
+  rankLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 3,
   },
   rankLabel: {
     color: '#fff',
     fontSize: 11,
     fontWeight: 'bold',
     fontStyle: 'italic',
-    marginBottom: 3,
   },
   rankBadge: {
     backgroundColor: '#4ade80',
@@ -408,18 +472,18 @@ const styles = StyleSheet.create({
   bottomSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 6,
-    gap: 8,
+    marginTop: 4,
+    gap: 6,
   },
   ferdiIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
   },
   ferdiIconPlaceholder: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     backgroundColor: '#1a3a5c',
     alignItems: 'center',
     justifyContent: 'center',
@@ -439,10 +503,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
     borderWidth: 1,
     borderColor: '#666',
-    borderRadius: 5,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    gap: 4,
+    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    gap: 3,
   },
   storeSmallText: {
     color: '#fff',
@@ -455,10 +519,7 @@ const styles = StyleSheet.create({
   },
   flagRibbon: {
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 8,
-    paddingHorizontal: 20,
   },
   flagCircle: {
     width: 28,
@@ -473,6 +534,9 @@ const styles = StyleSheet.create({
   },
   flag: {
     fontSize: 16,
+  },
+  flagImage: {
+    borderRadius: 12,
   },
   moreFlags: {
     width: 28,
