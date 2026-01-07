@@ -185,6 +185,14 @@ function MainNavigator() {
           component={DashboardScreen}
           options={({ navigation }) => ({
             title: 'Dashboard',
+            headerLeft: () => (
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Home')}
+                style={{ marginLeft: 10 }}
+              >
+                <Ionicons name="arrow-back" size={24} color={theme.primary} />
+              </TouchableOpacity>
+            ),
             ...getDashboardHeaderButtons(navigation),
           })}
         />

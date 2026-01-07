@@ -32,7 +32,7 @@ const cityColors = [
   '#fb923c', // Orange
 ];
 
-export default function SpinningGlobe({ completedTrips = [], visitedCities = [], onFullscreen, onDownload, isFullscreen = false }) {
+export default function SpinningGlobe({ completedTrips = [], visitedCities = [], onFullscreen, onDownload, isFullscreen = false, size = 'normal', background = false }) {
   // Convert countries to multi-colored markers with labels and visit info
   const countryMarkers = useMemo(() => {
     // Group trips by country to get all visit dates
@@ -556,8 +556,18 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
 </html>
   `;
 
+  // Determine container height based on size prop
+  const containerHeight = size === 'small' ? 250 : 350;
+
+  // Determine which style to use
+  const getContainerStyle = () => {
+    if (isFullscreen) return styles.fullscreenContainer;
+    if (background) return styles.backgroundContainer;
+    return [styles.container, { height: containerHeight }];
+  };
+
   return (
-    <View style={isFullscreen ? styles.fullscreenContainer : styles.container}>
+    <View style={getContainerStyle()}>
       <View style={styles.webviewWrapper}>
         <WebView
           source={{ html }}
@@ -571,7 +581,7 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
           originWhitelist={['*']}
         />
       </View>
-      {!isFullscreen && (
+      {!isFullscreen && !background && (
         <View style={styles.buttonRow}>
           {onDownload && (
             <TouchableOpacity style={styles.actionButton} onPress={onDownload} activeOpacity={0.7}>
@@ -599,6 +609,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#2a2a2a',
     marginBottom: 20,
+  },
+  backgroundContainer: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#000000',
   },
   fullscreenContainer: {
     flex: 1,

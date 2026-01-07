@@ -1,75 +1,38 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Image } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
+import { useAppContext } from '../context/AppContext';
+import SpinningGlobe from '../components/SpinningGlobe';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function HomeScreen({ navigation }) {
   const { theme } = useTheme();
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-  const rotateAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    // Floating animation
-    Animated.loop(
-      Animated.sequence([
-        Animated.parallel([
-          Animated.timing(scaleAnim, {
-            toValue: 1.1,
-            duration: 2000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(rotateAnim, {
-            toValue: 1,
-            duration: 2000,
-            useNativeDriver: true,
-          }),
-        ]),
-        Animated.parallel([
-          Animated.timing(scaleAnim, {
-            toValue: 1,
-            duration: 2000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(rotateAnim, {
-            toValue: 0,
-            duration: 2000,
-            useNativeDriver: true,
-          }),
-        ]),
-      ])
-    ).start();
-  }, []);
-
-  const rotate = rotateAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
-  });
+  const { completedTrips, visitedCities } = useAppContext();
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <Animated.View
-        style={[
-          styles.globeContainer,
-          {
-            transform: [{ scale: scaleAnim }, { rotate: rotate }],
-          },
-        ]}
-      >
-        <Ionicons name="earth" size={120} color={theme.primary} />
-      </Animated.View>
+    <View style={styles.container}>
+      {/* Globe as full background */}
+      <SpinningGlobe
+        completedTrips={completedTrips}
+        visitedCities={visitedCities}
+        background={true}
+      />
 
-      <Image source={ferdiLogo} style={styles.logo} resizeMode="contain" />
-      <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Plan. Connect. Explore.</Text>
+      {/* Content overlay */}
+      <View style={styles.contentOverlay}>
+        <Image source={ferdiLogo} style={styles.logo} resizeMode="contain" />
+        <Text style={styles.subtitle}>Plan. Connect. Explore.</Text>
 
-      <TouchableOpacity
-        style={[styles.button, { backgroundColor: theme.primary }]}
-        onPress={() => navigation.navigate('Dashboard')}
-      >
-        <Text style={[styles.buttonText, { color: theme.background }]}>Get Started</Text>
-        <Ionicons name="arrow-forward" size={20} color={theme.background} />
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: theme.primary }]}
+          onPress={() => navigation.navigate('Dashboard')}
+        >
+          <Text style={[styles.buttonText, { color: theme.background }]}>Welcome</Text>
+          <Ionicons name="arrow-forward" size={20} color={theme.background} />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -77,12 +40,13 @@ export default function HomeScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#000000',
+  },
+  contentOverlay: {
+    ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
-  },
-  globeContainer: {
-    marginBottom: 30,
   },
   logo: {
     width: 300,
@@ -94,6 +58,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     letterSpacing: 1,
     marginBottom: 50,
+    color: 'rgba(255, 255, 255, 0.8)',
   },
   button: {
     paddingHorizontal: 40,
