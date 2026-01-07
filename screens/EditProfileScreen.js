@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Image,
 import { Ionicons } from '@expo/vector-icons';
 import { useAppContext } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import { useAuthGuard } from '../hooks/useAuthGuard';
 import AuthPromptModal from '../components/AuthPromptModal';
 import SpinningGlobe from '../components/SpinningGlobe';
@@ -12,6 +13,7 @@ import { presetAvatars } from '../utils/presetAvatars';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../lib/supabase';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { uploadImage, isLocalUri } from '../utils/imageUpload';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
@@ -19,7 +21,9 @@ export default function EditProfileScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { profile, updateProfile, completedTrips, visitedCities, trips } = useAppContext();
   const { theme } = useTheme();
+  const { user } = useAuth();
   const { checkAuth, showAuthModal, setShowAuthModal, featureMessage } = useAuthGuard();
+  const [isUploading, setIsUploading] = useState(false);
 
   const [name, setName] = useState(profile?.name || '');
   const [username, setUsername] = useState(profile?.username || '');
@@ -161,27 +165,70 @@ export default function EditProfileScreen({ navigation }) {
       }
     }
 
-    updateProfile({
-      name,
-      username: username.toLowerCase(),
-      location,
-      bio,
-      instagram,
-      x,
-      facebook,
-      youtube,
-      top1,
-      top2,
-      top3,
-      next1,
-      next2,
-      next3,
-      avatar,
-      avatarType,
-      travelPhotos,
-      sharedTripMaps,
-    });
-    navigation.navigate('Profile');
+    if (!user?.id) {
+      Alert.alert('Error', 'Please sign in to save your profile.');
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      // Upload avatar if it's a local file
+      let finalAvatar = avatar;
+      if (avatarType === 'custom' && avatar && isLocalUri(avatar)) {
+        const { url, error } = await uploadImage(avatar, user.id, 'avatar');
+        if (error) {
+          Alert.alert('Upload Error', 'Failed to upload profile photo. Please try again.');
+          setIsUploading(false);
+          return;
+        }
+        finalAvatar = url;
+      }
+
+      // Upload travel photos that are local files
+      const uploadedPhotos = [];
+      for (const photo of travelPhotos) {
+        if (isLocalUri(photo)) {
+          const { url, error } = await uploadImage(photo, user.id, 'travel');
+          if (error) {
+            console.error('Failed to upload travel photo:', error);
+            // Continue with other photos even if one fails
+            continue;
+          }
+          uploadedPhotos.push(url);
+        } else {
+          // Already a cloud URL, keep it
+          uploadedPhotos.push(photo);
+        }
+      }
+
+      updateProfile({
+        name,
+        username: username.toLowerCase(),
+        location,
+        bio,
+        instagram,
+        x,
+        facebook,
+        youtube,
+        top1,
+        top2,
+        top3,
+        next1,
+        next2,
+        next3,
+        avatar: finalAvatar,
+        avatarType,
+        travelPhotos: uploadedPhotos,
+        sharedTripMaps,
+      });
+      navigation.navigate('Profile');
+    } catch (err) {
+      console.error('Save profile error:', err);
+      Alert.alert('Error', 'Failed to save profile. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const pickImageFromGallery = async () => {
@@ -697,11 +744,21 @@ export default function EditProfileScreen({ navigation }) {
       {/* Save Button */}
       <View style={styles.section}>
         <TouchableOpacity
-          style={[styles.saveButton, { backgroundColor: theme.primary }]}
+          style={[styles.saveButton, { backgroundColor: theme.primary, opacity: isUploading ? 0.7 : 1 }]}
           onPress={handleSave}
+          disabled={isUploading}
         >
-          <Ionicons name="save" size={24} color={theme.background} />
-          <Text style={[styles.saveButtonText, { color: theme.background }]}>Save Profile</Text>
+          {isUploading ? (
+            <>
+              <ActivityIndicator size="small" color={theme.background} />
+              <Text style={[styles.saveButtonText, { color: theme.background }]}>Uploading Photos...</Text>
+            </>
+          ) : (
+            <>
+              <Ionicons name="save" size={24} color={theme.background} />
+              <Text style={[styles.saveButtonText, { color: theme.background }]}>Save Profile</Text>
+            </>
+          )}
         </TouchableOpacity>
       </View>
 

@@ -8,7 +8,7 @@ import { scheduleBuddyRequestNotification, setBadgeCount } from '../utils/notifi
 const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const [loading, setLoading] = useState(true);
   const [trips, setTrips] = useState([]);
   const [completedTrips, setCompletedTrips] = useState([]);
@@ -50,45 +50,55 @@ export const AppProvider = ({ children }) => {
   // ============================================
   // LOAD ALL USER DATA ON LOGIN
   // ============================================
+  // Helper function to reset all state to defaults
+  const resetAllState = () => {
+    setTrips([]);
+    setCompletedTrips([]);
+    setVisitedCities([]);
+    setBudgets([]);
+    setProfile({
+      name: '',
+      username: '',
+      location: '',
+      bio: '',
+      instagram: '',
+      x: '',
+      twitter: '',
+      facebook: '',
+      youtube: '',
+      top1: '',
+      top2: '',
+      top3: '',
+      next1: '',
+      next2: '',
+      next3: '',
+      avatar: null,
+      avatarType: 'default',
+      sharedTripMaps: [],
+      travelPhotos: [],
+    });
+    setTravelBuddies([]);
+    setTravelBuddyProfiles([]);
+    setHighlightedBuddies([]);
+    setBuddyRequests([]);
+    setBuddyRequestProfiles([]);
+    setSentRequests([]);
+    setLoading(false);
+  };
+
   useEffect(() => {
     if (user) {
+      // Only load data for authenticated users
       loadAllUserData();
+    } else if (isGuest) {
+      // Guest users should always have empty/default state
+      // No data should be loaded or persisted for guests
+      resetAllState();
     } else {
-      // Reset state when user logs out
-      setTrips([]);
-      setCompletedTrips([]);
-      setVisitedCities([]);
-      setBudgets([]);
-      setProfile({
-        name: '',
-        username: '',
-        location: '',
-        bio: '',
-        instagram: '',
-        x: '',
-        twitter: '',
-        facebook: '',
-        youtube: '',
-        top1: '',
-        top2: '',
-        top3: '',
-        next1: '',
-        next2: '',
-        next3: '',
-        avatar: null,
-        avatarType: 'default',
-        sharedTripMaps: [],
-        travelPhotos: [],
-      });
-      setTravelBuddies([]);
-      setTravelBuddyProfiles([]);
-      setHighlightedBuddies([]);
-      setBuddyRequests([]);
-      setBuddyRequestProfiles([]);
-      setSentRequests([]);
-      setLoading(false);
+      // Not logged in and not a guest - reset state
+      resetAllState();
     }
-  }, [user]);
+  }, [user, isGuest]);
 
   const loadAllUserData = async () => {
     if (!user) return;

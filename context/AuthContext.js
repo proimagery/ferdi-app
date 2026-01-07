@@ -1,7 +1,12 @@
 import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext({});
+
+// Key for storing guest state - we explicitly do NOT persist guest state
+// Guests should always start fresh when reopening the app
+const GUEST_STATE_KEY = '@ferdi_is_guest';
 
 export const useAuth = () => useContext(AuthContext);
 
@@ -38,6 +43,14 @@ export const AuthProvider = ({ children }) => {
     let isMounted = true;
 
     const initializeAuth = async () => {
+      // Clear any persisted guest state on app start
+      // Guests should ALWAYS start fresh - no data persistence
+      try {
+        await AsyncStorage.removeItem(GUEST_STATE_KEY);
+      } catch (e) {
+        // Ignore errors clearing guest state
+      }
+
       // Immediately try to get session - this should be fast from cache
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -53,12 +66,15 @@ export const AuthProvider = ({ children }) => {
               }
             });
           }
+          // Guest state is always false on fresh app start
+          setIsGuest(false);
           initializationComplete.current = true;
           setInitializing(false);
         }
       } catch (err) {
         // On any error, just proceed - user can log in manually
         if (isMounted) {
+          setIsGuest(false);
           initializationComplete.current = true;
           setInitializing(false);
         }
@@ -277,7 +293,17 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Continue as guest - allows browsing without account
-  const continueAsGuest = () => {
+  // Note: Guest state is intentionally NOT persisted
+  // When app restarts, guests must choose "Continue as Guest" again
+  const continueAsGuest = async () => {
+    // Ensure any previous session data is cleared for clean guest experience
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      // Ignore sign out errors
+    }
+    setUser(null);
+    setSession(null);
     setIsGuest(true);
   };
 
