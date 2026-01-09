@@ -122,12 +122,12 @@ export default function PublicProfileScreen({ navigation, route }) {
 
   // Calculate statistics - countries visited is based only on manually added countries (completedTrips)
   let totalCountriesVisited, totalCitiesVisited;
-  let displayCompletedTrips;
+  let displayCompletedTrips = [];
 
   if (isOwnProfile) {
     totalCountriesVisited = completedTrips.length;
     totalCitiesVisited = visitedCities.length;
-    displayCompletedTrips = completedTrips;
+    displayCompletedTrips = completedTrips || [];
   } else {
     // Get unique countries from profileCompletedTrips
     const uniqueCountries = [...new Set(profileCompletedTrips.map(trip => trip.country))];
@@ -139,6 +139,8 @@ export default function PublicProfileScreen({ navigation, route }) {
       year: trip.created_at ? new Date(trip.created_at).getFullYear().toString() : '',
     }));
   }
+
+  console.log('[PublicProfile] displayCompletedTrips:', displayCompletedTrips?.length, 'items');
 
   const worldCountries = 195;
   const worldCoverage = ((totalCountriesVisited / worldCountries) * 100).toFixed(0);
@@ -165,41 +167,20 @@ export default function PublicProfileScreen({ navigation, route }) {
   const userBio = displayProfile?.bio || '';
 
   // Handle different data structures for top3 and next3
-  // Mock users have arrays, real profile has individual top1, top2, top3 fields
   const getTopCountries = () => {
-    if (isOwnProfile || !viewingUser) {
-      return {
-        top1: displayProfile?.top1,
-        top2: displayProfile?.top2,
-        top3: displayProfile?.top3,
-      };
-    } else {
-      // For viewing other users (mock data)
-      const topArray = displayProfile?.top3 || [];
-      return {
-        top1: topArray[0],
-        top2: topArray[1],
-        top3: topArray[2],
-      };
-    }
+    return {
+      top1: displayProfile?.top1,
+      top2: displayProfile?.top2,
+      top3: displayProfile?.top3,
+    };
   };
 
   const getNextStops = () => {
-    if (isOwnProfile || !viewingUser) {
-      return {
-        next1: displayProfile?.next1,
-        next2: displayProfile?.next2,
-        next3: displayProfile?.next3,
-      };
-    } else {
-      // For viewing other users (mock data)
-      const nextArray = displayProfile?.next3 || [];
-      return {
-        next1: nextArray[0],
-        next2: nextArray[1],
-        next3: nextArray[2],
-      };
-    }
+    return {
+      next1: displayProfile?.next1,
+      next2: displayProfile?.next2,
+      next3: displayProfile?.next3,
+    };
   };
 
   const topCountries = getTopCountries();
@@ -641,6 +622,32 @@ export default function PublicProfileScreen({ navigation, route }) {
                     borderColor: theme.border,
                   }
                 ]}>
+                  {/* Remove button */}
+                  <TouchableOpacity
+                    style={styles.removeSharedTripButton}
+                    onPress={() => {
+                      Alert.alert(
+                        'Remove Trip',
+                        `Remove "${trip.name}" from your profile?`,
+                        [
+                          { text: 'Cancel', style: 'cancel' },
+                          {
+                            text: 'Remove',
+                            style: 'destructive',
+                            onPress: () => {
+                              const updatedSharedTrips = displayProfile.sharedTripMaps.filter(
+                                key => key !== tripKey
+                              );
+                              updateProfile({ sharedTripMaps: updatedSharedTrips });
+                            },
+                          },
+                        ]
+                      );
+                    }}
+                  >
+                    <Ionicons name="close-circle" size={24} color={theme.error || '#ef4444'} />
+                  </TouchableOpacity>
+
                   {/* Trip name header */}
                   <View style={styles.sharedTripHeader}>
                     <View style={styles.tripTypeIndicator}>
@@ -1015,6 +1022,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     overflow: 'hidden',
     marginBottom: 12,
+    position: 'relative',
+  },
+  removeSharedTripButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    zIndex: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 12,
+    padding: 4,
   },
   sharedTripHeader: {
     padding: 15,

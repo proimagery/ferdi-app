@@ -34,6 +34,15 @@ const cityColors = [
 
 export default function SpinningGlobe({ completedTrips = [], visitedCities = [], onFullscreen, onDownload, isFullscreen = false, size = 'normal', background = false }) {
   const [isLoading, setIsLoading] = useState(true);
+
+  // Fallback timeout to ensure loading indicator doesn't stay forever
+  React.useEffect(() => {
+    const timeout = setTimeout(() => {
+      setIsLoading(false);
+    }, 3000);
+    return () => clearTimeout(timeout);
+  }, []);
+
   // Convert countries to multi-colored markers with labels and visit info
   const countryMarkers = useMemo(() => {
     // Group trips by country to get all visit dates
@@ -569,13 +578,6 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
 
   return (
     <View style={getContainerStyle()}>
-      {/* Loading indicator */}
-      {isLoading && (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#4ade80" />
-        </View>
-      )}
-
       <View style={styles.webviewWrapper}>
         <WebView
           source={{ html }}
@@ -587,13 +589,19 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
           startInLoadingState={false}
           scalesPageToFit={true}
           originWhitelist={['*']}
-          onLoadEnd={() => setIsLoading(false)}
           onLoad={() => {
             // Give globe a moment to initialize before hiding loader
             setTimeout(() => setIsLoading(false), 500);
           }}
         />
       </View>
+
+      {/* Loading indicator */}
+      {isLoading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#4ade80" />
+        </View>
+      )}
       {!isFullscreen && !background && (
         <View style={styles.buttonRow}>
           {onDownload && (
@@ -621,7 +629,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#2a2a2a',
-    marginBottom: 20,
+    marginBottom: 5,
   },
   backgroundContainer: {
     ...StyleSheet.absoluteFillObject,

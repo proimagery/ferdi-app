@@ -15,12 +15,20 @@ export default function DashboardScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const [showRankInfo, setShowRankInfo] = useState(false);
   const [showGlobeFullscreen, setShowGlobeFullscreen] = useState(false);
+  const [showGlobeInfo, setShowGlobeInfo] = useState(false);
 
   // Rank is based only on manually added countries (completedTrips)
   const totalCountriesVisited = completedTrips.length;
   const travelerRank = getTravelerRank(totalCountriesVisited);
 
   const features = [
+    {
+      title: 'Travel Stats',
+      description: 'View and add to your travel stats',
+      icon: 'stats-chart',
+      color: '#a78bfa',
+      screen: 'YourStats',
+    },
     {
       title: 'My Trips',
       description: 'Plan and manage your trips',
@@ -50,13 +58,6 @@ export default function DashboardScreen({ navigation }) {
       screen: 'TravelMapper',
     },
     {
-      title: 'Your Stats',
-      description: 'View travel statistics',
-      icon: 'stats-chart',
-      color: '#a78bfa',
-      screen: 'YourStats',
-    },
-    {
       title: 'World Rank',
       description: 'Explore country rankings',
       icon: 'globe',
@@ -81,36 +82,59 @@ export default function DashboardScreen({ navigation }) {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Dashboard</Text>
-        <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>Choose a feature to get started</Text>
+      {/* Spinning Globe Section */}
+      <View style={styles.globeSection}>
+        <View style={styles.globeHeaderRow}>
+          <View style={styles.globeHeader}>
+            <Ionicons name="earth" size={24} color={theme.primary} />
+            <Text style={[styles.globeTitle, { color: theme.text }]}>Your Travel Journey</Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => setShowGlobeInfo(!showGlobeInfo)}
+            style={[styles.infoButton, { backgroundColor: theme.primary + '20', borderColor: theme.primary }]}
+          >
+            <Ionicons name="information-circle" size={24} color={theme.primary} />
+          </TouchableOpacity>
+        </View>
+
+        <Text style={[styles.globeSubtitle, { color: theme.textSecondary }]}>
+          {completedTrips.length + visitedCities.length > 0
+            ? `${completedTrips.length} ${completedTrips.length === 1 ? 'country' : 'countries'} • ${visitedCities.length} ${visitedCities.length === 1 ? 'city' : 'cities'}`
+            : 'Add countries and cities to see them on your globe'}
+        </Text>
+        <SpinningGlobe
+          completedTrips={completedTrips}
+          visitedCities={visitedCities}
+          onFullscreen={() => setShowGlobeFullscreen(true)}
+        />
       </View>
 
-      <View style={styles.grid}>
-        {features.map((feature, index) => {
-          const hasBadge = feature.screen === 'TravelBuddies' && buddyRequestProfiles.length > 0;
-          return (
+      {/* Globe Info Modal Overlay */}
+      <Modal
+        visible={showGlobeInfo}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowGlobeInfo(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowGlobeInfo(false)}
+        >
+          <View style={[styles.infoBubble, { backgroundColor: theme.primary, shadowColor: theme.primary }]}>
             <TouchableOpacity
-              key={index}
-              style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
-              onPress={() => navigation.navigate(feature.screen)}
+              style={styles.infoBubbleCloseButton}
+              onPress={() => setShowGlobeInfo(false)}
             >
-              <View style={[styles.iconContainer, { backgroundColor: feature.color + '20' }]}>
-                <Ionicons name={feature.icon} size={32} color={feature.color} />
-                {hasBadge && (
-                  <View style={styles.notificationBadge}>
-                    <Text style={styles.notificationBadgeText}>
-                      {buddyRequestProfiles.length > 9 ? '9+' : buddyRequestProfiles.length}
-                    </Text>
-                  </View>
-                )}
-              </View>
-              <Text style={[styles.cardTitle, { color: theme.text }]}>{feature.title}</Text>
-              <Text style={[styles.cardDescription, { color: theme.textSecondary }]}>{feature.description}</Text>
+              <Ionicons name="close-circle" size={24} color="#fff" />
             </TouchableOpacity>
-          );
-        })}
-      </View>
+            <Ionicons name="information-circle" size={32} color="#fff" style={styles.infoBubbleIcon} />
+            <Text style={styles.infoBubbleText}>
+              Click Travel Stats to add/view past trips, travel trends, milestones, and world coverage
+            </Text>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Rank Display Section */}
       <View style={styles.rankSection}>
@@ -164,22 +188,61 @@ export default function DashboardScreen({ navigation }) {
         )}
       </View>
 
-      {/* Spinning Globe Section */}
-      <View style={styles.globeSection}>
-        <View style={styles.globeHeader}>
-          <Ionicons name="earth" size={24} color={theme.primary} />
-          <Text style={[styles.globeTitle, { color: theme.text }]}>Your Travel Journey</Text>
-        </View>
-        <Text style={[styles.globeSubtitle, { color: theme.textSecondary }]}>
-          {completedTrips.length + visitedCities.length > 0
-            ? `${completedTrips.length} ${completedTrips.length === 1 ? 'country' : 'countries'} • ${visitedCities.length} ${visitedCities.length === 1 ? 'city' : 'cities'}`
-            : 'Add countries and cities to see them on your globe'}
-        </Text>
-        <SpinningGlobe
-          completedTrips={completedTrips}
-          visitedCities={visitedCities}
-          onFullscreen={() => setShowGlobeFullscreen(true)}
-        />
+      {/* Quick Access Row - Travel Stats, Travel Buddies, Leaderboard */}
+      <View style={styles.quickAccessRow}>
+        {features.filter(f => ['YourStats', 'TravelBuddies', 'Leaderboard'].includes(f.screen)).map((feature, index) => {
+          const hasBadge = feature.screen === 'TravelBuddies' && buddyRequestProfiles.length > 0;
+          return (
+            <TouchableOpacity
+              key={index}
+              style={[styles.quickAccessCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+              onPress={() => navigation.navigate(feature.screen)}
+            >
+              <View style={[styles.quickAccessIconContainer, { backgroundColor: feature.color + '20' }]}>
+                <Ionicons name={feature.icon} size={24} color={feature.color} />
+                {hasBadge && (
+                  <View style={styles.notificationBadge}>
+                    <Text style={styles.notificationBadgeText}>
+                      {buddyRequestProfiles.length > 9 ? '9+' : buddyRequestProfiles.length}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              <Text style={[styles.quickAccessTitle, { color: theme.text }]} numberOfLines={1}>{feature.title}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      <View style={styles.header}>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>Tools</Text>
+        <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>Choose a feature to get started</Text>
+      </View>
+
+      <View style={styles.grid}>
+        {features.filter(f => !['YourStats', 'TravelBuddies', 'Leaderboard'].includes(f.screen)).map((feature, index) => {
+          const hasBadge = feature.screen === 'TravelBuddies' && buddyRequestProfiles.length > 0;
+          return (
+            <TouchableOpacity
+              key={index}
+              style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+              onPress={() => navigation.navigate(feature.screen)}
+            >
+              <View style={[styles.iconContainer, { backgroundColor: feature.color + '20' }]}>
+                <Ionicons name={feature.icon} size={32} color={feature.color} />
+                {hasBadge && (
+                  <View style={styles.notificationBadge}>
+                    <Text style={styles.notificationBadgeText}>
+                      {buddyRequestProfiles.length > 9 ? '9+' : buddyRequestProfiles.length}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              <Text style={[styles.cardTitle, { color: theme.text }]}>{feature.title}</Text>
+              <Text style={[styles.cardDescription, { color: theme.textSecondary }]}>{feature.description}</Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {/* Fullscreen Globe Modal */}
@@ -222,7 +285,8 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 20,
-    paddingTop: 40,
+    paddingTop: 0,
+    paddingBottom: 10,
   },
   headerTitle: {
     fontSize: 32,
@@ -283,8 +347,8 @@ const styles = StyleSheet.create({
   },
   rankSection: {
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 10,
+    paddingTop: 0,
+    paddingBottom: 0,
   },
   rankHeader: {
     flexDirection: 'row',
@@ -355,13 +419,18 @@ const styles = StyleSheet.create({
   globeSection: {
     padding: 20,
     paddingTop: 10,
-    paddingBottom: 40,
+    paddingBottom: 5,
+  },
+  globeHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
   },
   globeHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginBottom: 8,
   },
   globeTitle: {
     fontSize: 24,
@@ -370,6 +439,34 @@ const styles = StyleSheet.create({
   globeSubtitle: {
     fontSize: 14,
     marginBottom: 20,
+  },
+  quickAccessRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    gap: 10,
+    justifyContent: 'space-between',
+  },
+  quickAccessCard: {
+    flex: 1,
+    borderRadius: 12,
+    padding: 15,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  quickAccessIconContainer: {
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+    position: 'relative',
+  },
+  quickAccessTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   footer: {
     alignItems: 'center',
@@ -399,5 +496,38 @@ const styles = StyleSheet.create({
   hintText: {
     color: 'rgba(255, 255, 255, 0.6)',
     fontSize: 14,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  infoBubble: {
+    borderRadius: 20,
+    padding: 25,
+    maxWidth: 320,
+    alignItems: 'center',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  infoBubbleCloseButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    zIndex: 1,
+  },
+  infoBubbleIcon: {
+    marginBottom: 15,
+  },
+  infoBubbleText: {
+    color: '#fff',
+    fontSize: 16,
+    lineHeight: 24,
+    textAlign: 'center',
+    fontWeight: '500',
   },
 });
