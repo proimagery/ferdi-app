@@ -13,7 +13,7 @@ import { presetAvatars } from '../utils/presetAvatars';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../lib/supabase';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { uploadImage, isLocalUri } from '../utils/imageUpload';
+import { uploadImage, isLocalUri, deleteImage } from '../utils/imageUpload';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
@@ -176,6 +176,12 @@ export default function EditProfileScreen({ navigation }) {
       // Upload avatar if it's a local file
       let finalAvatar = avatar;
       if (avatarType === 'custom' && avatar && isLocalUri(avatar)) {
+        // Delete old avatar if it exists and is a Supabase URL
+        if (profile.avatar && profile.avatar.includes('supabase.co')) {
+          console.log('[EditProfile] Deleting old avatar:', profile.avatar);
+          await deleteImage(profile.avatar);
+        }
+
         const { url, error } = await uploadImage(avatar, user.id, 'avatar');
         // Only show error if upload actually failed (no URL returned)
         if (!url) {
@@ -188,6 +194,24 @@ export default function EditProfileScreen({ navigation }) {
 
       // Upload travel photos that are local files
       const uploadedPhotos = [];
+      const photosToDelete = [];
+
+      // Find photos that were removed (in old list but not in new list)
+      if (profile.travelPhotos && Array.isArray(profile.travelPhotos)) {
+        profile.travelPhotos.forEach(oldPhoto => {
+          if (oldPhoto.includes('supabase.co') && !travelPhotos.includes(oldPhoto)) {
+            photosToDelete.push(oldPhoto);
+          }
+        });
+      }
+
+      // Delete removed photos
+      for (const photoUrl of photosToDelete) {
+        console.log('[EditProfile] Deleting removed travel photo:', photoUrl);
+        await deleteImage(photoUrl);
+      }
+
+      // Upload new photos
       for (const photo of travelPhotos) {
         if (isLocalUri(photo)) {
           const { url, error } = await uploadImage(photo, user.id, 'travel');
