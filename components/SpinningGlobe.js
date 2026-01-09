@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { View, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, StyleSheet, Dimensions, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { countryCoordinates } from '../utils/coordinates';
@@ -33,6 +33,7 @@ const cityColors = [
 ];
 
 export default function SpinningGlobe({ completedTrips = [], visitedCities = [], onFullscreen, onDownload, isFullscreen = false, size = 'normal', background = false }) {
+  const [isLoading, setIsLoading] = useState(true);
   // Convert countries to multi-colored markers with labels and visit info
   const countryMarkers = useMemo(() => {
     // Group trips by country to get all visit dates
@@ -568,6 +569,13 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
 
   return (
     <View style={getContainerStyle()}>
+      {/* Loading indicator */}
+      {isLoading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#4ade80" />
+        </View>
+      )}
+
       <View style={styles.webviewWrapper}>
         <WebView
           source={{ html }}
@@ -579,6 +587,11 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
           startInLoadingState={false}
           scalesPageToFit={true}
           originWhitelist={['*']}
+          onLoadEnd={() => setIsLoading(false)}
+          onLoad={() => {
+            // Give globe a moment to initialize before hiding loader
+            setTimeout(() => setIsLoading(false), 500);
+          }}
         />
       </View>
       {!isFullscreen && !background && (
@@ -624,6 +637,13 @@ const styles = StyleSheet.create({
   webview: {
     flex: 1,
     backgroundColor: '#000000',
+  },
+  loadingContainer: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000000',
+    zIndex: 10,
   },
   buttonRow: {
     position: 'absolute',
