@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Dimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Dimensions, ActivityIndicator } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -15,6 +15,7 @@ import { getUserById } from '../utils/mockUsers';
 import Avatar from '../components/Avatar';
 import { countryCoordinates } from '../utils/coordinates';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { supabase } from '../lib/supabase';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
@@ -28,8 +29,54 @@ export default function PublicProfileScreen({ navigation, route }) {
   const viewingUser = route?.params?.user;
   const isOwnProfile = !viewingUser;
 
-  // Use viewingUser data if available, otherwise use own profile
-  const displayProfile = viewingUser || profile;
+  // State for loading full profile data
+  const [fullProfileData, setFullProfileData] = useState(null);
+  const [profileCompletedTrips, setProfileCompletedTrips] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch full profile data when viewing another user
+  useEffect(() => {
+    if (viewingUser && viewingUser.id) {
+      fetchFullProfile(viewingUser.id);
+    }
+  }, [viewingUser?.id]);
+
+  const fetchFullProfile = async (userId) => {
+    setLoading(true);
+    try {
+      // Fetch profile details
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+      } else {
+        setFullProfileData(profileData);
+      }
+
+      // Fetch completed trips for this user
+      const { data: tripsData, error: tripsError } = await supabase
+        .from('completed_trips')
+        .select('*')
+        .eq('user_id', userId);
+
+      if (tripsError) {
+        console.error('Error fetching trips:', tripsError);
+      } else {
+        setProfileCompletedTrips(tripsData || []);
+      }
+    } catch (error) {
+      console.error('Error in fetchFullProfile:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Use full profile data if available, otherwise use passed user data or own profile
+  const displayProfile = fullProfileData || viewingUser || profile;
   const displayTravelBuddies = viewingUser?.travelBuddies || travelBuddies;
   const displayHighlightedBuddies = viewingUser?.highlightedBuddies || highlightedBuddies;
 
@@ -61,13 +108,22 @@ export default function PublicProfileScreen({ navigation, route }) {
 
   // Calculate statistics - countries visited is based only on manually added countries (completedTrips)
   let totalCountriesVisited, totalCitiesVisited;
+  let displayCompletedTrips;
 
   if (isOwnProfile) {
     totalCountriesVisited = completedTrips.length;
     totalCitiesVisited = visitedCities.length;
+    displayCompletedTrips = completedTrips;
   } else {
-    totalCountriesVisited = viewingUser?.countriesVisited?.length || 0;
-    totalCitiesVisited = 0; // Not available for other users
+    // Get unique countries from profileCompletedTrips
+    const uniqueCountries = [...new Set(profileCompletedTrips.map(trip => trip.country))];
+    totalCountriesVisited = uniqueCountries.length;
+    totalCitiesVisited = 0; // Not fetching cities for other users
+    displayCompletedTrips = profileCompletedTrips.map(trip => ({
+      country: trip.country,
+      date: trip.visit_date,
+      year: trip.created_at ? new Date(trip.created_at).getFullYear().toString() : '',
+    }));
   }
 
   const worldCountries = 195;
@@ -75,34 +131,19 @@ export default function PublicProfileScreen({ navigation, route }) {
 
   // Get continents count
   const continents = new Set();
-  if (isOwnProfile) {
-    completedTrips.forEach(trip => {
-      const continentMap = {
-        'USA': 'North America', 'United States': 'North America', 'Canada': 'North America', 'Mexico': 'North America',
-        'France': 'Europe', 'Germany': 'Europe', 'Italy': 'Europe', 'Spain': 'Europe', 'England': 'Europe', 'Scotland': 'Europe', 'Wales': 'Europe', 'Northern Ireland': 'Europe',
-        'Japan': 'Asia', 'China': 'Asia', 'India': 'Asia', 'Thailand': 'Asia',
-        'Australia': 'Oceania', 'New Zealand': 'Oceania',
-        'Brazil': 'South America', 'Argentina': 'South America', 'Chile': 'South America',
-        'Egypt': 'Africa', 'South Africa': 'Africa', 'Kenya': 'Africa',
-      };
-      const continent = continentMap[trip.country];
-      if (continent) continents.add(continent);
-    });
-  } else {
-    // For viewing users, estimate continents from countries
-    (viewingUser?.countriesVisited || []).forEach(country => {
-      const continentMap = {
-        'USA': 'North America', 'United States': 'North America', 'Canada': 'North America', 'Mexico': 'North America',
-        'France': 'Europe', 'Germany': 'Europe', 'Italy': 'Europe', 'Spain': 'Europe', 'England': 'Europe', 'Scotland': 'Europe', 'Wales': 'Europe', 'Northern Ireland': 'Europe',
-        'Japan': 'Asia', 'China': 'Asia', 'India': 'Asia', 'Thailand': 'Asia',
-        'Australia': 'Oceania', 'New Zealand': 'Oceania',
-        'Brazil': 'South America', 'Argentina': 'South America', 'Chile': 'South America',
-        'Egypt': 'Africa', 'South Africa': 'Africa', 'Kenya': 'Africa',
-      };
-      const continent = continentMap[country];
-      if (continent) continents.add(continent);
-    });
-  }
+  const continentMap = {
+    'USA': 'North America', 'United States': 'North America', 'Canada': 'North America', 'Mexico': 'North America',
+    'France': 'Europe', 'Germany': 'Europe', 'Italy': 'Europe', 'Spain': 'Europe', 'England': 'Europe', 'Scotland': 'Europe', 'Wales': 'Europe', 'Northern Ireland': 'Europe',
+    'Japan': 'Asia', 'China': 'Asia', 'India': 'Asia', 'Thailand': 'Asia',
+    'Australia': 'Oceania', 'New Zealand': 'Oceania',
+    'Brazil': 'South America', 'Argentina': 'South America', 'Chile': 'South America',
+    'Egypt': 'Africa', 'South Africa': 'Africa', 'Kenya': 'Africa',
+  };
+
+  displayCompletedTrips.forEach(trip => {
+    const continent = continentMap[trip.country];
+    if (continent) continents.add(continent);
+  });
 
   const userName = displayProfile?.name || 'Traveler';
   const userUsername = displayProfile?.username || '';
@@ -459,12 +500,13 @@ export default function PublicProfileScreen({ navigation, route }) {
         )}
       </View>
 
-      {/* Spinning Globe - Only show for own profile */}
-      {isOwnProfile && (
-        <View style={styles.globeSection}>
-          <SpinningGlobe completedTrips={completedTrips} visitedCities={visitedCities} />
-        </View>
-      )}
+      {/* Spinning Globe */}
+      <View style={styles.globeSection}>
+        <SpinningGlobe
+          completedTrips={isOwnProfile ? completedTrips : displayCompletedTrips}
+          visitedCities={isOwnProfile ? visitedCities : []}
+        />
+      </View>
 
       {/* Travel Photos */}
       <View style={styles.section}>

@@ -11,12 +11,16 @@ import { decode } from 'base64-arraybuffer';
  */
 export const uploadImage = async (localUri, userId, type = 'avatar') => {
   try {
+    console.log('[imageUpload] Starting upload:', { localUri: localUri?.substring(0, 50), userId, type });
+
     if (!localUri || !userId) {
+      console.error('[imageUpload] Missing parameters');
       return { url: null, error: 'Missing required parameters' };
     }
 
     // Skip if already a Supabase URL (already uploaded)
     if (localUri.includes('supabase.co')) {
+      console.log('[imageUpload] Already uploaded, skipping');
       return { url: localUri, error: null };
     }
 
@@ -26,15 +30,21 @@ export const uploadImage = async (localUri, userId, type = 'avatar') => {
     const extension = localUri.split('.').pop()?.toLowerCase() || 'jpg';
     const fileName = `${userId}/${type}/${timestamp}_${randomString}.${extension}`;
 
+    console.log('[imageUpload] Generated filename:', fileName);
+
     // Read file as base64
+    console.log('[imageUpload] Reading file as base64...');
     const base64 = await FileSystem.readAsStringAsync(localUri, {
       encoding: FileSystem.EncodingType.Base64,
     });
+    console.log('[imageUpload] File read successfully, size:', base64.length);
 
     // Determine content type
     const contentType = extension === 'png' ? 'image/png' : 'image/jpeg';
+    console.log('[imageUpload] Content type:', contentType);
 
     // Upload to Supabase Storage
+    console.log('[imageUpload] Uploading to Supabase...');
     const { data, error } = await supabase.storage
       .from('user-photos')
       .upload(fileName, decode(base64), {
@@ -43,19 +53,22 @@ export const uploadImage = async (localUri, userId, type = 'avatar') => {
       });
 
     if (error) {
-      console.error('Upload error:', error);
-      return { url: null, error: error.message };
+      console.error('[imageUpload] Upload error:', error);
+      return { url: null, error: `Upload failed: ${error.message}` };
     }
+
+    console.log('[imageUpload] Upload successful:', data);
 
     // Get public URL
     const { data: urlData } = supabase.storage
       .from('user-photos')
       .getPublicUrl(fileName);
 
+    console.log('[imageUpload] Public URL:', urlData.publicUrl);
     return { url: urlData.publicUrl, error: null };
   } catch (err) {
-    console.error('Image upload failed:', err);
-    return { url: null, error: err.message };
+    console.error('[imageUpload] Exception caught:', err);
+    return { url: null, error: `Upload exception: ${err.message}` };
   }
 };
 
