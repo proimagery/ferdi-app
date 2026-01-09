@@ -54,7 +54,21 @@ export default function PublicProfileScreen({ navigation, route }) {
       if (profileError) {
         console.error('Error fetching profile:', profileError);
       } else {
-        setFullProfileData(profileData);
+        // Map snake_case database fields to camelCase for consistency
+        const mappedProfile = {
+          ...profileData,
+          avatarType: profileData.avatar_type,
+          travelPhotos: profileData.travel_photos ?
+            (typeof profileData.travel_photos === 'string' ?
+              JSON.parse(profileData.travel_photos) :
+              profileData.travel_photos) : [],
+          sharedTripMaps: profileData.shared_trip_maps ?
+            (typeof profileData.shared_trip_maps === 'string' ?
+              JSON.parse(profileData.shared_trip_maps) :
+              profileData.shared_trip_maps) : [],
+        };
+        console.log('[PublicProfile] Mapped profile data:', mappedProfile);
+        setFullProfileData(mappedProfile);
       }
 
       // Fetch completed trips for this user
