@@ -177,7 +177,8 @@ export default function EditProfileScreen({ navigation }) {
       let finalAvatar = avatar;
       if (avatarType === 'custom' && avatar && isLocalUri(avatar)) {
         const { url, error } = await uploadImage(avatar, user.id, 'avatar');
-        if (error) {
+        // Only show error if upload actually failed (no URL returned)
+        if (!url) {
           Alert.alert('Upload Error', 'Failed to upload profile photo. Please try again.');
           setIsUploading(false);
           return;
@@ -190,7 +191,8 @@ export default function EditProfileScreen({ navigation }) {
       for (const photo of travelPhotos) {
         if (isLocalUri(photo)) {
           const { url, error } = await uploadImage(photo, user.id, 'travel');
-          if (error) {
+          // Only skip if upload actually failed (no URL returned)
+          if (!url) {
             console.error('Failed to upload travel photo:', error);
             // Continue with other photos even if one fails
             continue;
