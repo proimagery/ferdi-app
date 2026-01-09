@@ -35,7 +35,7 @@ export const uploadImage = async (localUri, userId, type = 'avatar') => {
     // Read file as base64
     console.log('[imageUpload] Reading file as base64...');
     const base64 = await FileSystem.readAsStringAsync(localUri, {
-      encoding: FileSystem.EncodingType.Base64,
+      encoding: 'base64',
     });
     console.log('[imageUpload] File read successfully, size:', base64.length);
 
