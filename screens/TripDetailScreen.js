@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppContext } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { countryCoordinates } from '../utils/coordinates';
+import { allCountriesData } from '../utils/countryData';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
@@ -274,12 +275,62 @@ export default function TripDetailScreen({ route, navigation }) {
             countryNights = countryDays - 1;
           }
 
+          // Look up country data from allCountriesData
+          const countryData = allCountriesData.find(c => c.name === country.name);
+          const countryForDetail = countryData ? {
+            name: countryData.name,
+            flag: countryData.flag,
+            continent: countryData.continent,
+            population: countryData.population,
+            capital: countryData.capital,
+            leader: countryData.leader,
+            language: countryData.language,
+            currency: countryData.currency,
+            highlights: countryData.highlights,
+            mainAirports: countryData.mainAirports,
+            mainTrainStations: countryData.mainTrainStations,
+            topHotels: countryData.topHotels,
+            avgFlightCost: countryData.avgFlightCost,
+            avgTrainCost: countryData.avgTrainCost,
+            bestTimeToVisit: countryData.bestTimeToVisit,
+            visaRequired: countryData.visaRequired,
+            rank: countryData.rankings?.visitors?.rank || 0,
+            visitors: countryData.rankings?.visitors?.value || 'N/A',
+            rankings: countryData.rankings
+          } : {
+            name: country.name,
+            continent: 'Unknown',
+            rank: 0,
+            visitors: 'N/A',
+            highlights: [],
+            population: null,
+            capital: null,
+            leader: null,
+            language: null,
+            currency: null,
+            mainAirports: null,
+            mainTrainStations: null,
+            topHotels: null,
+            avgFlightCost: null,
+            avgTrainCost: null,
+            bestTimeToVisit: null,
+            visaRequired: null,
+            rankings: {}
+          };
+
           return (
             <React.Fragment key={`country-${index}-${country.name}`}>
-              <View style={[styles.countryCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+              <TouchableOpacity
+                style={[styles.countryCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+                onPress={() => navigation.navigate('CountryDetail', {
+                  country: countryForDetail
+                })}
+                activeOpacity={0.7}
+              >
                 <View style={styles.countryHeader}>
                   <Ionicons name="location" size={20} color={theme.primary} />
                   <Text style={[styles.countryName, { color: theme.text }]}>{country.name}</Text>
+                  <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} style={styles.chevron} />
                 </View>
                 {country.startDate && country.endDate && (
                   <View style={styles.dateContainer}>
@@ -294,7 +345,7 @@ export default function TripDetailScreen({ route, navigation }) {
                     </View>
                   </View>
                 )}
-              </View>
+              </TouchableOpacity>
 
               {/* Distance Calculator between countries */}
               {distance && nextCountry && (
@@ -502,6 +553,10 @@ const styles = StyleSheet.create({
   countryName: {
     fontSize: 18,
     fontWeight: 'bold',
+    flex: 1,
+  },
+  chevron: {
+    marginLeft: 'auto',
   },
   dateContainer: {
     flexDirection: 'row',

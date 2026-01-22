@@ -19,9 +19,10 @@ const ferdiLogo = require('../assets/Ferdi-transparent.png');
 export default function MyBudgetScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const { budgets, deleteBudget } = useAppContext();
+  const { budgets, deleteBudget, trips } = useAppContext();
   const [expandedId, setExpandedId] = useState(null);
   const [selectedCountryForBudget, setSelectedCountryForBudget] = useState({});
+  const [selectedTab, setSelectedTab] = useState('upcoming'); // 'past', 'upcoming', 'active'
 
   const toggleExpand = (id) => {
     setExpandedId(expandedId === id ? null : id);
@@ -51,20 +52,121 @@ export default function MyBudgetScreen({ navigation }) {
     );
   };
 
+  // Filter budgets based on selected tab
+  const getFilteredBudgets = () => {
+    const now = new Date();
+
+    return budgets.filter((budget, index) => {
+      // Get trip dates if budget is linked to a trip
+      let tripStartDate, tripEndDate;
+
+      if (budget.tripId) {
+        const linkedTrip = trips.find(t => t.id === budget.tripId);
+        if (linkedTrip && linkedTrip.countries && linkedTrip.countries.length > 0) {
+          const dates = linkedTrip.countries
+            .filter(c => c.startDate && c.endDate)
+            .flatMap(c => [c.startDate, c.endDate]);
+
+          if (dates.length > 0) {
+            const sortedDates = dates.map(d => typeof d === 'string' ? new Date(d) : d).sort((a, b) => a - b);
+            tripStartDate = sortedDates[0];
+            tripEndDate = sortedDates[sortedDates.length - 1];
+          }
+        }
+      }
+
+      // If no trip dates, classify as upcoming by default
+      if (!tripStartDate || !tripEndDate) {
+        return selectedTab === 'upcoming';
+      }
+
+      // Classify based on dates
+      if (selectedTab === 'past') {
+        return tripEndDate < now;
+      } else if (selectedTab === 'active') {
+        return tripStartDate <= now && tripEndDate >= now;
+      } else { // upcoming
+        return tripStartDate > now;
+      }
+    }).map((budget, filteredIndex) => {
+      // Find original index for edit/delete operations
+      const originalIndex = budgets.indexOf(budget);
+      return { ...budget, originalIndex };
+    });
+  };
+
+  const filteredBudgets = getFilteredBudgets();
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {/* Tab Toggle */}
+      <View style={styles.tabContainer}>
+        <TouchableOpacity
+          style={[
+            styles.tab,
+            { borderColor: theme.border },
+            selectedTab === 'past' && { backgroundColor: theme.primary }
+          ]}
+          onPress={() => setSelectedTab('past')}
+        >
+          <Text style={[
+            styles.tabText,
+            { color: selectedTab === 'past' ? '#fff' : theme.textSecondary }
+          ]}>
+            Past
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.tab,
+            { borderColor: theme.border },
+            selectedTab === 'upcoming' && { backgroundColor: theme.primary }
+          ]}
+          onPress={() => setSelectedTab('upcoming')}
+        >
+          <Text style={[
+            styles.tabText,
+            { color: selectedTab === 'upcoming' ? '#fff' : theme.textSecondary }
+          ]}>
+            Upcoming
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.tab,
+            { borderColor: theme.border },
+            selectedTab === 'active' && { backgroundColor: theme.primary }
+          ]}
+          onPress={() => setSelectedTab('active')}
+        >
+          <Text style={[
+            styles.tabText,
+            { color: selectedTab === 'active' ? '#fff' : theme.textSecondary }
+          ]}>
+            Active
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <ScrollView style={styles.scrollView}>
-        {budgets.length === 0 ? (
+        {filteredBudgets.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="wallet-outline" size={80} color={theme.textSecondary} />
-            <Text style={[styles.emptyTitle, { color: theme.text }]}>No budgets yet</Text>
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>
+              No {selectedTab} budgets
+            </Text>
             <Text style={[styles.emptySubtitle, { color: theme.textSecondary }]}>
-              Create your first budget in Budget Maker
+              {budgets.length === 0
+                ? 'Create your first budget in Budget Maker'
+                : `You don't have any ${selectedTab} budgets`}
             </Text>
           </View>
         ) : (
           <View style={styles.budgetsContainer}>
-            {budgets.map((budget, index) => {
+            {filteredBudgets.map((budget) => {
+              const index = budget.originalIndex;
               const isExpanded = expandedId === budget.id;
               const dailyBudget = budget.totalBudget / budget.tripDuration;
 
@@ -427,14 +529,6 @@ export default function MyBudgetScreen({ navigation }) {
           <Image source={ferdiLogo} style={styles.footerLogo} resizeMode="contain" />
         </View>
       </ScrollView>
-
-      {/* Create Budget Button */}
-      <TouchableOpacity
-        style={[styles.fab, { backgroundColor: theme.primary }]}
-        onPress={() => navigation.navigate('BudgetMaker')}
-      >
-        <Ionicons name="add" size={30} color={theme.background} />
-      </TouchableOpacity>
     </View>
   );
 }
@@ -443,6 +537,23 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0a0a0a',
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    gap: 10,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   scrollView: {
     flex: 1,
@@ -685,22 +796,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#ef4444',
-  },
-  fab: {
-    position: 'absolute',
-    right: 20,
-    bottom: 20,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#4ade80',
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
   },
   // Multi-country budget display styles
   tripSummaryText: {

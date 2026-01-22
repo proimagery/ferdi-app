@@ -13,7 +13,7 @@ export default function MyTripsScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const sharingMode = route.params?.sharingMode || false;
 
-  const [viewMode, setViewMode] = useState('upcoming'); // 'upcoming' or 'past'
+  const [viewMode, setViewMode] = useState('upcoming'); // 'upcoming', 'active', or 'past'
   const [selectedTrips, setSelectedTrips] = useState(profile?.sharedTripMaps || []);
 
   const handleDeleteTrip = (index) => {
@@ -43,21 +43,26 @@ export default function MyTripsScreen({ navigation, route }) {
     today.setHours(0, 0, 0, 0);
 
     return trips.filter(trip => {
-      // Get the latest end date from the trip
-      const dates = trip.countries
-        .filter(c => c.endDate)
-        .map(c => typeof c.endDate === 'string' ? new Date(c.endDate) : c.endDate);
+      // Get start and end dates from the trip
+      const allDates = trip.countries
+        .filter(c => c.startDate && c.endDate)
+        .flatMap(c => [c.startDate, c.endDate]);
 
-      if (dates.length === 0) {
+      if (allDates.length === 0) {
         // If no dates, consider it upcoming
         return viewMode === 'upcoming';
       }
 
+      const dates = allDates.map(d => typeof d === 'string' ? new Date(d) : d);
+      const earliestDate = new Date(Math.min(...dates));
       const latestDate = new Date(Math.max(...dates));
+      earliestDate.setHours(0, 0, 0, 0);
       latestDate.setHours(0, 0, 0, 0);
 
       if (viewMode === 'past') {
         return latestDate < today;
+      } else if (viewMode === 'active') {
+        return earliestDate <= today && latestDate >= today;
       } else {
         return latestDate >= today;
       }
@@ -101,7 +106,7 @@ export default function MyTripsScreen({ navigation, route }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* Toggle between Upcoming and Past */}
+      {/* Toggle between Upcoming, Active, and Past */}
       <View style={styles.toggleContainer}>
         <TouchableOpacity
           style={[
@@ -116,6 +121,21 @@ export default function MyTripsScreen({ navigation, route }) {
             viewMode === 'upcoming' ? { color: theme.background } : { color: theme.primary }
           ]}>
             Upcoming
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.toggleButton,
+            viewMode === 'active' && { backgroundColor: theme.primary },
+            { borderColor: theme.primary }
+          ]}
+          onPress={() => setViewMode('active')}
+        >
+          <Text style={[
+            styles.toggleText,
+            viewMode === 'active' ? { color: theme.background } : { color: theme.primary }
+          ]}>
+            Active
           </Text>
         </TouchableOpacity>
         <TouchableOpacity

@@ -49,7 +49,7 @@ export default function CountryDetailScreen({ route }) {
         </View>
       </View>
 
-      {country.rankings && (
+      {country.rankings && country.rankings.transportation && typeof country.rankings.transportation === 'number' && (
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Category Rankings</Text>
           <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>Based on public travel data (1-10 scale)</Text>
@@ -165,41 +165,170 @@ export default function CountryDetailScreen({ route }) {
         </View>
       )}
 
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Top Attractions</Text>
-        {country.highlights.map((highlight, index) => (
-          <View key={index} style={[styles.highlightCard, {
+      {/* Educational Information Section */}
+      {(country.population || country.capital || country.leader || country.language || country.currency) && (
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Educational Information</Text>
+          <View style={[styles.infoCard, {
             backgroundColor: theme.cardBackground,
             borderColor: theme.border
           }]}>
-            <Ionicons name="star" size={20} color="#fbbf24" />
-            <Text style={[styles.highlightText, { color: theme.text }]}>{highlight}</Text>
-          </View>
-        ))}
-      </View>
-
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Travel Information</Text>
-        <View style={[styles.infoCard, {
-          backgroundColor: theme.cardBackground,
-          borderColor: theme.border
-        }]}>
-          <View style={styles.infoRow}>
-            <Ionicons name="information-circle" size={20} color="#60a5fa" />
-            <Text style={[styles.infoText, { color: theme.textSecondary }]}>
-              {country.name} is one of the most popular tourist destinations in the world.
-            </Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Ionicons name="calendar" size={20} color="#f472b6" />
-            <Text style={[styles.infoText, { color: theme.textSecondary }]}>Best time to visit varies by region and season.</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Ionicons name="cash" size={20} color="#fb923c" />
-            <Text style={[styles.infoText, { color: theme.textSecondary }]}>Budget accordingly based on your travel style.</Text>
+            {country.population && (
+              <View style={styles.infoRow}>
+                <Ionicons name="people" size={20} color={theme.primary} />
+                <View style={styles.infoTextContainer}>
+                  <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Population</Text>
+                  <Text style={[styles.infoValue, { color: theme.text }]}>{country.population}</Text>
+                </View>
+              </View>
+            )}
+            {country.capital && (
+              <View style={styles.infoRow}>
+                <Ionicons name="business" size={20} color={theme.primary} />
+                <View style={styles.infoTextContainer}>
+                  <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Capital</Text>
+                  <Text style={[styles.infoValue, { color: theme.text }]}>{country.capital}</Text>
+                </View>
+              </View>
+            )}
+            {country.leader && (
+              <View style={styles.infoRow}>
+                <Ionicons name="person" size={20} color={theme.primary} />
+                <View style={styles.infoTextContainer}>
+                  <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Leader</Text>
+                  <Text style={[styles.infoValue, { color: theme.text }]}>{country.leader}</Text>
+                </View>
+              </View>
+            )}
+            {country.language && (
+              <View style={styles.infoRow}>
+                <Ionicons name="language" size={20} color={theme.primary} />
+                <View style={styles.infoTextContainer}>
+                  <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Language</Text>
+                  <Text style={[styles.infoValue, { color: theme.text }]}>{country.language}</Text>
+                </View>
+              </View>
+            )}
+            {country.currency && (
+              <View style={styles.infoRow}>
+                <Ionicons name="cash" size={20} color={theme.primary} />
+                <View style={styles.infoTextContainer}>
+                  <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Currency</Text>
+                  <Text style={[styles.infoValue, { color: theme.text }]}>{country.currency}</Text>
+                </View>
+              </View>
+            )}
           </View>
         </View>
-      </View>
+      )}
+
+      {country.highlights && country.highlights.length > 0 && (
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Top Attractions</Text>
+          {country.highlights.map((highlight, index) => (
+            <View key={index} style={[styles.highlightCard, {
+              backgroundColor: theme.cardBackground,
+              borderColor: theme.border
+            }]}>
+              <Ionicons name="star" size={20} color="#fbbf24" />
+              <Text style={[styles.highlightText, { color: theme.text }]}>{highlight}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Transportation Section */}
+      {(country.mainAirports || country.mainTrainStations || country.avgFlightCost || country.avgTrainCost) && (
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Transportation</Text>
+
+          {country.mainAirports && country.mainAirports.length > 0 && (
+            <View style={[styles.infoCard, {
+              backgroundColor: theme.cardBackground,
+              borderColor: theme.border
+            }]}>
+              <View style={styles.subsectionHeader}>
+                <Ionicons name="airplane" size={18} color={theme.secondary} />
+                <Text style={[styles.subsectionTitle, { color: theme.text }]}>Main Airports</Text>
+              </View>
+              {country.mainAirports.map((airport, index) => (
+                <Text key={index} style={[styles.listItem, { color: theme.textSecondary }]}>• {airport}</Text>
+              ))}
+              {country.avgFlightCost && (
+                <Text style={[styles.costInfo, { color: theme.primary }]}>Avg Flight Cost: {country.avgFlightCost}</Text>
+              )}
+            </View>
+          )}
+
+          {country.mainTrainStations && country.mainTrainStations.length > 0 && (
+            <View style={[styles.infoCard, {
+              backgroundColor: theme.cardBackground,
+              borderColor: theme.border,
+              marginTop: 15
+            }]}>
+              <View style={styles.subsectionHeader}>
+                <Ionicons name="train" size={18} color={theme.secondary} />
+                <Text style={[styles.subsectionTitle, { color: theme.text }]}>Main Train Stations</Text>
+              </View>
+              {country.mainTrainStations.map((station, index) => (
+                <Text key={index} style={[styles.listItem, { color: theme.textSecondary }]}>• {station}</Text>
+              ))}
+              {country.avgTrainCost && (
+                <Text style={[styles.costInfo, { color: theme.primary }]}>Avg Train Cost: {country.avgTrainCost}</Text>
+              )}
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* Accommodations Section */}
+      {country.topHotels && country.topHotels.length > 0 && (
+        <View style={styles.section}>
+          <View style={styles.subsectionHeader}>
+            <Ionicons name="bed" size={18} color={theme.secondary} />
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Top Hotels</Text>
+          </View>
+          {country.topHotels.map((hotel, index) => (
+            <View key={index} style={[styles.highlightCard, {
+              backgroundColor: theme.cardBackground,
+              borderColor: theme.border
+            }]}>
+              <Ionicons name="bed" size={20} color={theme.primary} />
+              <Text style={[styles.highlightText, { color: theme.text }]}>{hotel}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Travel Tips Section */}
+      {(country.bestTimeToVisit || country.visaRequired) && (
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Travel Tips</Text>
+          <View style={[styles.infoCard, {
+            backgroundColor: theme.cardBackground,
+            borderColor: theme.border
+          }]}>
+            {country.bestTimeToVisit && (
+              <View style={styles.infoRow}>
+                <Ionicons name="sunny" size={20} color={theme.primary} />
+                <View style={styles.infoTextContainer}>
+                  <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Best Time to Visit</Text>
+                  <Text style={[styles.infoText, { color: theme.text }]}>{country.bestTimeToVisit}</Text>
+                </View>
+              </View>
+            )}
+            {country.visaRequired && (
+              <View style={styles.infoRow}>
+                <Ionicons name="document-text" size={20} color={theme.primary} />
+                <View style={styles.infoTextContainer}>
+                  <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Visa Requirements</Text>
+                  <Text style={[styles.infoText, { color: theme.text }]}>{country.visaRequired}</Text>
+                </View>
+              </View>
+            )}
+          </View>
+        </View>
+      )}
 
       {/* Footer */}
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
@@ -332,6 +461,38 @@ const styles = StyleSheet.create({
     fontSize: 14,
     flex: 1,
     lineHeight: 20,
+  },
+  infoTextContainer: {
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: 12,
+    marginBottom: 2,
+  },
+  infoValue: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  subsectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  subsectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  listItem: {
+    fontSize: 14,
+    marginBottom: 6,
+    marginLeft: 26,
+  },
+  costInfo: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 8,
+    marginLeft: 26,
   },
   footer: {
     alignItems: 'center',
