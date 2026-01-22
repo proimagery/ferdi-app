@@ -1,25 +1,103 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Modal, StatusBar } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Modal, StatusBar, Alert, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { captureRef } from 'react-native-view-shot';
+import * as MediaLibrary from 'expo-media-library';
+import * as Sharing from 'expo-sharing';
 import { useAppContext } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import SpinningGlobe from '../components/SpinningGlobe';
+import ShareableStatsCard from '../components/ShareableStatsCard';
 import { getTravelerRank, allRanks } from '../utils/rankingSystem';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function DashboardScreen({ navigation }) {
-  const { completedTrips, visitedCities, trips, buddyRequestProfiles } = useAppContext();
+  const { completedTrips, visitedCities, trips, buddyRequestProfiles, profile } = useAppContext();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const [showRankInfo, setShowRankInfo] = useState(false);
   const [showGlobeFullscreen, setShowGlobeFullscreen] = useState(false);
   const [showGlobeInfo, setShowGlobeInfo] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const shareCardRef = useRef(null);
 
   // Rank is based only on manually added countries (completedTrips)
   const totalCountriesVisited = completedTrips.length;
   const travelerRank = getTravelerRank(totalCountriesVisited);
+
+  // Handle download/share stats image
+  const handleDownloadStats = () => {
+    setShowShareModal(true);
+  };
+
+  const saveToDevice = async () => {
+    if (!shareCardRef.current) return;
+
+    try {
+      setIsSaving(true);
+
+      // Request permission
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please allow access to save images to your device.');
+        setIsSaving(false);
+        return;
+      }
+
+      // Capture the view
+      const uri = await captureRef(shareCardRef, {
+        format: 'png',
+        quality: 1,
+        result: 'tmpfile',
+      });
+
+      // Save to media library
+      const asset = await MediaLibrary.createAssetAsync(uri);
+      await MediaLibrary.createAlbumAsync('Ferdi', asset, false);
+
+      setShowShareModal(false);
+      Alert.alert('Saved!', 'Your travel stats have been saved to your photos.');
+    } catch (error) {
+      console.log('Error saving image:', error);
+      Alert.alert('Error', 'Failed to save image. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const shareImage = async () => {
+    if (!shareCardRef.current) return;
+
+    try {
+      setIsSaving(true);
+
+      // Capture the view
+      const uri = await captureRef(shareCardRef, {
+        format: 'png',
+        quality: 1,
+        result: 'tmpfile',
+      });
+
+      // Check if sharing is available
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (isAvailable) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'image/png',
+          dialogTitle: 'Share your Ferdi travel stats',
+        });
+      } else {
+        Alert.alert('Sharing not available', 'Sharing is not available on this device.');
+      }
+    } catch (error) {
+      console.log('Error sharing image:', error);
+      Alert.alert('Error', 'Failed to share image. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const features = [
     {
@@ -106,6 +184,7 @@ export default function DashboardScreen({ navigation }) {
           completedTrips={completedTrips}
           visitedCities={visitedCities}
           onFullscreen={() => setShowGlobeFullscreen(true)}
+          onDownload={handleDownloadStats}
         />
       </View>
 
@@ -267,6 +346,72 @@ export default function DashboardScreen({ navigation }) {
           </TouchableOpacity>
           <View style={[styles.fullscreenHint, { bottom: insets.bottom + 20 }]}>
             <Text style={styles.hintText}>Pinch to zoom • Drag to rotate</Text>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Share Stats Modal */}
+      <Modal
+        visible={showShareModal}
+        animationType="fade"
+        transparent={true}
+        statusBarTranslucent={true}
+        onRequestClose={() => setShowShareModal(false)}
+      >
+        <View style={styles.shareModalOverlay}>
+          <View style={[styles.shareModalContent, { backgroundColor: theme.background }]}>
+            <TouchableOpacity
+              style={styles.shareModalClose}
+              onPress={() => setShowShareModal(false)}
+            >
+              <Ionicons name="close" size={24} color={theme.text} />
+            </TouchableOpacity>
+
+            <Text style={[styles.shareModalTitle, { color: theme.text }]}>Share Your Stats</Text>
+
+            {/* The card to capture */}
+            <View style={styles.shareCardWrapper}>
+              <ShareableStatsCard
+                ref={shareCardRef}
+                completedTrips={completedTrips}
+                visitedCities={visitedCities}
+                trips={trips}
+                profile={profile}
+              />
+            </View>
+
+            {/* Action buttons */}
+            <View style={styles.shareButtonsRow}>
+              <TouchableOpacity
+                style={[styles.shareActionButton, { backgroundColor: theme.primary }]}
+                onPress={saveToDevice}
+                disabled={isSaving}
+              >
+                {isSaving ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <Ionicons name="download" size={20} color="#fff" />
+                    <Text style={styles.shareActionButtonText}>Save to Photos</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.shareActionButton, { backgroundColor: '#3b82f6' }]}
+                onPress={shareImage}
+                disabled={isSaving}
+              >
+                {isSaving ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <Ionicons name="share-social" size={20} color="#fff" />
+                    <Text style={styles.shareActionButtonText}>Share</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -529,5 +674,52 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     textAlign: 'center',
     fontWeight: '500',
+  },
+  shareModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  shareModalContent: {
+    borderRadius: 20,
+    padding: 20,
+    width: '100%',
+    maxWidth: 420,
+    alignItems: 'center',
+  },
+  shareModalClose: {
+    position: 'absolute',
+    top: 15,
+    right: 15,
+    zIndex: 10,
+    padding: 5,
+  },
+  shareModalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  shareCardWrapper: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  shareButtonsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  shareActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
+  },
+  shareActionButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

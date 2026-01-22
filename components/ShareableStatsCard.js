@@ -6,9 +6,10 @@ import { getTravelerRank } from '../utils/rankingSystem';
 import { countryCoordinates } from '../utils/coordinates';
 
 const { width: screenWidth } = Dimensions.get('window');
-const CARD_SIZE = Math.min(screenWidth - 40, 380);
-const MAP_HEIGHT = CARD_SIZE * 0.28;
-const MAP_WIDTH = CARD_SIZE - 24; // Account for padding
+const CARD_WIDTH = Math.min(screenWidth - 40, 380);
+const CARD_HEIGHT = CARD_WIDTH * 1.25; // 4:5 aspect ratio (1.25 = 5/4)
+const MAP_HEIGHT = CARD_HEIGHT * 0.42; // Larger map to fill the space
+const MAP_WIDTH = CARD_WIDTH - 24; // Account for padding
 
 // Google Maps API key
 const GOOGLE_MAPS_API_KEY = 'AIzaSyBtzMruCCMpiFfqfdhLtoHWfSk3TZ5UvJ8';
@@ -18,46 +19,109 @@ const ferdiIcon = require('../assets/ferdi icon.png');
 const ferdiAppAsset = require('../assets/Ferdi App Asset.png');
 const ferdiStatsAsset = require('../assets/Ferdi Stats Asset.png');
 
-// Country name to ISO 2-letter code mapping
+// Country name to ISO 2-letter code mapping (comprehensive list for all 211+ territories)
 const countryToIsoCode = {
+  // North America
   'USA': 'us', 'United States': 'us', 'Canada': 'ca', 'Mexico': 'mx',
-  'UK': 'gb', 'United Kingdom': 'gb', 'England': 'gb', 'France': 'fr', 'Germany': 'de', 'Italy': 'it',
-  'Spain': 'es', 'Portugal': 'pt', 'Netherlands': 'nl', 'Belgium': 'be',
-  'Switzerland': 'ch', 'Austria': 'at', 'Greece': 'gr', 'Turkey': 'tr',
-  'Japan': 'jp', 'China': 'cn', 'South Korea': 'kr', 'India': 'in',
-  'Thailand': 'th', 'Vietnam': 'vn', 'Singapore': 'sg', 'Malaysia': 'my',
-  'Indonesia': 'id', 'Philippines': 'ph', 'Australia': 'au', 'New Zealand': 'nz',
-  'Brazil': 'br', 'Argentina': 'ar', 'Chile': 'cl', 'Peru': 'pe', 'Colombia': 'co',
-  'Egypt': 'eg', 'South Africa': 'za', 'Morocco': 'ma', 'Kenya': 'ke',
-  'United Arab Emirates': 'ae', 'Saudi Arabia': 'sa', 'Israel': 'il',
-  'Russia': 'ru', 'Poland': 'pl', 'Czech Republic': 'cz', 'Hungary': 'hu',
-  'Sweden': 'se', 'Norway': 'no', 'Denmark': 'dk', 'Finland': 'fi', 'Iceland': 'is',
-  'Ireland': 'ie', 'Croatia': 'hr', 'Romania': 'ro', 'Bulgaria': 'bg',
   'Costa Rica': 'cr', 'Panama': 'pa', 'Cuba': 'cu', 'Jamaica': 'jm',
-  'Hong Kong': 'hk', 'Taiwan': 'tw', 'Maldives': 'mv', 'Sri Lanka': 'lk',
-  'Nepal': 'np', 'Cambodia': 'kh', 'Laos': 'la', 'Myanmar': 'mm',
-  'Ecuador': 'ec', 'Bolivia': 'bo', 'Uruguay': 'uy', 'Paraguay': 'py',
-  'Tanzania': 'tz', 'Ethiopia': 'et', 'Tunisia': 'tn', 'Madagascar': 'mg',
+  'Guatemala': 'gt', 'Honduras': 'hn', 'El Salvador': 'sv', 'Nicaragua': 'ni',
+  'Belize': 'bz', 'Dominican Republic': 'do', 'Puerto Rico': 'pr', 'Haiti': 'ht',
+  'Bahamas': 'bs', 'Barbados': 'bb', 'Trinidad and Tobago': 'tt',
+  'Antigua and Barbuda': 'ag', 'Dominica': 'dm', 'Grenada': 'gd',
+  'Saint Kitts and Nevis': 'kn', 'Saint Lucia': 'lc', 'Saint Vincent and the Grenadines': 'vc',
+
+  // Europe
+  'UK': 'gb', 'United Kingdom': 'gb', 'England': 'gb', 'Scotland': 'gb', 'Wales': 'gb', 'Northern Ireland': 'gb',
+  'France': 'fr', 'Germany': 'de', 'Italy': 'it', 'Spain': 'es', 'Portugal': 'pt',
+  'Netherlands': 'nl', 'Belgium': 'be', 'Switzerland': 'ch', 'Austria': 'at', 'Greece': 'gr',
+  'Poland': 'pl', 'Sweden': 'se', 'Norway': 'no', 'Denmark': 'dk', 'Finland': 'fi', 'Iceland': 'is',
+  'Ireland': 'ie', 'Croatia': 'hr', 'Romania': 'ro', 'Bulgaria': 'bg', 'Czech Republic': 'cz',
+  'Hungary': 'hu', 'Slovakia': 'sk', 'Slovenia': 'si', 'Estonia': 'ee', 'Latvia': 'lv',
+  'Lithuania': 'lt', 'Luxembourg': 'lu', 'Malta': 'mt', 'Cyprus': 'cy', 'Albania': 'al',
+  'Serbia': 'rs', 'Montenegro': 'me', 'Bosnia and Herzegovina': 'ba', 'North Macedonia': 'mk',
+  'Kosovo': 'xk', 'Monaco': 'mc', 'Liechtenstein': 'li', 'San Marino': 'sm', 'Andorra': 'ad',
+  'Vatican City': 'va', 'Russia': 'ru', 'Ukraine': 'ua', 'Belarus': 'by', 'Moldova': 'md',
+
+  // Asia
+  'Japan': 'jp', 'China': 'cn', 'South Korea': 'kr', 'India': 'in', 'Thailand': 'th',
+  'Vietnam': 'vn', 'Singapore': 'sg', 'Malaysia': 'my', 'Indonesia': 'id', 'Philippines': 'ph',
+  'Cambodia': 'kh', 'Laos': 'la', 'Myanmar': 'mm', 'Hong Kong': 'hk', 'Taiwan': 'tw',
+  'Maldives': 'mv', 'Sri Lanka': 'lk', 'Nepal': 'np', 'Bhutan': 'bt', 'Bangladesh': 'bd',
+  'Pakistan': 'pk', 'Afghanistan': 'af', 'Uzbekistan': 'uz', 'Kazakhstan': 'kz',
+  'Turkmenistan': 'tm', 'Tajikistan': 'tj', 'Kyrgyzstan': 'kg', 'Mongolia': 'mn',
+  'North Korea': 'kp', 'Brunei': 'bn', 'Timor-Leste': 'tl', 'Macau': 'mo',
+  'Turkey': 'tr', 'United Arab Emirates': 'ae', 'Saudi Arabia': 'sa', 'Israel': 'il',
   'Qatar': 'qa', 'Kuwait': 'kw', 'Bahrain': 'bh', 'Oman': 'om', 'Jordan': 'jo',
-  'Lebanon': 'lb', 'Slovakia': 'sk', 'Slovenia': 'si', 'Estonia': 'ee',
-  'Latvia': 'lv', 'Lithuania': 'lt', 'Luxembourg': 'lu', 'Malta': 'mt',
-  'Cyprus': 'cy', 'Albania': 'al', 'Serbia': 'rs', 'Montenegro': 'me',
-  'Fiji': 'fj', 'Bahamas': 'bs', 'Barbados': 'bb', 'Trinidad and Tobago': 'tt',
-  'Scotland': 'gb', 'Wales': 'gb', 'Guatemala': 'gt', 'Honduras': 'hn',
-  'El Salvador': 'sv', 'Nicaragua': 'ni', 'Belize': 'bz', 'Dominican Republic': 'do',
-  'Puerto Rico': 'pr', 'Haiti': 'ht', 'Venezuela': 've', 'Guyana': 'gy',
-  'Suriname': 'sr', 'Nigeria': 'ng', 'Ghana': 'gh', 'Senegal': 'sn',
-  'Uganda': 'ug', 'Rwanda': 'rw', 'Botswana': 'bw', 'Namibia': 'na',
-  'Zimbabwe': 'zw', 'Zambia': 'zm', 'Mozambique': 'mz', 'Angola': 'ao',
-  'Algeria': 'dz', 'Libya': 'ly', 'Iraq': 'iq', 'Iran': 'ir', 'Pakistan': 'pk',
-  'Bangladesh': 'bd', 'Afghanistan': 'af', 'Uzbekistan': 'uz', 'Kazakhstan': 'kz',
-  'Mongolia': 'mn', 'North Korea': 'kp', 'Brunei': 'bn', 'Timor-Leste': 'tl',
-  'Papua New Guinea': 'pg', 'Solomon Islands': 'sb', 'Vanuatu': 'vu', 'Samoa': 'ws',
-  'Tonga': 'to', 'Palau': 'pw', 'Micronesia': 'fm', 'Guam': 'gu',
-  'Ukraine': 'ua', 'Belarus': 'by', 'Moldova': 'md', 'Georgia': 'ge',
-  'Armenia': 'am', 'Azerbaijan': 'az', 'North Macedonia': 'mk', 'Bosnia and Herzegovina': 'ba',
-  'Kosovo': 'xk', 'Monaco': 'mc', 'Liechtenstein': 'li', 'San Marino': 'sm',
-  'Andorra': 'ad', 'Vatican City': 'va',
+  'Lebanon': 'lb', 'Syria': 'sy', 'Iraq': 'iq', 'Iran': 'ir', 'Yemen': 'ye',
+  'Georgia': 'ge', 'Armenia': 'am', 'Azerbaijan': 'az', 'Palestine': 'ps',
+
+  // South America
+  'Brazil': 'br', 'Argentina': 'ar', 'Chile': 'cl', 'Peru': 'pe', 'Colombia': 'co',
+  'Ecuador': 'ec', 'Bolivia': 'bo', 'Uruguay': 'uy', 'Paraguay': 'py',
+  'Venezuela': 've', 'Guyana': 'gy', 'Suriname': 'sr',
+
+  // Africa
+  'Egypt': 'eg', 'South Africa': 'za', 'Morocco': 'ma', 'Kenya': 'ke', 'Tanzania': 'tz',
+  'Ethiopia': 'et', 'Tunisia': 'tn', 'Madagascar': 'mg', 'Nigeria': 'ng', 'Ghana': 'gh',
+  'Senegal': 'sn', 'Uganda': 'ug', 'Rwanda': 'rw', 'Botswana': 'bw', 'Namibia': 'na',
+  'Zimbabwe': 'zw', 'Zambia': 'zm', 'Mozambique': 'mz', 'Angola': 'ao', 'Algeria': 'dz',
+  'Libya': 'ly', 'Sudan': 'sd', 'South Sudan': 'ss', 'Somalia': 'so', 'Eritrea': 'er',
+  'Djibouti': 'dj', 'Cameroon': 'cm', 'Ivory Coast': 'ci', 'Mali': 'ml', 'Niger': 'ne',
+  'Burkina Faso': 'bf', 'Chad': 'td', 'Congo': 'cg', 'Democratic Republic of Congo': 'cd',
+  'Central African Republic': 'cf', 'Gabon': 'ga', 'Equatorial Guinea': 'gq',
+  'Benin': 'bj', 'Togo': 'tg', 'Liberia': 'lr', 'Sierra Leone': 'sl', 'Guinea': 'gn',
+  'Guinea-Bissau': 'gw', 'Gambia': 'gm', 'Mauritania': 'mr', 'Cape Verde': 'cv',
+  'Sao Tome and Principe': 'st', 'Comoros': 'km', 'Mauritius': 'mu', 'Seychelles': 'sc',
+  'Malawi': 'mw', 'Lesotho': 'ls', 'Eswatini': 'sz', 'Burundi': 'bi',
+
+  // Oceania
+  'Australia': 'au', 'New Zealand': 'nz', 'Fiji': 'fj', 'Papua New Guinea': 'pg',
+  'Solomon Islands': 'sb', 'Vanuatu': 'vu', 'Samoa': 'ws', 'Tonga': 'to',
+  'Palau': 'pw', 'Micronesia': 'fm', 'Guam': 'gu', 'Marshall Islands': 'mh',
+  'Kiribati': 'ki', 'Nauru': 'nr', 'Tuvalu': 'tv',
+
+  // Caribbean Territories & Dependencies
+  'Turks and Caicos': 'tc', 'Turks and Caicos Islands': 'tc',
+  'Cayman Islands': 'ky',
+  'US Virgin Islands': 'vi', 'U.S. Virgin Islands': 'vi', 'Virgin Islands': 'vi',
+  'British Virgin Islands': 'vg',
+  'Aruba': 'aw',
+  'Curacao': 'cw', 'Curaçao': 'cw',
+  'Sint Maarten': 'sx',
+  'Saint Martin': 'mf', 'St. Martin': 'mf',
+  'Guadeloupe': 'gp',
+  'Martinique': 'mq',
+  'Anguilla': 'ai',
+  'Montserrat': 'ms',
+  'Bermuda': 'bm',
+
+  // Other Territories
+  'French Polynesia': 'pf',
+  'New Caledonia': 'nc',
+  'American Samoa': 'as',
+  'Northern Mariana Islands': 'mp',
+  'Cook Islands': 'ck',
+  'French Guiana': 'gf',
+  'Reunion': 're', 'Réunion': 're',
+  'Mayotte': 'yt',
+  'Saint Pierre and Miquelon': 'pm',
+  'Wallis and Futuna': 'wf',
+  'Greenland': 'gl',
+  'Faroe Islands': 'fo',
+  'Isle of Man': 'im',
+  'Jersey': 'je',
+  'Guernsey': 'gg',
+  'Gibraltar': 'gi',
+  'Falkland Islands': 'fk',
+  'Saint Helena': 'sh',
+  'Ascension Island': 'ac',
+  'Tristan da Cunha': 'ta',
+  'Pitcairn Islands': 'pn',
+  'Tokelau': 'tk',
+  'Niue': 'nu',
+  'Norfolk Island': 'nf',
+  'Christmas Island': 'cx',
+  'Cocos Islands': 'cc',
 };
 
 // Continent mapping
@@ -152,17 +216,17 @@ const ShareableStatsCard = forwardRef(({
     const params = new URLSearchParams({
       center: '20,0',
       zoom: '1',
-      size: '640x320',
+      size: '640x400',
       scale: '2',
       maptype: 'roadmap',
       style: 'feature:all|element:labels|visibility:off',
       key: GOOGLE_MAPS_API_KEY,
     });
 
-    // Add dark style
+    // Add improved styling - ocean black to match background, land green
     params.append('style', 'feature:water|color:0x0a0a0a');
-    params.append('style', 'feature:landscape|color:0x1a1a1a');
-    params.append('style', 'feature:administrative.country|element:geometry.stroke|color:0x333333');
+    params.append('style', 'feature:landscape|color:0x2d4a3e');
+    params.append('style', 'feature:administrative.country|element:geometry.stroke|color:0x4ade80|weight:1');
 
     // Add markers for visited countries with multiple colors for visual pop
     const markerColors = [
@@ -250,15 +314,9 @@ const ShareableStatsCard = forwardRef(({
                   <Text style={styles.statLabel}>Countries</Text>
                   <Text style={styles.statValue}>{totalCountries}</Text>
                 </View>
-              </View>
-              <View style={styles.statsRow}>
                 <View style={styles.statItem}>
                   <Text style={styles.statLabel}>Cities</Text>
                   <Text style={styles.statValue}>{totalCities}</Text>
-                </View>
-                <View style={styles.statItem}>
-                  <Text style={styles.statLabel}>% of Globe</Text>
-                  <Text style={styles.statValue}>{worldCoverage}%</Text>
                 </View>
               </View>
               <View style={styles.statsRow}>
@@ -275,10 +333,6 @@ const ShareableStatsCard = forwardRef(({
 
             {/* Rank Badge */}
             <View style={styles.rankContainer}>
-              <View style={styles.rankLabelRow}>
-                <Ionicons name="trophy" size={12} color="#FFD700" />
-                <Text style={styles.rankLabel}>My Rank</Text>
-              </View>
               <View style={styles.rankBadge}>
                 <Text style={styles.rankName}>{rankName}</Text>
                 <Text style={styles.rankLevel}>Lvl.{rankLevel || '1'}</Text>
@@ -321,8 +375,8 @@ const ShareableStatsCard = forwardRef(({
 
 const styles = StyleSheet.create({
   container: {
-    width: CARD_SIZE,
-    height: CARD_SIZE,
+    width: CARD_WIDTH,
+    height: CARD_HEIGHT,
     backgroundColor: '#0a0a0a',
     borderRadius: 16,
     overflow: 'hidden',
@@ -370,33 +424,36 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden',
     backgroundColor: 'transparent',
+    borderRadius: 8,
   },
   mapImage: {
     width: '100%',
-    height: '100%',
+    height: '120%',
     borderRadius: 8,
+    marginTop: -10,
   },
   statsSection: {
-    marginTop: 6,
+    marginTop: 10,
+    flex: 1,
   },
   statsTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 10,
   },
   statsTitle: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
     fontStyle: 'italic',
   },
   statsTitleImage: {
-    height: 24,
-    width: 120,
-    minHeight: 24,
-    minWidth: 120,
+    height: 28,
+    width: 140,
+    minHeight: 28,
+    minWidth: 140,
     flexShrink: 0,
-    transform: [{ scale: 1.5 }],
+    transform: [{ scale: 1.6 }],
     marginLeft: 12,
   },
   titleUnderline: {
@@ -414,88 +471,93 @@ const styles = StyleSheet.create({
   },
   statsRow: {
     flexDirection: 'row',
-    marginBottom: 3,
+    marginBottom: 6,
+    justifyContent: 'space-between',
   },
   statItem: {
     flex: 1,
+    minWidth: 0,
   },
   statLabel: {
     color: '#888',
-    fontSize: 9,
+    fontSize: 11,
   },
   statValue: {
     color: '#4ade80',
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: 'bold',
   },
   statValueSmall: {
     color: '#4ade80',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 'bold',
   },
   rankContainer: {
     alignItems: 'center',
     marginLeft: 8,
-    transform: [{ translateX: -25 }, { translateY: 10 }],
+    transform: [{ translateX: -15 }, { translateY: 5 }],
   },
-  rankLabelRow: {
+  rankLabelArc: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginBottom: 3,
+    justifyContent: 'center',
+    marginBottom: 1,
+    height: 24,
   },
-  rankLabel: {
-    color: '#fff',
-    fontSize: 11,
+  rankLabelChar: {
+    color: '#FFFFFF',
+    fontSize: 13,
     fontWeight: 'bold',
     fontStyle: 'italic',
+    lineHeight: 13,
+    textAlign: 'center',
   },
   rankBadge: {
     backgroundColor: '#4ade80',
-    borderRadius: 35,
-    width: 65,
-    height: 65,
+    borderRadius: 40,
+    width: 75,
+    height: 75,
     alignItems: 'center',
     justifyContent: 'center',
   },
   rankName: {
     color: '#000',
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: 'bold',
     textAlign: 'center',
   },
   rankLevel: {
     color: '#000',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
   },
   bottomSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
-    gap: 6,
+    marginTop: 8,
+    gap: 8,
   },
   ferdiIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
+    width: 38,
+    height: 38,
+    borderRadius: 10,
   },
   ferdiIconPlaceholder: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
+    width: 38,
+    height: 38,
+    borderRadius: 10,
     backgroundColor: '#1a3a5c',
     alignItems: 'center',
     justifyContent: 'center',
   },
   ferdiIconText: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
   },
   storeBadgesContainer: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 8,
   },
   storeBadge: {
     flexDirection: 'row',
@@ -503,18 +565,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
     borderWidth: 1,
     borderColor: '#666',
-    borderRadius: 4,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    gap: 3,
+    borderRadius: 5,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    gap: 4,
   },
   storeSmallText: {
     color: '#fff',
-    fontSize: 5,
+    fontSize: 6,
   },
   storeBigText: {
     color: '#fff',
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: 'bold',
   },
   flagRibbon: {
