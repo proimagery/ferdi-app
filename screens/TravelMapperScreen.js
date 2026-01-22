@@ -4,7 +4,7 @@ import MapView, { Marker, Polyline } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
-import { countryCoordinates } from '../utils/coordinates';
+import { countryCoordinates, officialCountryNames } from '../utils/coordinates';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
@@ -91,7 +91,7 @@ export default function TravelMapperScreen({ navigation, route }) {
   // Legacy support
   const [selectedCountries, setSelectedCountries] = useState([]);
 
-  const countries = Object.keys(countryCoordinates).sort();
+  const countries = officialCountryNames;
 
   // Geocode an address using Google Maps API
   const geocodeAddress = async (address) => {

@@ -1,5 +1,6 @@
 // Currency data for countries (exchange rates relative to USD)
-// Rates are approximate and should be updated periodically
+// Rates are updated daily via currencyService
+// This object serves as both default rates and gets updated with live rates
 export const currencyData = {
   'Afghanistan': { currency: 'AFN', symbol: '؋', rate: 88.5 },
   'Antigua and Barbuda': { currency: 'XCD', symbol: 'EC$', rate: 2.70 },
@@ -254,6 +255,29 @@ export const currencyData = {
   'Reunion': { currency: 'EUR', symbol: '€', rate: 0.92 },
   'Zanzibar': { currency: 'TZS', symbol: 'TSh', rate: 2510.0 },
   'North Macedonia': { currency: 'MKD', symbol: 'ден', rate: 56.5 },
+};
+
+/**
+ * Updates currency rates in currencyData with live rates
+ * Called by currencyService after fetching new rates
+ * @param {Object} liveRates - Object mapping currency codes to rates
+ */
+export const updateCurrencyRates = (liveRates) => {
+  if (!liveRates || typeof liveRates !== 'object') {
+    return;
+  }
+
+  // Update rates for all countries
+  Object.keys(currencyData).forEach(countryName => {
+    const countryInfo = currencyData[countryName];
+    const liveRate = liveRates[countryInfo.currency];
+
+    if (liveRate && typeof liveRate === 'number') {
+      currencyData[countryName].rate = liveRate;
+    }
+  });
+
+  console.log('Currency rates updated in currencyData');
 };
 
 // Helper function to get currency info for a country

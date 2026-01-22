@@ -17,7 +17,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAppContext } from '../context/AppContext';
 import { useAuthGuard } from '../hooks/useAuthGuard';
 import AuthPromptModal from '../components/AuthPromptModal';
-import { countryCoordinates } from '../utils/coordinates';
+import { officialCountryNames } from '../utils/coordinates';
 import { getCountryFlag } from '../utils/countryFlags';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -35,7 +35,7 @@ export default function AddCompletedTripScreen({ navigation }) {
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [newVisitYear, setNewVisitYear] = useState('');
 
-  const countries = Object.keys(countryCoordinates).sort();
+  const countries = officialCountryNames;
 
   // Get list of countries that have been visited
   const visitedCountryNames = [...new Set(completedTrips.map(t => t.country))];

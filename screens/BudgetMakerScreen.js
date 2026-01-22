@@ -16,7 +16,7 @@ import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppContext } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
-import { countryCoordinates } from '../utils/coordinates';
+import { officialCountryNames } from '../utils/coordinates';
 import { getCurrencyInfo } from '../utils/currencyData';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthGuard } from '../hooks/useAuthGuard';
@@ -29,6 +29,10 @@ export default function BudgetMakerScreen({ navigation, route }) {
   const { theme } = useTheme();
   const { addBudget, updateBudget, budgets } = useAppContext();
   const { checkAuth, showAuthModal, setShowAuthModal, featureMessage } = useAuthGuard();
+
+  // Custom category modal state
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
 
   // Edit mode detection
   const editMode = route?.params?.editMode;
@@ -148,8 +152,8 @@ export default function BudgetMakerScreen({ navigation, route }) {
     return null;
   });
 
-  // Get all countries from coordinates
-  const allCountryNames = Object.keys(countryCoordinates).sort();
+  // Get all official countries (FIFA + UN standard, no duplicates)
+  const allCountryNames = officialCountryNames;
 
   // Recommended presets
   const presets = {
@@ -253,21 +257,15 @@ export default function BudgetMakerScreen({ navigation, route }) {
   };
 
   const addCustomLineItem = () => {
-    Alert.prompt(
-      'Add Custom Item',
-      'Enter item name',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Add',
-          onPress: (name) => {
-            if (name && name.trim()) {
-              setLineItems([...lineItems, { name: name.trim(), percent: 0, icon: 'pricetag' }]);
-            }
-          },
-        },
-      ]
-    );
+    setShowAddCategoryModal(true);
+  };
+
+  const handleAddCategory = () => {
+    if (newCategoryName && newCategoryName.trim()) {
+      setLineItems([...lineItems, { name: newCategoryName.trim(), percent: 0, icon: 'pricetag' }]);
+      setNewCategoryName('');
+      setShowAddCategoryModal(false);
+    }
   };
 
   const saveBudget = () => {
@@ -1166,13 +1164,6 @@ export default function BudgetMakerScreen({ navigation, route }) {
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Budget Breakdown</Text>
 
-          <View style={styles.budgetBreakdownRow}>
-            <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>%</Text>
-            <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>TOTAL</Text>
-            <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>USD/DAY</Text>
-            <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>{currencyCode}/DAY</Text>
-          </View>
-
           {lineItems.map((item, index) => {
             const percent = mode === 'recommended' ? getLineItemPercent(item.name) : item.percent;
             const total = (budgetAfterAccommodation * percent) / 100;
@@ -1206,6 +1197,15 @@ export default function BudgetMakerScreen({ navigation, route }) {
                   </>
                 )}
 
+                {/* Column labels above values for this line item */}
+                <View style={styles.budgetBreakdownRow}>
+                  <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>%</Text>
+                  <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>TOTAL</Text>
+                  <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>USD/DAY</Text>
+                  <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>{currencyCode}/DAY</Text>
+                </View>
+
+                {/* Values for this line item */}
                 <View style={styles.budgetBreakdownRow}>
                   <Text style={[styles.breakdownValue, { color: theme.text }]}>{percent}%</Text>
                   <Text style={[styles.breakdownValue, { color: theme.text }]}>${Math.round(total).toLocaleString()}</Text>
@@ -1303,14 +1303,6 @@ export default function BudgetMakerScreen({ navigation, route }) {
                       </View>
                     </View>
 
-                    {/* Line Items Header */}
-                    <View style={styles.budgetBreakdownRow}>
-                      <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>%</Text>
-                      <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>TOTAL</Text>
-                      <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>USD/DAY</Text>
-                      <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>{selectedCountryData.currency}/DAY</Text>
-                    </View>
-
                     {/* Line Items for Selected Country */}
                     {countryItems.map((item, index) => {
                       const percent = mode === 'recommended' ? getLineItemPercent(item.name) : item.percent;
@@ -1345,6 +1337,15 @@ export default function BudgetMakerScreen({ navigation, route }) {
                             </>
                           )}
 
+                          {/* Column labels above values for this line item */}
+                          <View style={styles.budgetBreakdownRow}>
+                            <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>%</Text>
+                            <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>TOTAL</Text>
+                            <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>USD/DAY</Text>
+                            <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>{selectedCountryData.currency}/DAY</Text>
+                          </View>
+
+                          {/* Values for this line item */}
                           <View style={styles.budgetBreakdownRow}>
                             <Text style={[styles.breakdownValue, { color: theme.text }]}>{percent}%</Text>
                             <Text style={[styles.breakdownValue, { color: theme.text }]}>${Math.round(total).toLocaleString()}</Text>
@@ -1391,6 +1392,57 @@ export default function BudgetMakerScreen({ navigation, route }) {
         onClose={() => setShowAuthModal(false)}
         feature={featureMessage}
       />
+
+      {/* Add Custom Category Modal */}
+      <Modal
+        visible={showAddCategoryModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowAddCategoryModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowAddCategoryModal(false)}
+        >
+          <View style={[styles.addCategoryModal, { backgroundColor: theme.cardBackground }]}>
+            <Text style={[styles.addCategoryTitle, { color: theme.text }]}>Add Budget Category</Text>
+            <Text style={[styles.addCategorySubtitle, { color: theme.textSecondary }]}>
+              Enter the name of your custom budget category
+            </Text>
+            <TextInput
+              style={[styles.addCategoryInput, {
+                backgroundColor: theme.background,
+                color: theme.text,
+                borderColor: theme.border
+              }]}
+              placeholder="e.g., Shopping, Souvenirs, Tips"
+              placeholderTextColor={theme.textSecondary}
+              value={newCategoryName}
+              onChangeText={setNewCategoryName}
+              autoFocus={true}
+              onSubmitEditing={handleAddCategory}
+            />
+            <View style={styles.addCategoryButtons}>
+              <TouchableOpacity
+                style={[styles.addCategoryButton, styles.cancelButton, { borderColor: theme.border }]}
+                onPress={() => {
+                  setNewCategoryName('');
+                  setShowAddCategoryModal(false);
+                }}
+              >
+                <Text style={[styles.cancelButtonText, { color: theme.textSecondary }]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.addCategoryButton, styles.confirmButton, { backgroundColor: theme.primary }]}
+                onPress={handleAddCategory}
+              >
+                <Text style={styles.confirmButtonText}>Add Category</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -2079,5 +2131,59 @@ const styles = StyleSheet.create({
   footerLogo: {
     width: 400,
     height: 120,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  addCategoryModal: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: 15,
+    padding: 25,
+  },
+  addCategoryTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  addCategorySubtitle: {
+    fontSize: 14,
+    marginBottom: 20,
+  },
+  addCategoryInput: {
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 15,
+    fontSize: 16,
+    marginBottom: 20,
+  },
+  addCategoryButtons: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  addCategoryButton: {
+    flex: 1,
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    borderWidth: 1,
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  confirmButton: {
+    // backgroundColor set dynamically
+  },
+  confirmButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
   },
 });

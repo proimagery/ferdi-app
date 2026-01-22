@@ -8,7 +8,7 @@ import { useAuthGuard } from '../hooks/useAuthGuard';
 import AuthPromptModal from '../components/AuthPromptModal';
 import SpinningGlobe from '../components/SpinningGlobe';
 import { Picker } from '@react-native-picker/picker';
-import { countryCoordinates } from '../utils/coordinates';
+import { countryCoordinates, officialCountryNames } from '../utils/coordinates';
 import { presetAvatars } from '../utils/presetAvatars';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../lib/supabase';
@@ -135,7 +135,7 @@ export default function EditProfileScreen({ navigation }) {
   const [searchNext2, setSearchNext2] = useState('');
   const [searchNext3, setSearchNext3] = useState('');
 
-  const countries = Object.keys(countryCoordinates).sort();
+  const countries = officialCountryNames;
 
   // Calculate statistics
   const allCountries = [

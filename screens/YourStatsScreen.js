@@ -27,8 +27,9 @@ export default function YourStatsScreen({ navigation }) {
   const totalPlannedTrips = trips.length;
   const totalCitiesVisited = visitedCities.length;
 
-  // Approximate world countries count
-  const worldCountries = 195;
+  // FIFA member count (211 territories) - most comprehensive list including individual nations
+  // This includes UN members (193) plus territories like England, Scotland, Wales, etc.
+  const worldCountries = 211;
   const worldCoverage = ((totalCountriesVisited / worldCountries) * 100).toFixed(1);
 
   const stats = [

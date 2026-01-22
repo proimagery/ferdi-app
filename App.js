@@ -1,4 +1,7 @@
 import React, { useEffect } from 'react';
+import { initializeCurrencyService } from './utils/currencyService';
+import { initializeRankingService } from './utils/rankingService';
+import { MAX_FONT_SIZE_MULTIPLIER } from './utils/textScaling';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
@@ -9,6 +12,13 @@ import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { presetAvatars } from './utils/presetAvatars';
 import { configureNotifications } from './utils/notifications';
+
+// Configure font scaling for accessibility
+// This ensures text scales with user's accessibility settings while preventing layout breaks
+if (Text.defaultProps == null) {
+  Text.defaultProps = {};
+}
+Text.defaultProps.maxFontSizeMultiplier = MAX_FONT_SIZE_MULTIPLIER;
 
 // Configure notifications on app start
 configureNotifications();
@@ -397,6 +407,12 @@ function UsernameSetupNavigator() {
 function RootNavigator() {
   const { user, initializing, needsUsername, isGuest } = useAuth();
   const { theme, isDarkMode } = useTheme();
+
+  // Initialize currency and ranking services on app start
+  useEffect(() => {
+    initializeCurrencyService();
+    initializeRankingService();
+  }, []);
 
   // Only show brief loading on first initialization (max 1.5 seconds)
   if (initializing) {

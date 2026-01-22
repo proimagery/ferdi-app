@@ -36,7 +36,7 @@ export default function ManageCountriesScreen({ navigation, route }) {
   const returnScreen = route.params?.returnScreen || 'YourStats';
 
   // List of all countries (simplified version from WorldRankScreen)
-  const allCountries = Object.keys(countryCoordinates).sort();
+  const allCountries = officialCountryNames;
 
   // List of months
   const months = [

@@ -36,10 +36,11 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
   const [isLoading, setIsLoading] = useState(true);
 
   // Fallback timeout to ensure loading indicator doesn't stay forever
+  // Longer timeout for users with many countries
   React.useEffect(() => {
     const timeout = setTimeout(() => {
       setIsLoading(false);
-    }, 3000);
+    }, 5000);
     return () => clearTimeout(timeout);
   }, []);
 
@@ -590,8 +591,9 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
           scalesPageToFit={true}
           originWhitelist={['*']}
           onLoad={() => {
-            // Give globe a moment to initialize before hiding loader
-            setTimeout(() => setIsLoading(false), 500);
+            // Give globe more time to initialize all markers before hiding loader
+            // Longer delay helps when users have many countries
+            setTimeout(() => setIsLoading(false), 1500);
           }}
         />
       </View>
