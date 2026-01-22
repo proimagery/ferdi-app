@@ -23,7 +23,7 @@ export default function LeaderboardScreen({ navigation }) {
   const { theme } = useTheme();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
-  const [selectedTab, setSelectedTab] = useState('allTime'); // 'month', 'year', 'allTime'
+  const [selectedTab, setSelectedTab] = useState('allTime'); // 'year', 'allTime'
   const [leaderboardData, setLeaderboardData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -43,34 +43,31 @@ export default function LeaderboardScreen({ navigation }) {
       // For each profile, count their completed trips (countries visited)
       const leaderboardEntries = await Promise.all(
         profiles.map(async (profile) => {
-          // Get count of completed trips for this user
-          let query = supabase
+          // Get ALL completed trips for rank calculation (all-time)
+          const { data: allTrips, error: allTripsError } = await supabase
             .from('completed_trips')
             .select('id, country, created_at')
             .eq('user_id', profile.id);
 
-          // Apply time filter based on selected tab
-          if (selectedTab === 'month') {
-            const startOfMonth = new Date();
-            startOfMonth.setDate(1);
-            startOfMonth.setHours(0, 0, 0, 0);
-            query = query.gte('created_at', startOfMonth.toISOString());
-          } else if (selectedTab === 'year') {
-            const startOfYear = new Date();
-            startOfYear.setMonth(0, 1);
-            startOfYear.setHours(0, 0, 0, 0);
-            query = query.gte('created_at', startOfYear.toISOString());
-          }
-
-          const { data: trips, error: tripError } = await query;
-
-          if (tripError) {
-            console.log('Error fetching trips for user:', profile.id, tripError);
+          if (allTripsError) {
+            console.log('Error fetching all trips for user:', profile.id, allTripsError);
             return null;
           }
 
-          // Get unique countries
-          const uniqueCountries = [...new Set(trips?.map(t => t.country) || [])];
+          // Get all-time unique countries for rank calculation
+          const allTimeCountries = [...new Set(allTrips?.map(t => t.country) || [])];
+
+          // Get timeframe-specific count for display
+          let displayTrips = allTrips;
+          if (selectedTab === 'year') {
+            const startOfYear = new Date();
+            startOfYear.setMonth(0, 1);
+            startOfYear.setHours(0, 0, 0, 0);
+            displayTrips = allTrips.filter(trip => new Date(trip.created_at) >= startOfYear);
+          }
+
+          // Get unique countries for the selected timeframe
+          const displayCountries = [...new Set(displayTrips?.map(t => t.country) || [])];
 
           return {
             id: profile.id,
@@ -80,8 +77,9 @@ export default function LeaderboardScreen({ navigation }) {
             bio: profile.bio || '',
             avatar: profile.avatar,
             avatarType: profile.avatar_type || 'default',
-            countriesVisited: uniqueCountries,
-            countryCount: uniqueCountries.length,
+            countriesVisited: allTimeCountries, // All-time for rank
+            allTimeCount: allTimeCountries.length, // All-time count for rank calculation
+            countryCount: displayCountries.length, // Display count for the selected timeframe
           };
         })
       );
@@ -158,21 +156,6 @@ export default function LeaderboardScreen({ navigation }) {
         <TouchableOpacity
           style={[
             styles.tab,
-            selectedTab === 'month' && [styles.tabActive, { backgroundColor: theme.primary }]
-          ]}
-          onPress={() => setSelectedTab('month')}
-        >
-          <Text style={[
-            styles.tabText,
-            { color: theme.textSecondary },
-            selectedTab === 'month' && [styles.tabTextActive, { color: theme.background }]
-          ]}>
-            Month
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.tab,
             selectedTab === 'year' && [styles.tabActive, { backgroundColor: theme.primary }]
           ]}
           onPress={() => setSelectedTab('year')}
@@ -215,9 +198,7 @@ export default function LeaderboardScreen({ navigation }) {
           <Ionicons name="trophy-outline" size={60} color={theme.textSecondary} />
           <Text style={[styles.emptyTitle, { color: theme.text }]}>No Travelers Yet</Text>
           <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-            {selectedTab === 'month'
-              ? 'No countries have been added this month yet.'
-              : selectedTab === 'year'
+            {selectedTab === 'year'
               ? 'No countries have been added this year yet.'
               : 'Be the first to add countries to your travel history!'}
           </Text>
@@ -236,7 +217,8 @@ export default function LeaderboardScreen({ navigation }) {
           }
         >
           {leaderboardData.map((leaderboardUser, index) => {
-            const rank = getTravelerRank(leaderboardUser.countryCount);
+            // Always use all-time count for rank badge
+            const rank = getTravelerRank(leaderboardUser.allTimeCount);
             const rankColor = getRankColor(index);
             const rankIcon = getRankIcon(index);
             const isCurrentUser = leaderboardUser.id === user?.id;

@@ -188,6 +188,25 @@ export default function DashboardScreen({ navigation }) {
         />
       </View>
 
+      {/* Travel Stats Wide Button */}
+      <View style={styles.travelStatsSection}>
+        <TouchableOpacity
+          style={[styles.travelStatsButton, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+          onPress={() => navigation.navigate('YourStats')}
+        >
+          <View style={[styles.travelStatsIconContainer, { backgroundColor: '#a78bfa20' }]}>
+            <Ionicons name="stats-chart" size={28} color="#a78bfa" />
+          </View>
+          <View style={styles.travelStatsTextContainer}>
+            <Text style={[styles.travelStatsTitle, { color: theme.text }]}>My Travel Stats</Text>
+            <Text style={[styles.travelStatsDescription, { color: theme.textSecondary }]}>
+              View and add to your travel history
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={24} color={theme.textSecondary} />
+        </TouchableOpacity>
+      </View>
+
       {/* Globe Info Modal Overlay */}
       <Modal
         visible={showGlobeInfo}
@@ -267,9 +286,9 @@ export default function DashboardScreen({ navigation }) {
         )}
       </View>
 
-      {/* Quick Access Row - Travel Stats, Travel Buddies, Leaderboard */}
+      {/* Quick Access Row - World Rank, Travel Buddies, Leaderboard */}
       <View style={styles.quickAccessRow}>
-        {features.filter(f => ['YourStats', 'TravelBuddies', 'Leaderboard'].includes(f.screen)).map((feature, index) => {
+        {features.filter(f => ['WorldRank', 'TravelBuddies', 'Leaderboard'].includes(f.screen)).map((feature, index) => {
           const hasBadge = feature.screen === 'TravelBuddies' && buddyRequestProfiles.length > 0;
           return (
             <TouchableOpacity
@@ -299,7 +318,7 @@ export default function DashboardScreen({ navigation }) {
       </View>
 
       <View style={styles.grid}>
-        {features.filter(f => !['YourStats', 'TravelBuddies', 'Leaderboard'].includes(f.screen)).map((feature, index) => {
+        {features.filter(f => !['YourStats', 'WorldRank', 'TravelBuddies', 'Leaderboard'].includes(f.screen)).map((feature, index) => {
           const hasBadge = feature.screen === 'TravelBuddies' && buddyRequestProfiles.length > 0;
           return (
             <TouchableOpacity
@@ -492,8 +511,10 @@ const styles = StyleSheet.create({
   },
   rankSection: {
     paddingHorizontal: 20,
-    paddingTop: 0,
+    paddingTop: 10,
     paddingBottom: 0,
+    marginTop: 0,
+    marginBottom: -5,
   },
   rankHeader: {
     flexDirection: 'row',
@@ -571,6 +592,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 8,
+  },
+  travelStatsSection: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 10,
+  },
+  travelStatsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 15,
+    borderWidth: 1,
+  },
+  travelStatsIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 15,
+  },
+  travelStatsTextContainer: {
+    flex: 1,
+  },
+  travelStatsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 3,
+  },
+  travelStatsDescription: {
+    fontSize: 14,
   },
   globeHeader: {
     flexDirection: 'row',
