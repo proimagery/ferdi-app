@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { View, StyleSheet, Dimensions, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useMemo, useState, useRef, useCallback } from 'react';
+import { View, StyleSheet, Dimensions, TouchableOpacity, ActivityIndicator, Text } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { countryCoordinates } from '../utils/coordinates';
@@ -34,15 +34,43 @@ const cityColors = [
 
 export default function SpinningGlobe({ completedTrips = [], visitedCities = [], onFullscreen, onDownload, isFullscreen = false, size = 'normal', background = false }) {
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const webViewRef = useRef(null);
+
+  // Handle messages from WebView
+  const handleMessage = useCallback((event) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      if (data.type === 'GLOBE_READY') {
+        setIsLoading(false);
+        setHasError(false);
+      } else if (data.type === 'GLOBE_ERROR') {
+        setIsLoading(false);
+        setHasError(true);
+      }
+    } catch (e) {
+      // Ignore parse errors
+    }
+  }, []);
+
+  // Retry loading the globe
+  const handleRetry = useCallback(() => {
+    setIsLoading(true);
+    setHasError(false);
+    setRetryCount(prev => prev + 1);
+  }, []);
 
   // Fallback timeout to ensure loading indicator doesn't stay forever
-  // Longer timeout for users with many countries
   React.useEffect(() => {
     const timeout = setTimeout(() => {
-      setIsLoading(false);
-    }, 5000);
+      if (isLoading) {
+        setIsLoading(false);
+        // Don't show error immediately - globe might still be rendering
+      }
+    }, 8000);
     return () => clearTimeout(timeout);
-  }, []);
+  }, [isLoading, retryCount]);
 
   // Convert countries to multi-colored markers with labels and visit info
   const countryMarkers = useMemo(() => {
@@ -98,7 +126,7 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
     }).filter(marker => marker.lat !== 0 || marker.lng !== 0);
   }, [visitedCities]);
 
-  // Create HTML with globe.gl library
+  // Create HTML with globe.gl library - with error handling and retry logic
   const html = `
 <!DOCTYPE html>
 <html>
@@ -269,14 +297,72 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
       font-size: 8px;
     }
   </style>
-  <script src="https://unpkg.com/three@0.150.0/build/three.min.js"></script>
-  <script src="https://unpkg.com/globe.gl@2.26.0/dist/globe.gl.min.js"></script>
 </head>
 <body>
   <div id="globeViz"></div>
   <script>
-    const countryData = ${JSON.stringify(countryMarkers)};
-    const cityData = ${JSON.stringify(cityMarkers)};
+    // Script loading with error handling and retry
+    const CDN_URLS = {
+      three: [
+        'https://unpkg.com/three@0.150.0/build/three.min.js',
+        'https://cdn.jsdelivr.net/npm/three@0.150.0/build/three.min.js',
+        'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.150.0/three.min.js'
+      ],
+      globe: [
+        'https://unpkg.com/globe.gl@2.26.0/dist/globe.gl.min.js',
+        'https://cdn.jsdelivr.net/npm/globe.gl@2.26.0/dist/globe.gl.min.js'
+      ]
+    };
+
+    // Globe texture fallbacks
+    const GLOBE_TEXTURES = [
+      'https://unpkg.com/three-globe@2.27.2/example/img/earth-blue-marble.jpg',
+      'https://cdn.jsdelivr.net/npm/three-globe@2.27.2/example/img/earth-blue-marble.jpg',
+      'https://raw.githubusercontent.com/vasturiano/three-globe/master/example/img/earth-blue-marble.jpg'
+    ];
+
+    function postMessage(type, data = {}) {
+      if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type, ...data }));
+      }
+    }
+
+    function loadScript(urls, index = 0) {
+      return new Promise((resolve, reject) => {
+        if (index >= urls.length) {
+          reject(new Error('All CDN sources failed'));
+          return;
+        }
+
+        const script = document.createElement('script');
+        script.src = urls[index];
+        script.onload = resolve;
+        script.onerror = () => {
+          console.warn('Failed to load from:', urls[index]);
+          loadScript(urls, index + 1).then(resolve).catch(reject);
+        };
+        document.head.appendChild(script);
+      });
+    }
+
+    async function initGlobe() {
+      try {
+        // Load Three.js first
+        await loadScript(CDN_URLS.three);
+        // Then load Globe.gl
+        await loadScript(CDN_URLS.globe);
+
+        // Initialize the globe
+        setupGlobe();
+      } catch (error) {
+        console.error('Failed to load globe libraries:', error);
+        postMessage('GLOBE_ERROR', { error: error.message });
+      }
+    }
+
+    function setupGlobe() {
+      const countryData = ${JSON.stringify(countryMarkers)};
+      const cityData = ${JSON.stringify(cityMarkers)};
 
     let popupOpen = false;
     let currentPopupEl = null;
@@ -430,10 +516,13 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
     // Build markers data - countries first, then cities
     const allMarkersData = [...countryData, ...cityData];
 
-    world = Globe()
-      (document.getElementById('globeViz'))
-      .globeImageUrl('https://unpkg.com/three-globe@2.27.2/example/img/earth-blue-marble.jpg')
-      .backgroundColor('#000000')
+    // Try loading globe with texture fallbacks
+    let textureIndex = 0;
+    function tryLoadGlobe() {
+      world = Globe()
+        (document.getElementById('globeViz'))
+        .globeImageUrl(GLOBE_TEXTURES[textureIndex])
+        .backgroundColor('#000000')
       .atmosphereColor('#4ade80')
       .atmosphereAltitude(0.15)
       .htmlElementsData(allMarkersData)
@@ -555,13 +644,26 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
     document.getElementById('globeViz').addEventListener('pointerdown', stopAutoRotate);
     ` : ''}
 
-    // Set initial view
-    world.pointOfView({ altitude: 2.5 });
+      // Set initial view
+      world.pointOfView({ altitude: 2.5 });
 
-    // Animate
-    (function animate() {
-      requestAnimationFrame(animate);
-    })();
+      // Animate
+      (function animate() {
+        requestAnimationFrame(animate);
+      })();
+
+      // Notify React Native that globe is ready
+      setTimeout(() => {
+        postMessage('GLOBE_READY');
+      }, 500);
+    }
+
+    // Start loading the globe with texture
+    tryLoadGlobe();
+    }
+
+    // Initialize everything
+    initGlobe();
   </script>
 </body>
 </html>
@@ -581,6 +683,8 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
     <View style={getContainerStyle()}>
       <View style={styles.webviewWrapper}>
         <WebView
+          key={`globe-${retryCount}`}
+          ref={webViewRef}
           source={{ html }}
           style={styles.webview}
           scrollEnabled={false}
@@ -590,18 +694,39 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
           startInLoadingState={false}
           scalesPageToFit={true}
           originWhitelist={['*']}
-          onLoad={() => {
-            // Give globe more time to initialize all markers before hiding loader
-            // Longer delay helps when users have many countries
-            setTimeout(() => setIsLoading(false), 1500);
+          onMessage={handleMessage}
+          onError={(syntheticEvent) => {
+            const { nativeEvent } = syntheticEvent;
+            console.warn('WebView error:', nativeEvent);
+            setHasError(true);
+            setIsLoading(false);
           }}
+          onHttpError={(syntheticEvent) => {
+            const { nativeEvent } = syntheticEvent;
+            console.warn('WebView HTTP error:', nativeEvent);
+          }}
+          cacheEnabled={true}
+          cacheMode="LOAD_CACHE_ELSE_NETWORK"
         />
       </View>
 
       {/* Loading indicator */}
-      {isLoading && (
+      {isLoading && !hasError && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#4ade80" />
+          <Text style={styles.loadingText}>Loading globe...</Text>
+        </View>
+      )}
+
+      {/* Error state with retry */}
+      {hasError && (
+        <View style={styles.errorContainer}>
+          <Ionicons name="globe-outline" size={48} color="#666" />
+          <Text style={styles.errorText}>Unable to load globe</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
+            <Ionicons name="refresh" size={20} color="#fff" />
+            <Text style={styles.retryText}>Tap to retry</Text>
+          </TouchableOpacity>
         </View>
       )}
       {!isFullscreen && !background && (
@@ -654,6 +779,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#000000',
     zIndex: 10,
+  },
+  loadingText: {
+    color: '#4ade80',
+    marginTop: 12,
+    fontSize: 14,
+  },
+  errorContainer: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000000',
+    zIndex: 10,
+  },
+  errorText: {
+    color: '#888',
+    marginTop: 12,
+    fontSize: 14,
+    marginBottom: 16,
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#4ade80',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    gap: 8,
+  },
+  retryText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   buttonRow: {
     position: 'absolute',
