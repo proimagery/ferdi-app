@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Image, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,6 +12,7 @@ export default function WorldRankScreen({ navigation }) {
   const { theme } = useTheme();
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('visitors');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Categories available
   const categories = [
@@ -27,7 +28,18 @@ export default function WorldRankScreen({ navigation }) {
 
   // Get sorted countries based on selected category
   const getSortedCountries = () => {
-    return [...allCountriesData].sort((a, b) => {
+    let countries = [...allCountriesData];
+
+    // Filter by search query if present
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      countries = countries.filter(country =>
+        country.name.toLowerCase().includes(query) ||
+        country.continent.toLowerCase().includes(query)
+      );
+    }
+
+    return countries.sort((a, b) => {
       return a.rankings[selectedCategory].rank - b.rankings[selectedCategory].rank;
     });
   };
@@ -66,6 +78,25 @@ export default function WorldRankScreen({ navigation }) {
       <View style={styles.header}>
         <Text style={[styles.headerTitle, { color: theme.text }]}>{getCategoryTitle()}</Text>
         <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>{getCategorySubtitle()}</Text>
+      </View>
+
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <View style={[styles.searchBar, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+          <Ionicons name="search" size={20} color={theme.textSecondary} />
+          <TextInput
+            style={[styles.searchInput, { color: theme.text }]}
+            placeholder="Search countries..."
+            placeholderTextColor={theme.textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={20} color={theme.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {/* Category Selector */}
@@ -385,5 +416,21 @@ const styles = StyleSheet.create({
   footerLogo: {
     width: 400,
     height: 120,
+  },
+  searchContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 15,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    gap: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
   },
 });
