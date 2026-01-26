@@ -1,10 +1,8 @@
 import React, { useMemo, useState, useRef, useCallback } from 'react';
-import { View, StyleSheet, Dimensions, TouchableOpacity, ActivityIndicator, Text } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ActivityIndicator, Text, useWindowDimensions } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { countryCoordinates } from '../utils/coordinates';
-
-const { width } = Dimensions.get('window');
 
 // Multi-color palette for markers
 const markerColors = [
@@ -33,6 +31,7 @@ const cityColors = [
 ];
 
 export default function SpinningGlobe({ completedTrips = [], visitedCities = [], onFullscreen, onDownload, isFullscreen = false, size = 'normal', background = false }) {
+  const { width: screenWidth } = useWindowDimensions();
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
@@ -669,14 +668,18 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
 </html>
   `;
 
-  // Determine container height based on size prop
-  const containerHeight = size === 'small' ? 250 : 350;
+  // Determine container dimensions based on size prop and screen width
+  // Scale height proportionally for larger screens (tablets)
+  const isTablet = screenWidth > 600;
+  const containerWidth = screenWidth - 40;
+  const baseHeight = size === 'small' ? 250 : 350;
+  const containerHeight = isTablet ? Math.min(baseHeight * 1.5, containerWidth * 0.6) : baseHeight;
 
   // Determine which style to use
   const getContainerStyle = () => {
     if (isFullscreen) return styles.fullscreenContainer;
     if (background) return styles.backgroundContainer;
-    return [styles.container, { height: containerHeight }];
+    return [styles.container, { width: containerWidth, height: containerHeight }];
   };
 
   return (
@@ -749,14 +752,13 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
 
 const styles = StyleSheet.create({
   container: {
-    width: width - 40,
-    height: 350,
     backgroundColor: '#000000',
     borderRadius: 15,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#2a2a2a',
     marginBottom: 5,
+    alignSelf: 'center',
   },
   backgroundContainer: {
     ...StyleSheet.absoluteFillObject,

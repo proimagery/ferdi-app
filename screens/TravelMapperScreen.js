@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ScrollView, Modal, TextInput, KeyboardAvoidingView, Platform, Image, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, TextInput, KeyboardAvoidingView, Platform, Image, ActivityIndicator, Alert, useWindowDimensions } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -80,6 +80,7 @@ const getCountryFlag = (country) => {
 export default function TravelMapperScreen({ navigation, route }) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const [selectedLocations, setSelectedLocations] = useState([]);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [searchText, setSearchText] = useState('');
@@ -387,7 +388,7 @@ export default function TravelMapperScreen({ navigation, route }) {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <MapView
-        style={styles.map}
+        style={[styles.map, { width: screenWidth, height: screenHeight * 0.5 }]}
         region={getMapRegion()}
       >
         {polylineCoords.length > 1 && (
@@ -456,7 +457,7 @@ export default function TravelMapperScreen({ navigation, route }) {
       )}
 
       {/* Location List Panel */}
-      <View style={[styles.bottomPanel, { backgroundColor: theme.cardBackground, borderTopColor: theme.border }]}>
+      <View style={[styles.bottomPanel, { backgroundColor: theme.cardBackground, borderTopColor: theme.border, height: screenHeight * 0.5 }]}>
         <View style={styles.panelHeader}>
           <Text style={[styles.panelTitle, { color: theme.text }]}>Journey Route</Text>
           {selectedLocations.length >= 2 && (
@@ -580,7 +581,7 @@ export default function TravelMapperScreen({ navigation, route }) {
 
       {/* Add Location FAB */}
       <TouchableOpacity
-        style={[styles.fab, { backgroundColor: theme.primary }]}
+        style={[styles.fab, { backgroundColor: theme.primary, bottom: screenHeight * 0.5 + 20 }]}
         onPress={() => setShowLocationPicker(true)}
       >
         <Ionicons name="add" size={30} color={theme.background} />
@@ -835,8 +836,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   map: {
-    width: Dimensions.get('window').width,
-    height: Dimensions.get('window').height * 0.5,
+    // Width and height set dynamically via inline styles for responsive sizing
   },
   markerContainer: {
     width: 30,
@@ -896,7 +896,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: Dimensions.get('window').height * 0.5,
+    // Height set dynamically via inline styles for responsive sizing
     borderTopWidth: 2,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
@@ -1013,7 +1013,7 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: 20,
-    bottom: Dimensions.get('window').height * 0.5 + 20,
+    // Bottom position set dynamically via inline styles for responsive sizing
     width: 60,
     height: 60,
     borderRadius: 30,
