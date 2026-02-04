@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { AppProvider, useAppContext } from './context/AppContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { CountryProvider } from './context/CountryContext';
 import { presetAvatars } from './utils/presetAvatars';
 import { configureNotifications } from './utils/notifications';
 
@@ -170,8 +171,9 @@ function MainNavigator() {
 
   return (
     <AppProvider>
-      <Stack.Navigator
-        initialRouteName="Home"
+      <CountryProvider>
+        <Stack.Navigator
+          initialRouteName="Home"
         screenOptions={{
           headerStyle: {
             backgroundColor: theme.background,
@@ -386,7 +388,8 @@ function MainNavigator() {
             ...getHeaderButtons(navigation),
           })}
         />
-      </Stack.Navigator>
+        </Stack.Navigator>
+      </CountryProvider>
     </AppProvider>
   );
 }

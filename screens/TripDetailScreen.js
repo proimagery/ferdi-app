@@ -5,8 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppContext } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
+import { useCountries } from '../context/CountryContext';
 import { countryCoordinates } from '../utils/coordinates';
-import { allCountriesData } from '../utils/countryData';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
@@ -14,6 +14,7 @@ export default function TripDetailScreen({ route, navigation }) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const { trips } = useAppContext();
+  const { findCountryByName } = useCountries();
   const { tripIndex, isNewTrip = true } = route.params;
   const trip = trips[tripIndex];
   const [isSaved, setIsSaved] = useState(!isNewTrip);
@@ -275,8 +276,8 @@ export default function TripDetailScreen({ route, navigation }) {
             countryNights = countryDays - 1;
           }
 
-          // Look up country data from allCountriesData
-          const countryData = allCountriesData.find(c => c.name === country.name);
+          // Look up country data from context
+          const countryData = findCountryByName(country.name);
           const countryForDetail = countryData ? {
             name: countryData.name,
             flag: countryData.flag,

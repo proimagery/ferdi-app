@@ -1,18 +1,28 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Image, TextInput } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Image, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { allCountriesData } from '../utils/countryData';
+import { useCountries } from '../context/CountryContext';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function WorldRankScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const {
+    countries,
+    loading,
+    error,
+    refreshCountries,
+    getFilteredAndSorted,
+    isStaleData
+  } = useCountries();
+
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('visitors');
   const [searchQuery, setSearchQuery] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
 
   // Categories available
   const categories = [
@@ -25,26 +35,15 @@ export default function WorldRankScreen({ navigation }) {
     { id: 'outdoors', name: 'Outdoors', icon: 'leaf' },
   ];
 
+  // Pull-to-refresh handler
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refreshCountries();
+    setRefreshing(false);
+  }, [refreshCountries]);
 
-  // Get sorted countries based on selected category
-  const getSortedCountries = () => {
-    let countries = [...allCountriesData];
-
-    // Filter by search query if present
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      countries = countries.filter(country =>
-        country.name.toLowerCase().includes(query) ||
-        country.continent.toLowerCase().includes(query)
-      );
-    }
-
-    return countries.sort((a, b) => {
-      return a.rankings[selectedCategory].rank - b.rankings[selectedCategory].rank;
-    });
-  };
-
-  const sortedCountries = getSortedCountries();
+  // Get sorted and filtered countries from context
+  const sortedCountries = getFilteredAndSorted(searchQuery, selectedCategory);
   const topTen = sortedCountries.slice(0, 10);
   const remainingCountries = sortedCountries.slice(10);
 
@@ -73,8 +72,54 @@ export default function WorldRankScreen({ navigation }) {
     return subtitles[selectedCategory] || '';
   };
 
+  // Loading state
+  if (loading && countries.length === 0) {
+    return (
+      <View style={[styles.container, styles.centerContent, { backgroundColor: theme.background }]}>
+        <ActivityIndicator size="large" color={theme.primary} />
+        <Text style={[styles.loadingText, { color: theme.textSecondary }]}>Loading countries...</Text>
+      </View>
+    );
+  }
+
+  // Error state with retry
+  if (error && countries.length === 0) {
+    return (
+      <View style={[styles.container, styles.centerContent, { backgroundColor: theme.background }]}>
+        <Ionicons name="cloud-offline" size={48} color={theme.textSecondary} />
+        <Text style={[styles.errorText, { color: theme.text }]}>Unable to load countries</Text>
+        <Text style={[styles.errorSubtext, { color: theme.textSecondary }]}>{error}</Text>
+        <TouchableOpacity
+          style={[styles.retryButton, { backgroundColor: theme.primary }]}
+          onPress={refreshCountries}
+        >
+          <Ionicons name="refresh" size={20} color="#fff" />
+          <Text style={styles.retryButtonText}>Tap to Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: theme.background }]}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={theme.primary}
+          colors={[theme.primary]}
+        />
+      }
+    >
+      {isStaleData && (
+        <View style={[styles.staleBanner, { backgroundColor: theme.warning + '20' }]}>
+          <Ionicons name="information-circle" size={16} color={theme.warning} />
+          <Text style={[styles.staleBannerText, { color: theme.warning }]}>
+            Showing cached data. Pull down to refresh.
+          </Text>
+        </View>
+      )}
       <View style={styles.header}>
         <Text style={[styles.headerTitle, { color: theme.text }]}>{getCategoryTitle()}</Text>
         <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>{getCategorySubtitle()}</Text>
@@ -265,6 +310,53 @@ export default function WorldRankScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+  },
+  errorText: {
+    marginTop: 16,
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  errorSubtext: {
+    marginTop: 8,
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 20,
+    gap: 8,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  staleBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    marginHorizontal: 20,
+    marginTop: 10,
+    borderRadius: 8,
+    gap: 8,
+  },
+  staleBannerText: {
+    fontSize: 13,
     flex: 1,
   },
   header: {

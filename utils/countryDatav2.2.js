@@ -2140,7 +2140,7 @@ export const countriesPartTwo = [
       capital: 'Ramallah (administrative), East Jerusalem (claimed)',
       leader: 'President Mahmoud Abbas (since 2005)',
       language: 'Arabic',
-      currency: 'ILS/JOD/USD (Israeli Shekel, Jordanian Dinar, US Dollar)',
+      currency: 'ILS/JOD/USD',
       highlights: ['Old City Jerusalem', 'Church of the Nativity Bethlehem', 'Hebron', 'Jericho ancient city'],
       mainAirports: ['No Palestinian airport; access via Israel or Jordan (Queen Alia/Ramon Airport)'],
       mainTrainStations: ['No railway system in Palestine'],
