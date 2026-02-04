@@ -59,7 +59,7 @@ export const countriesPartOne = [
       continent: 'North America',
       population: '341M',
       capital: 'Washington D.C.',
-      leader: 'Joe Biden (President)',
+      leader: 'Donald Trump (President)',
       language: 'English',
       currency: 'USD ($)',
       highlights: ['Statue of Liberty', 'Grand Canyon', 'Golden Gate Bridge', 'Times Square'],
