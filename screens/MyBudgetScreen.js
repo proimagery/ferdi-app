@@ -13,6 +13,7 @@ import { useAppContext } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getCurrencyInfo } from '../utils/currencyData';
+import { getCountryFlag } from '../utils/countryFlags';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
@@ -168,22 +169,37 @@ export default function MyBudgetScreen({ navigation }) {
             {filteredBudgets.map((budget) => {
               const index = budget.originalIndex;
               const isExpanded = expandedId === budget.id;
-              const dailyBudget = budget.totalBudget / budget.tripDuration;
+              const tripDuration = tripDuration || 1;
+              const dailyBudget = tripDuration > 0 ? budget.totalBudget / tripDuration : 0;
+
+              // Get linked trip name if exists
+              const linkedTrip = budget.tripId ? trips.find(t => t.id === budget.tripId) : null;
+              const tripName = linkedTrip?.name || budget.tripName || null;
 
               // Get currency info - for single country use country name, for multi use first country or USD
-              const currencyInfo = budget.tripType === 'single' && budget.country
+              const localCurrencyInfo = budget.tripType === 'single' && budget.country
                 ? getCurrencyInfo(budget.country)
                 : budget.tripType === 'multi' && budget.countries?.[0]
                   ? getCurrencyInfo(budget.countries[0].name)
                   : { currency: 'USD', symbol: '$', rate: 1.0 };
 
-              const dailyBudgetLocal = dailyBudget * (budget.currencyRate || currencyInfo.rate);
+              // User's base currency is always USD
+              const userCurrency = { currency: 'USD', symbol: '$', rate: 1.0 };
+              const dailyBudgetLocal = dailyBudget * (budget.currencyRate || localCurrencyInfo.rate);
 
               return (
                 <View key={budget.id} style={[styles.budgetCard, {
                   backgroundColor: theme.cardBackground,
                   borderColor: theme.border
                 }]}>
+                  {/* Trip Name Header - if linked to a trip */}
+                  {tripName && (
+                    <View style={[styles.tripNameHeader, { borderBottomColor: theme.border }]}>
+                      <Ionicons name="airplane" size={16} color={theme.secondary} />
+                      <Text style={[styles.tripNameText, { color: theme.secondary }]}>{tripName}</Text>
+                    </View>
+                  )}
+
                   {/* Collapsed View - Always Visible */}
                   <TouchableOpacity
                     style={styles.budgetHeader}
@@ -191,33 +207,77 @@ export default function MyBudgetScreen({ navigation }) {
                     activeOpacity={0.7}
                   >
                     <View style={styles.headerLeft}>
-                      <View style={styles.budgetTitleRow}>
-                        <Ionicons
-                          name={budget.source === 'trip' ? 'airplane' : 'location'}
-                          size={24}
-                          color={theme.primary}
-                        />
-                        <Text style={[styles.budgetCountry, { color: theme.text }]}>
-                          {budget.tripType === 'multi' && budget.countries
-                            ? `${budget.countries[0]?.name || 'Multi-Country'}...`
-                            : budget.country}
-                        </Text>
-                      </View>
-                      {/* Source Badge */}
-                      <View style={[styles.sourceBadge, {
-                        backgroundColor: budget.source === 'trip' ? theme.secondary : theme.primary
-                      }]}>
-                        <Text style={[styles.sourceBadgeText, { color: theme.background }]}>
-                          {budget.source === 'trip' ? 'Created Trip' : 'Budget Maker'}
-                        </Text>
-                      </View>
-                      {budget.mode === 'recommended' && budget.preset && (
-                        <View style={[styles.presetBadge, { backgroundColor: theme.primary }]}>
-                          <Text style={[styles.presetBadgeText, { color: theme.background }]}>
-                            {budget.preset.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      {/* Budget Name with overlapping circular flags (if set) */}
+                      {budget.budgetName ? (
+                        <View style={styles.budgetNameContainer}>
+                          <View style={styles.budgetNameRow}>
+                            <Text style={[styles.budgetName, { color: theme.primary }]}>
+                              {budget.budgetName}
+                            </Text>
+                            <View style={styles.flagsRowOverlap}>
+                              {budget.tripType === 'multi' && budget.countries ? (
+                                <>
+                                  {budget.countries.slice(0, 5).map((country, idx) => (
+                                    <View
+                                      key={idx}
+                                      style={[
+                                        styles.flagCircleOverlap,
+                                        {
+                                          backgroundColor: theme.background,
+                                          borderColor: theme.cardBackground,
+                                          marginLeft: idx === 0 ? 0 : -10,
+                                          zIndex: budget.countries.length - idx,
+                                        }
+                                      ]}
+                                    >
+                                      <Text style={styles.flagEmoji}>{getCountryFlag(country.name)}</Text>
+                                    </View>
+                                  ))}
+                                  {budget.countries.length > 5 && (
+                                    <View style={[styles.flagCountBadge, { backgroundColor: theme.primary, marginLeft: -10 }]}>
+                                      <Text style={[styles.flagCountText, { color: theme.background }]}>+{budget.countries.length - 5}</Text>
+                                    </View>
+                                  )}
+                                </>
+                              ) : budget.country ? (
+                                <View style={[styles.flagCircleOverlap, { backgroundColor: theme.background, borderColor: theme.cardBackground }]}>
+                                  <Text style={styles.flagEmoji}>{getCountryFlag(budget.country)}</Text>
+                                </View>
+                              ) : null}
+                            </View>
+                          </View>
+                        </View>
+                      ) : (
+                        <View style={styles.budgetTitleRow}>
+                          <Ionicons
+                            name={budget.source === 'trip' ? 'airplane' : 'location'}
+                            size={24}
+                            color={theme.primary}
+                          />
+                          <Text style={[styles.budgetCountry, { color: theme.text }]}>
+                            {budget.tripType === 'multi' && budget.countries
+                              ? `${budget.countries[0]?.name || 'Multi-Country'}...`
+                              : budget.country || 'No Country'}
                           </Text>
                         </View>
                       )}
+                      {/* Source Badges Row - separate line for cleaner layout */}
+                      <View style={styles.badgesRow}>
+                        <View style={[styles.sourceBadge, {
+                          backgroundColor: budget.source === 'trip' ? theme.secondary : theme.primary
+                        }]}>
+                          <Text style={[styles.sourceBadgeText, { color: theme.background }]}>
+                            {budget.source === 'trip' ? 'Created Trip' : 'Budget Maker'}
+                          </Text>
+                        </View>
+                        {budget.mode === 'recommended' && budget.preset && (
+                          <View style={[styles.presetBadge, { backgroundColor: theme.primary }]}>
+                            <Text style={[styles.presetBadgeText, { color: theme.background }]}>
+                              {budget.preset.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
                     </View>
                     <Ionicons
                       name={isExpanded ? 'chevron-up' : 'chevron-down'}
@@ -240,7 +300,7 @@ export default function MyBudgetScreen({ navigation }) {
                       borderColor: theme.border
                     }]}>
                       <Text style={[styles.briefLabel, { color: theme.textSecondary }]}>Duration</Text>
-                      <Text style={[styles.briefValue, { color: theme.text }]}>{budget.tripDuration} days</Text>
+                      <Text style={[styles.briefValue, { color: theme.text }]}>{tripDuration} days</Text>
                     </View>
                     <View style={[styles.briefItem, {
                       backgroundColor: theme.background,
@@ -264,7 +324,8 @@ export default function MyBudgetScreen({ navigation }) {
                           }]}>
                             <Text style={[styles.dailyBudgetLabel, { color: theme.textSecondary }]}>Daily Budget</Text>
                             <Text style={[styles.dailyBudgetValue, { color: theme.primary }]}>
-                              ${Math.round(dailyBudget).toLocaleString()} USD / {currencyInfo.symbol}{Math.round(dailyBudgetLocal).toLocaleString()} {currencyInfo.currency}
+                              ${Math.round(dailyBudget).toLocaleString()} USD
+                              {localCurrencyInfo.currency !== 'USD' && ` / ${localCurrencyInfo.symbol}${Math.round(dailyBudgetLocal).toLocaleString()} ${localCurrencyInfo.currency}`}
                             </Text>
                           </View>
 
@@ -275,27 +336,31 @@ export default function MyBudgetScreen({ navigation }) {
                               <Text style={[styles.sectionTitle, { color: theme.text }]}>Accommodation</Text>
                             </View>
                             <View style={styles.breakdownRow}>
-                              <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>Total (USD)</Text>
+                              <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>Total ({userCurrency.currency})</Text>
                               <Text style={[styles.breakdownValue, { color: theme.text }]}>${Math.round(budget.accommodation || 0).toLocaleString()}</Text>
                             </View>
+                            {localCurrencyInfo.currency !== 'USD' && (
+                              <View style={styles.breakdownRow}>
+                                <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>Total ({localCurrencyInfo.currency})</Text>
+                                <Text style={[styles.breakdownValue, { color: theme.text }]}>
+                                  {localCurrencyInfo.symbol}{Math.round((budget.accommodation || 0) * localCurrencyInfo.rate).toLocaleString()}
+                                </Text>
+                              </View>
+                            )}
                             <View style={styles.breakdownRow}>
-                              <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>Total ({currencyInfo.currency})</Text>
+                              <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>Per Day ({userCurrency.currency})</Text>
                               <Text style={[styles.breakdownValue, { color: theme.text }]}>
-                                {currencyInfo.symbol}{Math.round((budget.accommodation || 0) * currencyInfo.rate).toLocaleString()}
+                                ${Math.round((budget.accommodation || 0) / tripDuration).toLocaleString()}
                               </Text>
                             </View>
-                            <View style={styles.breakdownRow}>
-                              <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>Per Day (USD)</Text>
-                              <Text style={[styles.breakdownValue, { color: theme.text }]}>
-                                ${Math.round((budget.accommodation || 0) / budget.tripDuration).toLocaleString()}
-                              </Text>
-                            </View>
-                            <View style={styles.breakdownRow}>
-                              <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>Per Day ({currencyInfo.currency})</Text>
-                              <Text style={[styles.breakdownValue, { color: theme.text }]}>
-                                {currencyInfo.symbol}{Math.round(((budget.accommodation || 0) * currencyInfo.rate) / budget.tripDuration).toLocaleString()}
-                              </Text>
-                            </View>
+                            {localCurrencyInfo.currency !== 'USD' && (
+                              <View style={styles.breakdownRow}>
+                                <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>Per Day ({localCurrencyInfo.currency})</Text>
+                                <Text style={[styles.breakdownValue, { color: theme.text }]}>
+                                  {localCurrencyInfo.symbol}{Math.round(((budget.accommodation || 0) * localCurrencyInfo.rate) / tripDuration).toLocaleString()}
+                                </Text>
+                              </View>
+                            )}
                           </View>
 
                           {/* Budget Breakdown */}
@@ -303,8 +368,8 @@ export default function MyBudgetScreen({ navigation }) {
                             <View style={styles.section}>
                               <Text style={[styles.sectionTitle, { color: theme.text }]}>Budget Breakdown</Text>
                               {budget.lineItems.map((item, idx) => {
-                                const itemLocal = (item.total || 0) * currencyInfo.rate;
-                                const itemDailyLocal = ((item.total || 0) / budget.tripDuration) * currencyInfo.rate;
+                                const itemLocal = (item.total || 0) * localCurrencyInfo.rate;
+                                const itemDailyLocal = ((item.total || 0) / tripDuration) * localCurrencyInfo.rate;
                                 return (
                                   <View key={idx} style={[styles.lineItemRow, { borderBottomColor: theme.border }]}>
                                     <View style={styles.lineItemInfo}>
@@ -313,11 +378,14 @@ export default function MyBudgetScreen({ navigation }) {
                                     </View>
                                     <View style={styles.lineItemAmounts}>
                                       <Text style={[styles.lineItemTotal, { color: theme.text }]}>${Math.round(item.total || 0).toLocaleString()} USD</Text>
-                                      <Text style={[styles.lineItemLocalTotal, { color: theme.textSecondary }]}>
-                                        {currencyInfo.symbol}{Math.round(itemLocal).toLocaleString()} {currencyInfo.currency}
-                                      </Text>
+                                      {localCurrencyInfo.currency !== 'USD' && (
+                                        <Text style={[styles.lineItemLocalTotal, { color: theme.textSecondary }]}>
+                                          {localCurrencyInfo.symbol}{Math.round(itemLocal).toLocaleString()} {localCurrencyInfo.currency}
+                                        </Text>
+                                      )}
                                       <Text style={[styles.lineItemDaily, { color: theme.textSecondary }]}>
-                                        ${Math.round((item.total || 0) / budget.tripDuration).toLocaleString()}/day | {currencyInfo.symbol}{Math.round(itemDailyLocal).toLocaleString()}/day
+                                        ${Math.round((item.total || 0) / tripDuration).toLocaleString()}/day
+                                        {localCurrencyInfo.currency !== 'USD' && ` | ${localCurrencyInfo.symbol}${Math.round(itemDailyLocal).toLocaleString()}/day`}
                                       </Text>
                                     </View>
                                   </View>
@@ -351,7 +419,7 @@ export default function MyBudgetScreen({ navigation }) {
                               ${budget.totalBudget.toLocaleString()} USD
                             </Text>
                             <Text style={[styles.tripSummaryText, { color: theme.textSecondary }]}>
-                              {budget.countries?.length || 0} countries • {budget.tripDuration} days
+                              {budget.countries?.length || 0} countries • {tripDuration} days
                             </Text>
                           </View>
 
@@ -494,6 +562,27 @@ export default function MyBudgetScreen({ navigation }) {
                               </Text>
                             </View>
                           )}
+
+                          {/* Per-Currency Daily Budget Summary */}
+                          {budget.countries && budget.countries.length > 0 && (
+                            <View style={[styles.currencySummaryCard, { backgroundColor: theme.background, borderColor: theme.primary }]}>
+                              <Text style={[styles.currencySummaryTitle, { color: theme.text }]}>Daily Budget by Currency</Text>
+                              {budget.countries.map((country, idx) => {
+                                const countryBudget = budget.countryBreakdowns?.[country.name]?.budgetAfterAccommodation || 0;
+                                const perDayUSD = country.days > 0 ? countryBudget / country.days : 0;
+                                const perDayLocal = perDayUSD * country.rate;
+                                return (
+                                  <View key={idx} style={[styles.currencyRow, idx < budget.countries.length - 1 && { borderBottomWidth: 1, borderBottomColor: theme.border }]}>
+                                    <Text style={[styles.currencyCountry, { color: theme.textSecondary }]}>{country.name}</Text>
+                                    <Text style={[styles.currencyValue, { color: theme.primary }]}>
+                                      ${Math.round(perDayUSD).toLocaleString()}/day
+                                      {country.currency !== 'USD' && ` • ${country.symbol}${Math.round(perDayLocal).toLocaleString()}/day`}
+                                    </Text>
+                                  </View>
+                                );
+                              })}
+                            </View>
+                          )}
                         </>
                       )}
 
@@ -588,6 +677,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#2a2a2a',
   },
+  tripNameHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingBottom: 12,
+    marginBottom: 12,
+    borderBottomWidth: 1,
+  },
+  tripNameText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
   budgetHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -606,16 +707,62 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
+  budgetNameContainer: {
+    flex: 1,
+  },
+  budgetNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  budgetName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  flagsRowOverlap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  flagCircleOverlap: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    overflow: 'hidden',
+  },
+  flagCountBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 0,
+  },
+  flagCountText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  flagEmoji: {
+    fontSize: 18,
+  },
   budgetCountry: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#ffffff',
   },
+  badgesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
   sourceBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 15,
-    marginTop: 6,
   },
   sourceBadgeText: {
     fontSize: 10,
@@ -938,6 +1085,31 @@ const styles = StyleSheet.create({
   totalAccomText: {
     fontSize: 14,
     fontWeight: '500',
+  },
+  currencySummaryCard: {
+    padding: 15,
+    borderRadius: 10,
+    borderWidth: 2,
+    marginBottom: 15,
+  },
+  currencySummaryTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  currencyRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  currencyCountry: {
+    fontSize: 13,
+  },
+  currencyValue: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   footer: {
     alignItems: 'center',

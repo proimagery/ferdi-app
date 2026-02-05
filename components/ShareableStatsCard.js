@@ -1,4 +1,4 @@
-import React, { forwardRef, useMemo } from 'react';
+import React, { forwardRef, useMemo, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Dimensions, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import CountryFlag from 'react-native-country-flag';
@@ -9,10 +9,12 @@ const { width: screenWidth } = Dimensions.get('window');
 const CARD_WIDTH = Math.min(screenWidth - 40, 380);
 const CARD_HEIGHT = CARD_WIDTH * 1.25; // 4:5 aspect ratio (1.25 = 5/4)
 const MAP_HEIGHT = CARD_HEIGHT * 0.42; // Larger map to fill the space
-const MAP_WIDTH = CARD_WIDTH - 24; // Account for padding
 
-// Google Maps API key
+// Google Maps API key for Static Maps
 const GOOGLE_MAPS_API_KEY = 'AIzaSyBtzMruCCMpiFfqfdhLtoHWfSk3TZ5UvJ8';
+
+// Marker colors for Google Maps (without # prefix)
+const MARKER_COLORS = ['red', 'blue', 'green', 'orange', 'purple', 'pink', 'yellow', 'white'];
 
 // Load Ferdi assets
 const ferdiIcon = require('../assets/ferdi icon.png');
@@ -153,6 +155,7 @@ const ShareableStatsCard = forwardRef(({
   visitedCities = [],
   trips = [],
   profile = {},
+  onMapReady = () => {},
 }, ref) => {
   // Calculate stats
   const totalCountries = completedTrips.length;
@@ -201,52 +204,90 @@ const ShareableStatsCard = forwardRef(({
   const uniqueCountries = [...new Set(completedTrips.map(t => t.country))];
   const displayFlags = uniqueCountries.slice(0, 6);
 
-  // Create marker positions for Google Maps
+  // Create marker data for Google Static Maps
   const markers = useMemo(() => {
-    return completedTrips.map(trip => {
+    return completedTrips.map((trip, index) => {
       const coords = countryCoordinates[trip.country];
       if (!coords) return null;
-      return { lat: coords.latitude, lng: coords.longitude, country: trip.country };
+      const color = MARKER_COLORS[index % MARKER_COLORS.length];
+      return { lat: coords.latitude, lng: coords.longitude, country: trip.country, color };
     }).filter(Boolean);
   }, [completedTrips]);
 
-  // Build Google Static Maps URL with markers
+  // Build Google Static Maps URL
   const mapUrl = useMemo(() => {
-    const baseUrl = 'https://maps.googleapis.com/maps/api/staticmap';
-    const params = new URLSearchParams({
-      center: '20,0',
-      zoom: '1',
-      size: '640x400',
-      scale: '2',
-      maptype: 'roadmap',
-      style: 'feature:all|element:labels|visibility:off',
-      key: GOOGLE_MAPS_API_KEY,
+    // Build markers string
+    const markerParts = markers.slice(0, 15).map((m, i) => {
+      const color = MARKER_COLORS[i % MARKER_COLORS.length];
+      return `markers=color:${color}%7Csize:small%7C${m.lat},${m.lng}`;
     });
 
-    // Add improved styling - ocean black to match background, land green
-    params.append('style', 'feature:water|color:0x0a0a0a');
-    params.append('style', 'feature:landscape|color:0x2d4a3e');
-    params.append('style', 'feature:administrative.country|element:geometry.stroke|color:0x4ade80|weight:1');
-
-    // Add markers for visited countries with multiple colors for visual pop
-    const markerColors = [
-      '0x4ade80', // green
-      '0xf472b6', // pink
-      '0x60a5fa', // blue
-      '0xfbbf24', // yellow/gold
-      '0xa78bfa', // purple
-      '0xf87171', // red/coral
-      '0x34d399', // teal
-      '0xfb923c', // orange
+    // Base parameters - request taller image to crop out Google attribution
+    const baseParams = [
+      'center=20,0', // Center on Atlantic for world view
+      'zoom=1',
+      'size=600x340', // Taller to allow cropping bottom attribution
+      'scale=2',
+      'maptype=roadmap',
     ];
-    const uniqueMarkers = [...new Map(markers.map(m => [m.country, m])).values()];
-    uniqueMarkers.slice(0, 50).forEach((marker, index) => {
-      const color = markerColors[index % markerColors.length];
-      params.append('markers', `color:${color}|size:tiny|${marker.lat},${marker.lng}`);
-    });
 
-    return `${baseUrl}?${params.toString()}`;
+    // Dark map styling - black ocean, green land, white country borders
+    const styleParams = [
+      'style=feature:all%7Celement:labels%7Cvisibility:off',
+      'style=feature:water%7Celement:geometry%7Ccolor:0x000000', // Black ocean
+      'style=feature:landscape%7Celement:geometry%7Ccolor:0x1a3a2a', // Dark green land
+      'style=feature:road%7Cvisibility:off',
+      'style=feature:poi%7Cvisibility:off',
+      'style=feature:administrative.country%7Celement:geometry.stroke%7Cvisibility:on%7Ccolor:0x4ade80%7Cweight:1', // Green country borders
+      'style=feature:administrative.province%7Cvisibility:off',
+      'style=feature:administrative.locality%7Cvisibility:off',
+      'style=feature:administrative.land_parcel%7Cvisibility:off',
+    ];
+
+    // Combine all parameters
+    const allParams = [...baseParams, ...styleParams, ...markerParts, `key=${GOOGLE_MAPS_API_KEY}`];
+    const url = `https://maps.googleapis.com/maps/api/staticmap?${allParams.join('&')}`;
+
+    console.log('=== Map Debug ===');
+    console.log('Map URL:', url);
+    console.log('Markers count:', markers.length);
+    return url;
   }, [markers]);
+
+  // Track map loading state
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapError, setMapError] = useState(false);
+
+  useEffect(() => {
+    let timeoutId;
+
+    if (mapUrl) {
+      // Set a timeout fallback - if map doesn't load in 5 seconds, allow proceed anyway
+      timeoutId = setTimeout(() => {
+        console.log('Map load timeout - allowing proceed without map');
+        onMapReady(true);
+      }, 5000);
+
+      Image.prefetch(mapUrl)
+        .then(() => {
+          clearTimeout(timeoutId);
+          setMapLoaded(true);
+          setMapError(false);
+          onMapReady(true);
+        })
+        .catch((err) => {
+          clearTimeout(timeoutId);
+          console.log('Map prefetch error:', err);
+          setMapError(true);
+          // Still allow proceed even if map fails
+          onMapReady(true);
+        });
+    }
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [mapUrl, onMapReady]);
 
   return (
     <View ref={ref} style={styles.container} collapsable={false}>
@@ -286,13 +327,34 @@ const ShareableStatsCard = forwardRef(({
           <Image source={ferdiAppAsset} style={styles.appNameImage} resizeMode="cover" />
         </View>
 
-        {/* World Map from Google Static Maps */}
+        {/* World Map with Markers - Google Static Maps */}
         <View style={styles.mapContainer}>
+          {!mapLoaded && !mapError && (
+            <View style={[styles.mapFallback, { zIndex: 1 }]}>
+              <Text style={styles.mapFallbackText}>Loading map...</Text>
+            </View>
+          )}
           <Image
             source={{ uri: mapUrl }}
             style={styles.mapImage}
             resizeMode="cover"
+            onLoad={() => {
+              console.log('Map image loaded successfully');
+              setMapLoaded(true);
+              setMapError(false);
+              onMapReady(true);
+            }}
+            onError={(e) => {
+              console.log('Map image error:', e.nativeEvent?.error || 'Unknown error');
+              console.log('Failed URL was:', mapUrl);
+              setMapError(true);
+            }}
           />
+          {mapError && (
+            <View style={[styles.mapFallback, { zIndex: 2 }]}>
+              <Text style={styles.mapFallbackText}>Unable to load map</Text>
+            </View>
+          )}
         </View>
 
         {/* Stats Section */}
@@ -421,16 +483,27 @@ const styles = StyleSheet.create({
   },
   mapContainer: {
     height: MAP_HEIGHT,
-    position: 'relative',
     overflow: 'hidden',
-    backgroundColor: 'transparent',
+    backgroundColor: '#000000', // Black to match ocean
     borderRadius: 8,
   },
   mapImage: {
-    width: '100%',
-    height: '120%',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '115%', // Taller than container to crop bottom attribution
     borderRadius: 8,
-    marginTop: -10,
+  },
+  mapFallback: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#000000', // Black to match ocean
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mapFallbackText: {
+    color: '#4ade80',
+    fontSize: 12,
   },
   statsSection: {
     marginTop: 10,

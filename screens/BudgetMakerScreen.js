@@ -34,6 +34,9 @@ export default function BudgetMakerScreen({ navigation, route }) {
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
 
+  // Budget name
+  const [budgetName, setBudgetName] = useState(budgetToEdit?.budgetName || '');
+
   // Edit mode detection
   const editMode = route?.params?.editMode;
   const budgetToEdit = route?.params?.budget;
@@ -202,8 +205,8 @@ export default function BudgetMakerScreen({ navigation, route }) {
       }, 0)
     : totalBudget * currencyRate;
 
-  const dailyBudget = totalBudget / effectiveDuration;
-  const dailyBudgetLocal = totalBudgetLocal / effectiveDuration;
+  const dailyBudget = effectiveDuration > 0 ? totalBudget / effectiveDuration : 0;
+  const dailyBudgetLocal = effectiveDuration > 0 ? totalBudgetLocal / effectiveDuration : 0;
 
   // Calculate accommodation values
   const accommodationAmount = tripType === 'multi'
@@ -333,6 +336,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
 
     const budget = {
       id: editMode ? budgetToEdit.id : Date.now().toString(),
+      budgetName: budgetName.trim() || null, // Custom budget name
       source: fromTrip ? 'trip' : (budgetToEdit?.source || 'budgetMaker'), // Track where it came from
       tripId: fromTrip ? tripData?.tripId : (budgetToEdit?.tripId || null), // Link to trip if created from trip
       tripType,
@@ -496,6 +500,26 @@ export default function BudgetMakerScreen({ navigation, route }) {
             Multi-Country
           </Text>
         </TouchableOpacity>
+      </View>
+
+      {/* Budget Name Input */}
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Budget Name</Text>
+        <TextInput
+          style={[styles.budgetNameInput, {
+            backgroundColor: theme.inputBackground,
+            borderColor: theme.inputBorder,
+            color: theme.text
+          }]}
+          placeholder="e.g., Summer Europe Trip, Honeymoon Budget..."
+          placeholderTextColor={theme.textSecondary}
+          value={budgetName}
+          onChangeText={setBudgetName}
+          maxLength={50}
+        />
+        <Text style={[styles.budgetNameHint, { color: theme.textSecondary }]}>
+          Optional - helps you identify this budget later
+        </Text>
       </View>
 
       {/* Mode Toggle */}
@@ -1057,7 +1081,9 @@ export default function BudgetMakerScreen({ navigation, route }) {
                 </View>
                 <View style={styles.budgetSummaryItem}>
                   <Text style={[styles.budgetSummaryLabel, { color: theme.textSecondary }]}>Daily Average</Text>
-                  <Text style={[styles.budgetSummaryValue, { color: theme.primary }]}>${Math.round(dailyBudget).toLocaleString()}</Text>
+                  <Text style={[styles.budgetSummaryValue, { color: theme.primary }]}>
+                    ${totalDaysMulti > 0 ? Math.round(totalBudget / totalDaysMulti).toLocaleString() : '0'}
+                  </Text>
                 </View>
               </View>
               {accommodationAmount > 0 && (
@@ -1149,15 +1175,31 @@ export default function BudgetMakerScreen({ navigation, route }) {
       )}
 
       {/* Budget After Accommodation */}
-      <View style={[styles.budgetAfterCard, {
-        backgroundColor: theme.cardBackground,
-        borderColor: theme.primary
-      }]}>
-        <Text style={[styles.budgetAfterLabel, { color: theme.textSecondary }]}>Budget After Accommodations</Text>
-        <Text style={[styles.budgetAfterValue, { color: theme.primary }]}>
-          ${Math.round(budgetAfterAccommodation).toLocaleString()} USD / {currencySymbol}{Math.round(budgetAfterAccommodationLocal).toLocaleString()} {currencyCode}
-        </Text>
-      </View>
+      {(() => {
+        // For multi-country, use selected breakdown country's currency
+        const selectedCountryData = tripType === 'multi' && selectedBreakdownCountry
+          ? countries.find(c => c.name === selectedBreakdownCountry)
+          : null;
+        const displaySymbol = selectedCountryData?.symbol || currencySymbol;
+        const displayRate = selectedCountryData?.rate || currencyRate;
+        const localAmount = budgetAfterAccommodation * displayRate;
+        const showLocalCurrency = tripType === 'single'
+          ? currencyCode !== 'USD'
+          : selectedCountryData && selectedCountryData.currency !== 'USD';
+
+        return (
+          <View style={[styles.budgetAfterCard, {
+            backgroundColor: theme.cardBackground,
+            borderColor: theme.primary
+          }]}>
+            <Text style={[styles.budgetAfterLabel, { color: theme.textSecondary }]}>Budget After Accommodations</Text>
+            <Text style={[styles.budgetAfterValue, { color: theme.primary }]}>
+              ${Math.round(budgetAfterAccommodation).toLocaleString()}
+              {showLocalCurrency && ` / ${displaySymbol}${Math.round(localAmount).toLocaleString()}`}
+            </Text>
+          </View>
+        );
+      })()}
 
       {/* Budget Breakdown - Single Country Mode */}
       {tripType === 'single' ? (
@@ -1472,6 +1514,17 @@ const styles = StyleSheet.create({
   },
   tripBannerSubtitle: {
     fontSize: 13,
+  },
+  budgetNameInput: {
+    fontSize: 16,
+    padding: 15,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  budgetNameHint: {
+    fontSize: 12,
+    fontStyle: 'italic',
   },
   modeToggle: {
     flexDirection: 'row',

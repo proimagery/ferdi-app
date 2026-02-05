@@ -510,10 +510,7 @@ export const AppProvider = ({ children }) => {
 
     const { data: budgetsData, error } = await supabase
       .from('budgets')
-      .select(`
-        *,
-        budget_categories (*)
-      `)
+      .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
@@ -522,24 +519,38 @@ export const AppProvider = ({ children }) => {
       return;
     }
 
-    const formattedBudgets = budgetsData.map(budget => ({
-      id: budget.id,
-      tripName: budget.trip_name,
-      totalBudget: budget.total_budget,
-      currencyCode: budget.currency_code,
-      currencySymbol: budget.currency_symbol,
-      tripDuration: budget.trip_duration,
-      tripType: budget.trip_type,
-      accommodationPercent: budget.accommodation_percent,
-      categories: budget.budget_categories.map(cat => ({
-        id: cat.id,
-        name: cat.name,
-        budgetAmount: cat.budget_amount,
-        spent: cat.spent,
-        icon: cat.icon,
-        color: cat.color,
-      })),
-    }));
+    // Parse budget_data JSON if it exists, otherwise construct from legacy fields
+    const formattedBudgets = budgetsData.map(budget => {
+      // If budget_data exists (new format), use it directly
+      if (budget.budget_data) {
+        return {
+          id: budget.id,
+          ...budget.budget_data,
+        };
+      }
+
+      // Legacy format fallback - construct budget from old columns
+      const accommodationAmount = budget.accommodation_amount ||
+        ((budget.total_budget || 0) * (budget.accommodation_percent || 0) / 100);
+
+      return {
+        id: budget.id,
+        source: 'budgetMaker',
+        tripType: budget.trip_type || 'single',
+        country: budget.country_name || null,
+        countries: null,
+        mode: 'manual',
+        preset: null,
+        totalBudget: budget.total_budget || 0,
+        tripDuration: budget.trip_duration || 1,
+        accommodation: accommodationAmount,
+        lineItems: [],
+        countryBreakdowns: null,
+        countryLineItems: null,
+        currency: budget.currency_code || 'USD',
+        currencyRate: 1.0,
+      };
+    });
 
     setBudgets(formattedBudgets);
   };
@@ -551,17 +562,29 @@ export const AppProvider = ({ children }) => {
 
     if (!user) return;
 
+    // Store full budget object in budget_data column for complete preservation
+    const { id, ...budgetWithoutId } = budget;
+
+    // Use custom budget name if provided, otherwise generate from country/countries
+    const tripName = budget.budgetName
+      || (budget.tripType === 'multi' && budget.countries?.length > 0
+        ? `${budget.countries[0].name}${budget.countries.length > 1 ? ` + ${budget.countries.length - 1} more` : ''}`
+        : budget.country || 'Budget');
+
     const { data: budgetData, error: budgetError } = await supabase
       .from('budgets')
       .insert({
         user_id: user.id,
-        trip_name: budget.tripName,
+        // Core fields for querying
+        trip_name: tripName,
         total_budget: budget.totalBudget || 0,
-        currency_code: budget.currencyCode || 'USD',
-        currency_symbol: budget.currencySymbol || '$',
         trip_duration: budget.tripDuration || 1,
         trip_type: budget.tripType || 'single',
-        accommodation_percent: budget.accommodationPercent || 30,
+        country_name: budget.country || null,
+        accommodation_amount: budget.accommodation || 0,
+        currency_code: budget.currency || 'USD',
+        // Store complete budget object as JSON
+        budget_data: budgetWithoutId,
       })
       .select()
       .single();
@@ -570,20 +593,6 @@ export const AppProvider = ({ children }) => {
       console.error('Error adding budget:', budgetError);
       setBudgets(prev => prev.filter(b => b.id !== tempId));
       return;
-    }
-
-    // Insert budget categories
-    if (budget.categories && budget.categories.length > 0) {
-      const categoriesData = budget.categories.map(cat => ({
-        budget_id: budgetData.id,
-        name: cat.name,
-        budget_amount: cat.budgetAmount || 0,
-        spent: cat.spent || 0,
-        icon: cat.icon || 'cash-outline',
-        color: cat.color || '#4ade80',
-      }));
-
-      await supabase.from('budget_categories').insert(categoriesData);
     }
 
     setBudgets(prev => prev.map(b =>
@@ -599,16 +608,28 @@ export const AppProvider = ({ children }) => {
 
     if (!user || !updatedBudget.id) return;
 
+    // Store full budget object in budget_data column
+    const { id, ...budgetWithoutId } = updatedBudget;
+
+    // Use custom budget name if provided, otherwise generate from country/countries
+    const tripName = updatedBudget.budgetName
+      || (updatedBudget.tripType === 'multi' && updatedBudget.countries?.length > 0
+        ? `${updatedBudget.countries[0].name}${updatedBudget.countries.length > 1 ? ` + ${updatedBudget.countries.length - 1} more` : ''}`
+        : updatedBudget.country || 'Budget');
+
     const { error: budgetError } = await supabase
       .from('budgets')
       .update({
-        trip_name: updatedBudget.tripName,
+        // Core fields for querying
+        trip_name: tripName,
         total_budget: updatedBudget.totalBudget || 0,
-        currency_code: updatedBudget.currencyCode || 'USD',
-        currency_symbol: updatedBudget.currencySymbol || '$',
         trip_duration: updatedBudget.tripDuration || 1,
         trip_type: updatedBudget.tripType || 'single',
-        accommodation_percent: updatedBudget.accommodationPercent || 30,
+        country_name: updatedBudget.country || null,
+        accommodation_amount: updatedBudget.accommodation || 0,
+        currency_code: updatedBudget.currency || 'USD',
+        // Store complete budget object as JSON
+        budget_data: budgetWithoutId,
         updated_at: new Date().toISOString(),
       })
       .eq('id', updatedBudget.id);
@@ -616,26 +637,6 @@ export const AppProvider = ({ children }) => {
     if (budgetError) {
       console.error('Error updating budget:', budgetError);
       setBudgets(oldBudgets);
-      return;
-    }
-
-    // Delete old categories and insert new ones
-    await supabase
-      .from('budget_categories')
-      .delete()
-      .eq('budget_id', updatedBudget.id);
-
-    if (updatedBudget.categories && updatedBudget.categories.length > 0) {
-      const categoriesData = updatedBudget.categories.map(cat => ({
-        budget_id: updatedBudget.id,
-        name: cat.name,
-        budget_amount: cat.budgetAmount || 0,
-        spent: cat.spent || 0,
-        icon: cat.icon || 'cash-outline',
-        color: cat.color || '#4ade80',
-      }));
-
-      await supabase.from('budget_categories').insert(categoriesData);
     }
   };
 

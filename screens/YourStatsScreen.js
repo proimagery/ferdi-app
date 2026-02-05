@@ -19,6 +19,7 @@ export default function YourStatsScreen({ navigation }) {
   const [showGlobeFullscreen, setShowGlobeFullscreen] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
   const shareCardRef = useRef(null);
 
   // Countries visited is based only on manually added countries (completedTrips)
@@ -175,6 +176,7 @@ export default function YourStatsScreen({ navigation }) {
 
   // Handle download/share stats image
   const handleDownloadStats = () => {
+    setMapReady(false); // Reset map ready state when opening modal
     setShowShareModal(true);
   };
 
@@ -344,18 +346,24 @@ export default function YourStatsScreen({ navigation }) {
                 visitedCities={visitedCities}
                 trips={trips}
                 profile={profile}
+                onMapReady={(ready) => setMapReady(ready)}
               />
             </View>
 
             {/* Action buttons */}
             <View style={styles.shareButtonsRow}>
               <TouchableOpacity
-                style={[styles.shareActionButton, { backgroundColor: theme.primary }]}
+                style={[styles.shareActionButton, { backgroundColor: theme.primary, opacity: (!mapReady || isSaving) ? 0.5 : 1 }]}
                 onPress={saveToDevice}
-                disabled={isSaving}
+                disabled={!mapReady || isSaving}
               >
                 {isSaving ? (
                   <ActivityIndicator size="small" color="#fff" />
+                ) : !mapReady ? (
+                  <>
+                    <ActivityIndicator size="small" color="#fff" />
+                    <Text style={styles.shareActionButtonText}>Loading...</Text>
+                  </>
                 ) : (
                   <>
                     <Ionicons name="download" size={20} color="#fff" />
@@ -365,12 +373,17 @@ export default function YourStatsScreen({ navigation }) {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.shareActionButton, { backgroundColor: '#3b82f6' }]}
+                style={[styles.shareActionButton, { backgroundColor: '#3b82f6', opacity: (!mapReady || isSaving) ? 0.5 : 1 }]}
                 onPress={shareImage}
-                disabled={isSaving}
+                disabled={!mapReady || isSaving}
               >
                 {isSaving ? (
                   <ActivityIndicator size="small" color="#fff" />
+                ) : !mapReady ? (
+                  <>
+                    <ActivityIndicator size="small" color="#fff" />
+                    <Text style={styles.shareActionButtonText}>Loading...</Text>
+                  </>
                 ) : (
                   <>
                     <Ionicons name="share-social" size={20} color="#fff" />
