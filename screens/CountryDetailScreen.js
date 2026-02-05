@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import CountryHeaderImage from '../components/CountryHeaderImage';
 import AttractionCard from '../components/AttractionCard';
+import HotelCard from '../components/HotelCard';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
@@ -297,13 +298,13 @@ export default function CountryDetailScreen({ route }) {
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Top Hotels</Text>
           </View>
           {country.topHotels.map((hotel, index) => (
-            <View key={index} style={[styles.highlightCard, {
-              backgroundColor: theme.cardBackground,
-              borderColor: theme.border
-            }]}>
-              <Ionicons name="bed" size={20} color={theme.primary} />
-              <Text style={[styles.highlightText, { color: theme.text }]}>{hotel}</Text>
-            </View>
+            <HotelCard
+              key={index}
+              hotelName={hotel}
+              countryName={country.name}
+              theme={theme}
+              customImageUrl={country.hotelImages?.[hotel]}
+            />
           ))}
         </View>
       )}
