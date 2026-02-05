@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
+import CountryHeaderImage from '../components/CountryHeaderImage';
+import AttractionCard from '../components/AttractionCard';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
@@ -28,6 +30,11 @@ export default function CountryDetailScreen({ route }) {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
+      <CountryHeaderImage
+        countryName={country.name}
+        flag={country.flag}
+        theme={theme}
+      />
       <View style={styles.header}>
         <Text style={[styles.countryName, { color: theme.text }]}>{country.name}</Text>
         <Text style={[styles.continent, { color: theme.primary }]}>{country.continent}</Text>
@@ -226,13 +233,12 @@ export default function CountryDetailScreen({ route }) {
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Top Attractions</Text>
           {country.highlights.map((highlight, index) => (
-            <View key={index} style={[styles.highlightCard, {
-              backgroundColor: theme.cardBackground,
-              borderColor: theme.border
-            }]}>
-              <Ionicons name="star" size={20} color="#fbbf24" />
-              <Text style={[styles.highlightText, { color: theme.text }]}>{highlight}</Text>
-            </View>
+            <AttractionCard
+              key={index}
+              attractionName={highlight}
+              countryName={country.name}
+              theme={theme}
+            />
           ))}
         </View>
       )}

@@ -51,6 +51,9 @@ export const transformCountryFromDB = (record) => {
     bestTimeToVisit: record.best_time_to_visit,
     visaRequired: record.visa_required,
     rankings: record.rankings,
+    // Image URLs
+    headerImageUrl: record.header_image_url,
+    attractionImages: record.attraction_images || {},
     // Keep extracted ranks for efficient sorting
     rankVisitors: record.rank_visitors,
     rankSafety: record.rank_safety,
