@@ -3,14 +3,22 @@ import { View, Image, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import usePlacePhoto from '../hooks/usePlacePhoto';
 
-export default function AttractionCard({ attractionName, countryName, theme }) {
-  const { photoUrl, loading: fetchingPhoto } = usePlacePhoto(`${attractionName} ${countryName}`, 400);
+export default function AttractionCard({ attractionName, countryName, theme, customImageUrl }) {
+  // Only fetch from Google Places if no custom URL provided
+  const { photoUrl: googlePhotoUrl, loading: fetchingPhoto } = usePlacePhoto(
+    customImageUrl ? null : `${attractionName} ${countryName}`,
+    400
+  );
+
+  // Use custom URL if provided, otherwise use Google Places
+  const photoUrl = customImageUrl || googlePhotoUrl;
+
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
 
   const renderImage = () => {
-    // Still fetching photo URL from API
-    if (fetchingPhoto) {
+    // Still fetching photo URL from API (only for Google Places)
+    if (!customImageUrl && fetchingPhoto) {
       return (
         <View style={[styles.imageLoading, { backgroundColor: theme.cardBackground }]}>
           <ActivityIndicator size="small" color={theme.primary} />

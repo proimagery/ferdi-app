@@ -34,6 +34,7 @@ export default function CountryDetailScreen({ route }) {
         countryName={country.name}
         flag={country.flag}
         theme={theme}
+        customImageUrl={country.headerImageUrl}
       />
       <View style={styles.header}>
         <Text style={[styles.countryName, { color: theme.text }]}>{country.name}</Text>
@@ -238,6 +239,7 @@ export default function CountryDetailScreen({ route }) {
               attractionName={highlight}
               countryName={country.name}
               theme={theme}
+              customImageUrl={country.attractionImages?.[highlight]}
             />
           ))}
         </View>

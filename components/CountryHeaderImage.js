@@ -2,13 +2,21 @@ import React, { useState } from 'react';
 import { View, Image, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import usePlacePhoto from '../hooks/usePlacePhoto';
 
-export default function CountryHeaderImage({ countryName, flag, theme }) {
-  const { photoUrl, loading: fetchingPhoto } = usePlacePhoto(`${countryName} landmark`, 800);
+export default function CountryHeaderImage({ countryName, flag, theme, customImageUrl }) {
+  // Only fetch from Google Places if no custom URL provided
+  const { photoUrl: googlePhotoUrl, loading: fetchingPhoto } = usePlacePhoto(
+    customImageUrl ? null : `${countryName} landmark`,
+    800
+  );
+
+  // Use custom URL if provided, otherwise use Google Places
+  const photoUrl = customImageUrl || googlePhotoUrl;
+
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
 
-  // Show loading while fetching photo URL
-  if (fetchingPhoto) {
+  // Show loading while fetching photo URL (only for Google Places)
+  if (!customImageUrl && fetchingPhoto) {
     return (
       <View style={[styles.container, { backgroundColor: theme.cardBackground }]}>
         <ActivityIndicator size="large" color={theme.primary} />
