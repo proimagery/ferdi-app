@@ -17,6 +17,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAppContext } from '../context/AppContext';
 import { useAuthGuard } from '../hooks/useAuthGuard';
 import AuthPromptModal from '../components/AuthPromptModal';
+import ThemedAlert from '../components/ThemedAlert';
 import { officialCountryNames } from '../utils/coordinates';
 import { getCountryFlag } from '../utils/countryFlags';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -34,6 +35,15 @@ export default function AddCompletedTripScreen({ navigation }) {
   const [searchText, setSearchText] = useState('');
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [newVisitYear, setNewVisitYear] = useState('');
+
+  // Themed alert state
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({ title: '', message: '', type: 'error' });
+
+  const showThemedAlert = (title, message, type = 'error') => {
+    setAlertConfig({ title, message, type });
+    setAlertVisible(true);
+  };
 
   const countries = officialCountryNames;
 
@@ -70,10 +80,10 @@ export default function AddCompletedTripScreen({ navigation }) {
     );
 
     if (countryExists) {
-      Alert.alert(
-        'Country Already Added',
-        `${normalizedCountry} is already in your list. Click on it to add more visit dates.`,
-        [{ text: 'OK' }]
+      showThemedAlert(
+        'Already Added!',
+        `${normalizedCountry} is already in your list. Tap on it to add more visit dates.`,
+        'info'
       );
       setSearchText('');
       setShowCountryPicker(false);
@@ -100,7 +110,7 @@ export default function AddCompletedTripScreen({ navigation }) {
     if (checkAuth('add your travel history')) return;
 
     if (!newVisitYear.trim()) {
-      Alert.alert('Error', 'Please enter a year');
+      showThemedAlert('Oops!', 'Please enter a year.');
       return;
     }
 
@@ -108,13 +118,13 @@ export default function AddCompletedTripScreen({ navigation }) {
     const currentYear = new Date().getFullYear();
 
     if (isNaN(year) || year < 1900 || year > currentYear) {
-      Alert.alert('Error', 'Please enter a valid year');
+      showThemedAlert('Oops!', 'Please enter a valid year.');
       return;
     }
 
     // Check if this year already exists
     if (selectedCountry.visits.includes(newVisitYear)) {
-      Alert.alert('Error', 'You already have a visit recorded for this year');
+      showThemedAlert('Oops!', 'You already have a visit recorded for this year.', 'info');
       return;
     }
 
@@ -261,7 +271,7 @@ export default function AddCompletedTripScreen({ navigation }) {
             </View>
 
             {/* Search Input */}
-            <View style={[styles.searchContainer, { backgroundColor: theme.inputBackground, borderColor: theme.border }]}>
+            <View style={[styles.searchContainer, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder }]}>
               <Ionicons name="search" size={20} color={theme.textSecondary} />
               <TextInput
                 style={[styles.searchInput, { color: theme.text }]}
@@ -380,6 +390,16 @@ export default function AddCompletedTripScreen({ navigation }) {
         visible={showAuthModal}
         onClose={() => setShowAuthModal(false)}
         feature={featureMessage}
+      />
+
+      {/* Themed Alert */}
+      <ThemedAlert
+        visible={alertVisible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onClose={() => setAlertVisible(false)}
+        theme={theme}
       />
     </View>
     </KeyboardAvoidingView>

@@ -140,8 +140,8 @@ export default function SearchScreen({ navigation }) {
       {/* Search Bar */}
       <View style={styles.searchSection}>
         <View style={[styles.searchBar, {
-          backgroundColor: theme.cardBackground,
-          borderColor: theme.border
+          backgroundColor: theme.inputBackground,
+          borderColor: theme.inputBorder
         }]}>
           <Ionicons name="search" size={20} color={theme.textSecondary} />
           <TextInput

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   ScrollView,
   Alert,
   Image,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,13 +21,27 @@ export default function TravelBuddiesScreen({ navigation }) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const [selectedTab, setSelectedTab] = useState('buddies'); // 'buddies' or 'requests'
+  const [refreshing, setRefreshing] = useState(false);
   const {
     travelBuddyProfiles,
     buddyRequestProfiles,
     removeTravelBuddy,
     acceptBuddyRequest,
-    rejectBuddyRequest
+    rejectBuddyRequest,
+    refreshData
   } = useAppContext();
+
+  // Handle pull-to-refresh
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refreshData();
+    } catch (error) {
+      console.log('Error refreshing data:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refreshData]);
 
   const handleViewProfile = (user) => {
     navigation.navigate('PublicProfile', { user });
@@ -284,7 +299,18 @@ export default function TravelBuddiesScreen({ navigation }) {
       </View>
 
       {/* Content */}
-      <ScrollView style={styles.contentList} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.contentList}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.primary}
+            colors={[theme.primary]}
+          />
+        }
+      >
         {selectedTab === 'buddies' ? renderBuddiesList() : renderRequestsList()}
 
         {/* Footer */}

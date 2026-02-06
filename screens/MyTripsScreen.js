@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppContext } from '../context/AppContext';
@@ -8,13 +8,26 @@ import { useTheme } from '../context/ThemeContext';
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function MyTripsScreen({ navigation, route }) {
-  const { trips, deleteTrip, profile, updateProfile } = useAppContext();
+  const { trips, deleteTrip, profile, updateProfile, refreshData } = useAppContext();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const sharingMode = route.params?.sharingMode || false;
 
   const [viewMode, setViewMode] = useState('upcoming'); // 'upcoming', 'active', or 'past'
   const [selectedTrips, setSelectedTrips] = useState(profile?.sharedTripMaps || []);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Handle pull-to-refresh
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refreshData();
+    } catch (error) {
+      console.log('Error refreshing data:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refreshData]);
 
   const handleDeleteTrip = (index) => {
     deleteTrip(index);
@@ -169,7 +182,17 @@ export default function MyTripsScreen({ navigation, route }) {
         </View>
       )}
 
-      <ScrollView style={styles.scrollView}>
+      <ScrollView
+        style={styles.scrollView}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.primary}
+            colors={[theme.primary]}
+          />
+        }
+      >
         {filteredTrips.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="airplane-outline" size={80} color={theme.textSecondary} />

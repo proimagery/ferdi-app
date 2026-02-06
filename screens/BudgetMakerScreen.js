@@ -6,7 +6,6 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  Alert,
   Modal,
   KeyboardAvoidingView,
   Platform,
@@ -21,6 +20,7 @@ import { getCurrencyInfo } from '../utils/currencyData';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthGuard } from '../hooks/useAuthGuard';
 import AuthPromptModal from '../components/AuthPromptModal';
+import ThemedAlert from '../components/ThemedAlert';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
@@ -33,6 +33,15 @@ export default function BudgetMakerScreen({ navigation, route }) {
   // Custom category modal state
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+
+  // Themed alert state
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({ title: '', message: '', type: 'error', buttonText: 'Got it', onConfirm: null });
+
+  const showAlert = (title, message, type = 'error', buttonText = 'Got it', onConfirm = null) => {
+    setAlertConfig({ title, message, type, buttonText, onConfirm });
+    setAlertVisible(true);
+  };
 
   // Budget name
   const [budgetName, setBudgetName] = useState(budgetToEdit?.budgetName || '');
@@ -277,19 +286,19 @@ export default function BudgetMakerScreen({ navigation, route }) {
 
     // Validation
     if (tripType === 'single' && !selectedCountry) {
-      Alert.alert('Error', 'Please select a country');
+      showAlert('Oops!', 'You forgot to select a country!');
       return;
     }
 
     if (tripType === 'multi' && countries.length === 0) {
-      Alert.alert('Error', 'Please add at least one country to your trip');
+      showAlert('Oops!', 'Please add at least one country to your trip.');
       return;
     }
 
     if (tripType === 'multi' && totalDaysMulti !== tripDuration) {
-      Alert.alert(
-        'Error',
-        `Days don't match! You've allocated ${totalDaysMulti} days but your trip duration is ${tripDuration} days. Please adjust the days for each country.`
+      showAlert(
+        'Oops!',
+        `Days don't match! You've allocated ${totalDaysMulti} days but your trip is ${tripDuration} days. Please adjust the days for each country.`
       );
       return;
     }
@@ -370,12 +379,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
     // Save or update to global context
     if (editMode) {
       updateBudget(budgetIndex, budget);
-      Alert.alert('Success', 'Budget updated successfully!', [
-        {
-          text: 'OK',
-          onPress: () => navigation.navigate('MyBudget')
-        }
-      ]);
+      showAlert('Success!', 'Your budget has been updated.', 'success', 'View Budget', () => navigation.navigate('MyBudget'));
     } else {
       // Check if a budget already exists for this trip
       const existingBudgetIndex = fromTrip && tripData?.tripId
@@ -385,20 +389,10 @@ export default function BudgetMakerScreen({ navigation, route }) {
       if (existingBudgetIndex !== -1) {
         // Update existing budget instead of creating a new one
         updateBudget(existingBudgetIndex, budget);
-        Alert.alert('Success', 'Budget updated successfully!', [
-          {
-            text: 'OK',
-            onPress: () => navigation.navigate('MyBudget')
-          }
-        ]);
+        showAlert('Success!', 'Your budget has been updated.', 'success', 'View Budget', () => navigation.navigate('MyBudget'));
       } else {
         addBudget(budget);
-        Alert.alert('Success', 'Budget saved successfully!', [
-          {
-            text: 'OK',
-            onPress: () => navigation.navigate('MyBudget')
-          }
-        ]);
+        showAlert('Success!', 'Your budget has been saved.', 'success', 'View Budget', () => navigation.navigate('MyBudget'));
       }
     }
   };
@@ -572,8 +566,8 @@ export default function BudgetMakerScreen({ navigation, route }) {
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Select Country</Text>
           <TouchableOpacity
             style={[styles.dropdownButton, {
-              backgroundColor: theme.cardBackground,
-              borderColor: theme.border
+              backgroundColor: theme.inputBackground,
+              borderColor: theme.inputBorder
             }]}
             onPress={() => setDropdownVisible(true)}
           >
@@ -620,7 +614,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
             </View>
 
             {/* Search Input */}
-            <View style={[styles.searchContainer, { backgroundColor: theme.inputBackground, borderColor: theme.border }]}>
+            <View style={[styles.searchContainer, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder }]}>
               <Ionicons name="search" size={20} color={theme.textSecondary} />
               <TextInput
                 style={[styles.searchInput, { color: theme.text }]}
@@ -689,7 +683,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
             </View>
 
             {/* Search Input */}
-            <View style={[styles.searchContainer, { backgroundColor: theme.inputBackground, borderColor: theme.border }]}>
+            <View style={[styles.searchContainer, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder }]}>
               <Ionicons name="search" size={20} color={theme.textSecondary} />
               <TextInput
                 style={[styles.searchInput, { color: theme.text }]}
@@ -1433,6 +1427,18 @@ export default function BudgetMakerScreen({ navigation, route }) {
         visible={showAuthModal}
         onClose={() => setShowAuthModal(false)}
         feature={featureMessage}
+      />
+
+      {/* Themed Alert */}
+      <ThemedAlert
+        visible={alertVisible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        buttonText={alertConfig.buttonText}
+        onClose={() => setAlertVisible(false)}
+        onConfirm={alertConfig.onConfirm}
+        theme={theme}
       />
 
       {/* Add Custom Category Modal */}

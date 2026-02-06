@@ -7,13 +7,13 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import ThemedAlert from '../components/ThemedAlert';
 
 export default function SignupScreen({ navigation }) {
   const [email, setEmail] = useState('');
@@ -25,6 +25,15 @@ export default function SignupScreen({ navigation }) {
   const { signUp } = useAuth();
   const { theme } = useTheme();
 
+  // Themed alert state
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({ title: '', message: '', type: 'error', onConfirm: null });
+
+  const showAlert = (title, message, type = 'error', onConfirm = null) => {
+    setAlertConfig({ title, message, type, onConfirm });
+    setAlertVisible(true);
+  };
+
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
@@ -33,37 +42,38 @@ export default function SignupScreen({ navigation }) {
   const handleSignup = async () => {
     // Validation
     if (!email.trim()) {
-      Alert.alert('Error', 'Please enter your email');
+      showAlert('Oops!', 'Please enter your email.');
       return;
     }
     if (!validateEmail(email.trim())) {
-      Alert.alert('Error', 'Please enter a valid email address');
+      showAlert('Oops!', 'Please enter a valid email address.');
       return;
     }
     if (!password) {
-      Alert.alert('Error', 'Please enter a password');
+      showAlert('Oops!', 'Please enter a password.');
       return;
     }
     if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+      showAlert('Oops!', 'Password must be at least 6 characters.');
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+      showAlert('Oops!', 'Passwords do not match.');
       return;
     }
 
     setIsLoading(true);
-    const { data, error } = await signUp(email.trim().toLowerCase(), password);
+    const { error } = await signUp(email.trim().toLowerCase(), password);
     setIsLoading(false);
 
     if (error) {
-      Alert.alert('Sign Up Failed', error.message);
+      showAlert('Sign Up Failed', error.message);
     } else {
-      Alert.alert(
-        'Success',
-        'Account created successfully! Please check your email to verify your account.',
-        [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
+      showAlert(
+        'Success!',
+        'Account created! Please check your email to verify your account.',
+        'success',
+        () => navigation.navigate('Login')
       );
     }
   };
@@ -191,6 +201,17 @@ export default function SignupScreen({ navigation }) {
           </View>
         </View>
       </ScrollView>
+
+      {/* Themed Alert */}
+      <ThemedAlert
+        visible={alertVisible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onClose={() => setAlertVisible(false)}
+        onConfirm={alertConfig.onConfirm}
+        theme={theme}
+      />
     </KeyboardAvoidingView>
   );
 }

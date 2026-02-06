@@ -1,7 +1,8 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Modal, StatusBar, Alert, ActivityIndicator, Platform } from 'react-native';
+import React, { useState, useRef, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Modal, StatusBar, Alert, ActivityIndicator, Platform, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { captureRef } from 'react-native-view-shot';
 import * as MediaLibrary from 'expo-media-library';
 import * as Sharing from 'expo-sharing';
@@ -13,14 +14,39 @@ import ShareableStatsCard from '../components/ShareableStatsCard';
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function YourStatsScreen({ navigation }) {
-  const { completedTrips, visitedCities, trips, profile } = useAppContext();
+  const { completedTrips, visitedCities, trips, profile, refreshData } = useAppContext();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const [showGlobeFullscreen, setShowGlobeFullscreen] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [mapReady, setMapReady] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [globeKey, setGlobeKey] = useState(0);
   const shareCardRef = useRef(null);
+
+  // Force globe to remount when screen gains focus to fix loading issues
+  useFocusEffect(
+    useCallback(() => {
+      // Small delay to ensure the screen is fully rendered before mounting the globe
+      const timer = setTimeout(() => {
+        setGlobeKey(prev => prev + 1);
+      }, 100);
+      return () => clearTimeout(timer);
+    }, [])
+  );
+
+  // Handle pull-to-refresh
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refreshData();
+    } catch (error) {
+      console.log('Error refreshing data:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refreshData]);
 
   // Countries visited is based only on manually added countries (completedTrips)
   const totalCountriesVisited = completedTrips.length;
@@ -114,7 +140,144 @@ export default function YourStatsScreen({ navigation }) {
     'Zimbabwe': 'Africa', 'Zambia': 'Africa',
     // Oceania
     'Australia': 'Oceania', 'New Zealand': 'Oceania', 'Fiji': 'Oceania', 'Papua New Guinea': 'Oceania',
+    // Antarctica
+    'Antarctica': 'Antarctica',
   };
+
+  // All 7 continents
+  const allContinents = [
+    'Africa', 'Antarctica', 'Asia', 'Europe', 'North America', 'Oceania', 'South America'
+  ];
+
+  // UN Geoscheme Subregion mapping (22 subregions)
+  const subregionMap = {
+    // Eastern Africa
+    'Burundi': 'Eastern Africa', 'Comoros': 'Eastern Africa', 'Djibouti': 'Eastern Africa',
+    'Eritrea': 'Eastern Africa', 'Ethiopia': 'Eastern Africa', 'Kenya': 'Eastern Africa',
+    'Madagascar': 'Eastern Africa', 'Malawi': 'Eastern Africa', 'Mauritius': 'Eastern Africa',
+    'Mayotte': 'Eastern Africa', 'Mozambique': 'Eastern Africa', 'Réunion': 'Eastern Africa',
+    'Rwanda': 'Eastern Africa', 'Seychelles': 'Eastern Africa', 'Somalia': 'Eastern Africa',
+    'South Sudan': 'Eastern Africa', 'Tanzania': 'Eastern Africa', 'Uganda': 'Eastern Africa',
+    'Zambia': 'Eastern Africa', 'Zimbabwe': 'Eastern Africa',
+    // Middle Africa
+    'Angola': 'Middle Africa', 'Cameroon': 'Middle Africa', 'Central African Republic': 'Middle Africa',
+    'Chad': 'Middle Africa', 'Congo': 'Middle Africa', 'Democratic Republic of the Congo': 'Middle Africa',
+    'Equatorial Guinea': 'Middle Africa', 'Gabon': 'Middle Africa', 'São Tomé and Príncipe': 'Middle Africa',
+    // Northern Africa
+    'Algeria': 'Northern Africa', 'Egypt': 'Northern Africa', 'Libya': 'Northern Africa',
+    'Morocco': 'Northern Africa', 'Sudan': 'Northern Africa', 'Tunisia': 'Northern Africa',
+    'Western Sahara': 'Northern Africa',
+    // Southern Africa
+    'Botswana': 'Southern Africa', 'Eswatini': 'Southern Africa', 'Lesotho': 'Southern Africa',
+    'Namibia': 'Southern Africa', 'South Africa': 'Southern Africa',
+    // Western Africa
+    'Benin': 'Western Africa', 'Burkina Faso': 'Western Africa', 'Cabo Verde': 'Western Africa',
+    'Côte d\'Ivoire': 'Western Africa', 'Ivory Coast': 'Western Africa', 'Gambia': 'Western Africa',
+    'Ghana': 'Western Africa', 'Guinea': 'Western Africa', 'Guinea-Bissau': 'Western Africa',
+    'Liberia': 'Western Africa', 'Mali': 'Western Africa', 'Mauritania': 'Western Africa',
+    'Niger': 'Western Africa', 'Nigeria': 'Western Africa', 'Senegal': 'Western Africa',
+    'Sierra Leone': 'Western Africa', 'Togo': 'Western Africa',
+    // Caribbean
+    'Anguilla': 'Caribbean', 'Antigua and Barbuda': 'Caribbean', 'Aruba': 'Caribbean',
+    'Bahamas': 'Caribbean', 'Barbados': 'Caribbean', 'British Virgin Islands': 'Caribbean',
+    'Cayman Islands': 'Caribbean', 'Cuba': 'Caribbean', 'Curaçao': 'Caribbean',
+    'Dominica': 'Caribbean', 'Dominican Republic': 'Caribbean', 'Grenada': 'Caribbean',
+    'Guadeloupe': 'Caribbean', 'Haiti': 'Caribbean', 'Jamaica': 'Caribbean',
+    'Martinique': 'Caribbean', 'Montserrat': 'Caribbean', 'Puerto Rico': 'Caribbean',
+    'Saint Barthélemy': 'Caribbean', 'Saint Kitts and Nevis': 'Caribbean',
+    'Saint Lucia': 'Caribbean', 'Saint Martin': 'Caribbean', 'Saint Vincent and the Grenadines': 'Caribbean',
+    'Sint Maarten': 'Caribbean', 'Trinidad and Tobago': 'Caribbean', 'Turks and Caicos Islands': 'Caribbean',
+    'Virgin Islands': 'Caribbean',
+    // Central America
+    'Belize': 'Central America', 'Costa Rica': 'Central America', 'El Salvador': 'Central America',
+    'Guatemala': 'Central America', 'Honduras': 'Central America', 'Mexico': 'Central America',
+    'Nicaragua': 'Central America', 'Panama': 'Central America',
+    // South America
+    'Argentina': 'South America', 'Bolivia': 'South America', 'Brazil': 'South America',
+    'Chile': 'South America', 'Colombia': 'South America', 'Ecuador': 'South America',
+    'Falkland Islands': 'South America', 'French Guiana': 'South America', 'Guyana': 'South America',
+    'Paraguay': 'South America', 'Peru': 'South America', 'Suriname': 'South America',
+    'Uruguay': 'South America', 'Venezuela': 'South America',
+    // Northern America
+    'Bermuda': 'Northern America', 'Canada': 'Northern America', 'Greenland': 'Northern America',
+    'Saint Pierre and Miquelon': 'Northern America', 'USA': 'Northern America',
+    'United States': 'Northern America',
+    // Central Asia
+    'Kazakhstan': 'Central Asia', 'Kyrgyzstan': 'Central Asia', 'Tajikistan': 'Central Asia',
+    'Turkmenistan': 'Central Asia', 'Uzbekistan': 'Central Asia',
+    // Eastern Asia
+    'China': 'Eastern Asia', 'Hong Kong': 'Eastern Asia', 'Japan': 'Eastern Asia',
+    'Macao': 'Eastern Asia', 'Mongolia': 'Eastern Asia', 'North Korea': 'Eastern Asia',
+    'South Korea': 'Eastern Asia', 'Taiwan': 'Eastern Asia',
+    // South-eastern Asia
+    'Brunei': 'South-eastern Asia', 'Cambodia': 'South-eastern Asia', 'Indonesia': 'South-eastern Asia',
+    'Laos': 'South-eastern Asia', 'Malaysia': 'South-eastern Asia', 'Myanmar': 'South-eastern Asia',
+    'Philippines': 'South-eastern Asia', 'Singapore': 'South-eastern Asia', 'Thailand': 'South-eastern Asia',
+    'Timor-Leste': 'South-eastern Asia', 'Vietnam': 'South-eastern Asia',
+    // Southern Asia
+    'Afghanistan': 'Southern Asia', 'Bangladesh': 'Southern Asia', 'Bhutan': 'Southern Asia',
+    'India': 'Southern Asia', 'Iran': 'Southern Asia', 'Maldives': 'Southern Asia',
+    'Nepal': 'Southern Asia', 'Pakistan': 'Southern Asia', 'Sri Lanka': 'Southern Asia',
+    // Western Asia
+    'Armenia': 'Western Asia', 'Azerbaijan': 'Western Asia', 'Bahrain': 'Western Asia',
+    'Cyprus': 'Western Asia', 'Georgia': 'Western Asia', 'Iraq': 'Western Asia',
+    'Israel': 'Western Asia', 'Jordan': 'Western Asia', 'Kuwait': 'Western Asia',
+    'Lebanon': 'Western Asia', 'Oman': 'Western Asia', 'Palestine': 'Western Asia',
+    'Qatar': 'Western Asia', 'Saudi Arabia': 'Western Asia', 'Syria': 'Western Asia',
+    'Turkey': 'Western Asia', 'United Arab Emirates': 'Western Asia', 'Yemen': 'Western Asia',
+    // Eastern Europe
+    'Belarus': 'Eastern Europe', 'Bulgaria': 'Eastern Europe', 'Czech Republic': 'Eastern Europe',
+    'Czechia': 'Eastern Europe', 'Hungary': 'Eastern Europe', 'Moldova': 'Eastern Europe',
+    'Poland': 'Eastern Europe', 'Romania': 'Eastern Europe', 'Russia': 'Eastern Europe',
+    'Slovakia': 'Eastern Europe', 'Ukraine': 'Eastern Europe',
+    // Northern Europe
+    'Denmark': 'Northern Europe', 'Estonia': 'Northern Europe', 'Faroe Islands': 'Northern Europe',
+    'Finland': 'Northern Europe', 'Iceland': 'Northern Europe', 'Ireland': 'Northern Europe',
+    'Latvia': 'Northern Europe', 'Lithuania': 'Northern Europe', 'Norway': 'Northern Europe',
+    'Sweden': 'Northern Europe', 'UK': 'Northern Europe', 'United Kingdom': 'Northern Europe',
+    'England': 'Northern Europe', 'Scotland': 'Northern Europe', 'Wales': 'Northern Europe',
+    'Northern Ireland': 'Northern Europe',
+    // Southern Europe
+    'Albania': 'Southern Europe', 'Andorra': 'Southern Europe', 'Bosnia and Herzegovina': 'Southern Europe',
+    'Croatia': 'Southern Europe', 'Gibraltar': 'Southern Europe', 'Greece': 'Southern Europe',
+    'Italy': 'Southern Europe', 'Kosovo': 'Southern Europe', 'Malta': 'Southern Europe',
+    'Montenegro': 'Southern Europe', 'North Macedonia': 'Southern Europe', 'Portugal': 'Southern Europe',
+    'San Marino': 'Southern Europe', 'Serbia': 'Southern Europe', 'Slovenia': 'Southern Europe',
+    'Spain': 'Southern Europe', 'Vatican City': 'Southern Europe',
+    // Western Europe
+    'Austria': 'Western Europe', 'Belgium': 'Western Europe', 'France': 'Western Europe',
+    'Germany': 'Western Europe', 'Liechtenstein': 'Western Europe', 'Luxembourg': 'Western Europe',
+    'Monaco': 'Western Europe', 'Netherlands': 'Western Europe', 'Switzerland': 'Western Europe',
+    // Australia and New Zealand
+    'Australia': 'Australia and New Zealand', 'New Zealand': 'Australia and New Zealand',
+    'Norfolk Island': 'Australia and New Zealand',
+    // Melanesia
+    'Fiji': 'Melanesia', 'New Caledonia': 'Melanesia', 'Papua New Guinea': 'Melanesia',
+    'Solomon Islands': 'Melanesia', 'Vanuatu': 'Melanesia',
+    // Micronesia
+    'Guam': 'Micronesia', 'Kiribati': 'Micronesia', 'Marshall Islands': 'Micronesia',
+    'Micronesia': 'Micronesia', 'Nauru': 'Micronesia', 'Northern Mariana Islands': 'Micronesia',
+    'Palau': 'Micronesia',
+    // Polynesia
+    'American Samoa': 'Polynesia', 'Cook Islands': 'Polynesia', 'French Polynesia': 'Polynesia',
+    'Niue': 'Polynesia', 'Pitcairn Islands': 'Polynesia', 'Samoa': 'Polynesia',
+    'Tokelau': 'Polynesia', 'Tonga': 'Polynesia', 'Tuvalu': 'Polynesia', 'Wallis and Futuna': 'Polynesia',
+  };
+
+  // All 22 UN geoscheme subregions
+  const allSubregions = [
+    'Eastern Africa', 'Middle Africa', 'Northern Africa', 'Southern Africa', 'Western Africa',
+    'Caribbean', 'Central America', 'South America', 'Northern America',
+    'Central Asia', 'Eastern Asia', 'South-eastern Asia', 'Southern Asia', 'Western Asia',
+    'Eastern Europe', 'Northern Europe', 'Southern Europe', 'Western Europe',
+    'Australia and New Zealand', 'Melanesia', 'Micronesia', 'Polynesia'
+  ];
+
+  // Calculate visited subregions
+  const visitedSubregions = [
+    ...new Set(completedTrips.map((trip) => subregionMap[trip.country]).filter(Boolean)),
+  ];
+  const subregionCoverage = ((visitedSubregions.length / 22) * 100).toFixed(1);
 
   const visitedContinents = [
     ...new Set(completedTrips.map((trip) => continentMap[trip.country]).filter(Boolean)),
@@ -247,11 +410,37 @@ export default function YourStatsScreen({ navigation }) {
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: theme.background }]}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={theme.primary}
+          colors={[theme.primary]}
+        />
+      }
+    >
       <View style={styles.header}>
         <Text style={[styles.headerTitle, { color: theme.text }]}>Your Travel Stats</Text>
         <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>Track your journey around the world</Text>
       </View>
+
+      {/* Globe with Markers - At top of page */}
+      {completedTrips.length > 0 && (
+        <View style={styles.globeSection}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Your World</Text>
+          <View style={styles.globeContainer}>
+            <SpinningGlobe
+              key={`globe-stats-${globeKey}`}
+              completedTrips={completedTrips}
+              visitedCities={visitedCities}
+              onFullscreen={() => setShowGlobeFullscreen(true)}
+              onDownload={handleDownloadStats}
+            />
+          </View>
+        </View>
+      )}
 
       <View style={styles.statsGrid}>
         {stats.map((stat, index) => {
@@ -277,21 +466,6 @@ export default function YourStatsScreen({ navigation }) {
           );
         })}
       </View>
-
-      {/* Globe with Markers */}
-      {completedTrips.length > 0 && (
-        <View style={styles.globeSection}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Your World</Text>
-          <View style={styles.globeContainer}>
-            <SpinningGlobe
-              completedTrips={completedTrips}
-              visitedCities={visitedCities}
-              onFullscreen={() => setShowGlobeFullscreen(true)}
-              onDownload={handleDownloadStats}
-            />
-          </View>
-        </View>
-      )}
 
       {/* Fullscreen Globe Modal */}
       <Modal
@@ -396,19 +570,139 @@ export default function YourStatsScreen({ navigation }) {
         </View>
       </Modal>
 
-      {visitedContinents.length > 0 && (
-        <View style={styles.section}>
+      {/* Continents Visited */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeaderRow}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Continents Visited</Text>
-          <View style={styles.continentsList}>
+          <View style={[styles.subregionBadge, { backgroundColor: theme.primary }]}>
+            <Text style={[styles.subregionBadgeText, { color: theme.background }]}>
+              {visitedContinents.length}/7
+            </Text>
+          </View>
+        </View>
+        <Text style={[styles.subregionSubtitle, { color: theme.textSecondary }]}>
+          Regions of the world
+        </Text>
+
+        {/* Progress Bar */}
+        <View style={[styles.subregionProgressContainer, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+          <View style={styles.subregionProgressHeader}>
+            <Text style={[styles.subregionProgressLabel, { color: theme.textSecondary }]}>Continent Coverage</Text>
+            <Text style={[styles.subregionProgressValue, { color: theme.primary }]}>
+              {((visitedContinents.length / 7) * 100).toFixed(1)}%
+            </Text>
+          </View>
+          <View style={[styles.subregionProgressBar, { backgroundColor: theme.border }]}>
+            <View
+              style={[
+                styles.subregionProgressFill,
+                { backgroundColor: theme.primary, width: `${(visitedContinents.length / 7) * 100}%` }
+              ]}
+            />
+          </View>
+        </View>
+
+        {/* Visited Continents List */}
+        {visitedContinents.length > 0 && (
+          <View style={styles.subregionsList}>
             {visitedContinents.map((continent, index) => (
-              <View key={index} style={[styles.continentChip, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
-                <Ionicons name="location" size={16} color={theme.primary} />
-                <Text style={[styles.continentText, { color: theme.text }]}>{continent}</Text>
+              <View
+                key={index}
+                style={[styles.subregionChip, { backgroundColor: theme.primary + '20', borderColor: theme.primary }]}
+              >
+                <Ionicons name="checkmark-circle" size={14} color={theme.primary} />
+                <Text style={[styles.subregionChipText, { color: theme.text }]}>{continent}</Text>
               </View>
             ))}
           </View>
+        )}
+
+        {/* Remaining Continents */}
+        {visitedContinents.length < 7 && (
+          <View style={styles.unvisitedSubregions}>
+            <Text style={[styles.unvisitedLabel, { color: theme.textSecondary }]}>
+              {7 - visitedContinents.length} continent{7 - visitedContinents.length !== 1 ? 's' : ''} remaining
+            </Text>
+            <View style={styles.unvisitedList}>
+              {allContinents.filter(c => !visitedContinents.includes(c)).map((continent, index) => (
+                <View
+                  key={index}
+                  style={[styles.unvisitedChip, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+                >
+                  <Ionicons name="ellipse-outline" size={12} color={theme.textSecondary} />
+                  <Text style={[styles.unvisitedChipText, { color: theme.textSecondary }]}>{continent}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+      </View>
+
+      {/* Subregions Section (UN Geoscheme) */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Subregions</Text>
+          <View style={[styles.subregionBadge, { backgroundColor: theme.primary }]}>
+            <Text style={[styles.subregionBadgeText, { color: theme.background }]}>
+              {visitedSubregions.length}/22
+            </Text>
+          </View>
         </View>
-      )}
+        <Text style={[styles.subregionSubtitle, { color: theme.textSecondary }]}>
+          UN Geoscheme regions of the world
+        </Text>
+
+        {/* Progress Bar */}
+        <View style={[styles.subregionProgressContainer, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+          <View style={styles.subregionProgressHeader}>
+            <Text style={[styles.subregionProgressLabel, { color: theme.textSecondary }]}>World Subregion Coverage</Text>
+            <Text style={[styles.subregionProgressValue, { color: theme.primary }]}>{subregionCoverage}%</Text>
+          </View>
+          <View style={[styles.subregionProgressBar, { backgroundColor: theme.border }]}>
+            <View
+              style={[
+                styles.subregionProgressFill,
+                { backgroundColor: theme.primary, width: `${subregionCoverage}%` }
+              ]}
+            />
+          </View>
+        </View>
+
+        {/* Visited Subregions List */}
+        {visitedSubregions.length > 0 && (
+          <View style={styles.subregionsList}>
+            {visitedSubregions.map((subregion, index) => (
+              <View
+                key={index}
+                style={[styles.subregionChip, { backgroundColor: theme.primary + '20', borderColor: theme.primary }]}
+              >
+                <Ionicons name="checkmark-circle" size={14} color={theme.primary} />
+                <Text style={[styles.subregionChipText, { color: theme.text }]}>{subregion}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Unvisited Subregions (collapsed view) */}
+        {visitedSubregions.length < 22 && (
+          <View style={styles.unvisitedSubregions}>
+            <Text style={[styles.unvisitedLabel, { color: theme.textSecondary }]}>
+              {22 - visitedSubregions.length} subregion{22 - visitedSubregions.length !== 1 ? 's' : ''} remaining
+            </Text>
+            <View style={styles.unvisitedList}>
+              {allSubregions.filter(sr => !visitedSubregions.includes(sr)).map((subregion, index) => (
+                <View
+                  key={index}
+                  style={[styles.unvisitedChip, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+                >
+                  <Ionicons name="ellipse-outline" size={12} color={theme.textSecondary} />
+                  <Text style={[styles.unvisitedChipText, { color: theme.textSecondary }]}>{subregion}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+      </View>
 
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: theme.text }]}>Travel Trends</Text>
@@ -537,22 +831,95 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 15,
   },
-  continentsList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  continentChip: {
+  sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderRadius: 20,
-    borderWidth: 1,
-    gap: 5,
+    justifyContent: 'space-between',
+    marginBottom: 5,
   },
-  continentText: {
+  subregionBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  subregionBadgeText: {
     fontSize: 14,
+    fontWeight: 'bold',
+  },
+  subregionSubtitle: {
+    fontSize: 13,
+    marginBottom: 15,
+  },
+  subregionProgressContainer: {
+    padding: 15,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 15,
+  },
+  subregionProgressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  subregionProgressLabel: {
+    fontSize: 14,
+  },
+  subregionProgressValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  subregionProgressBar: {
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  subregionProgressFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  subregionsList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 15,
+  },
+  subregionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 6,
+  },
+  subregionChipText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  unvisitedSubregions: {
+    marginTop: 5,
+  },
+  unvisitedLabel: {
+    fontSize: 13,
+    marginBottom: 10,
+  },
+  unvisitedList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  unvisitedChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 4,
+  },
+  unvisitedChipText: {
+    fontSize: 12,
   },
   milestoneCard: {
     flexDirection: 'row',

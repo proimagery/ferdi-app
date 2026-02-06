@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Alert,
   Image,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppContext } from '../context/AppContext';
@@ -20,10 +21,23 @@ const ferdiLogo = require('../assets/Ferdi-transparent.png');
 export default function MyBudgetScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const { budgets, deleteBudget, trips } = useAppContext();
+  const { budgets, deleteBudget, trips, refreshData } = useAppContext();
   const [expandedId, setExpandedId] = useState(null);
   const [selectedCountryForBudget, setSelectedCountryForBudget] = useState({});
   const [selectedTab, setSelectedTab] = useState('upcoming'); // 'past', 'upcoming', 'active'
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Handle pull-to-refresh
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refreshData();
+    } catch (error) {
+      console.log('Error refreshing data:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refreshData]);
 
   const toggleExpand = (id) => {
     setExpandedId(expandedId === id ? null : id);
@@ -151,7 +165,17 @@ export default function MyBudgetScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.scrollView}>
+      <ScrollView
+        style={styles.scrollView}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.primary}
+            colors={[theme.primary]}
+          />
+        }
+      >
         {filteredBudgets.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="wallet-outline" size={80} color={theme.textSecondary} />

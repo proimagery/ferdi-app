@@ -7,13 +7,13 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   ActivityIndicator,
   Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import ThemedAlert from '../components/ThemedAlert';
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
@@ -27,13 +27,22 @@ export default function LoginScreen({ navigation }) {
   const { signIn, testSignIn, continueAsGuest } = useAuth();
   const { theme } = useTheme();
 
+  // Themed alert state
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({ title: '', message: '' });
+
+  const showAlert = (title, message) => {
+    setAlertConfig({ title, message });
+    setAlertVisible(true);
+  };
+
   const handleLogin = async () => {
     if (!email.trim()) {
-      Alert.alert('Error', 'Please enter your email');
+      showAlert('Oops!', 'Please enter your email.');
       return;
     }
     if (!password) {
-      Alert.alert('Error', 'Please enter your password');
+      showAlert('Oops!', 'Please enter your password.');
       return;
     }
 
@@ -42,7 +51,7 @@ export default function LoginScreen({ navigation }) {
     setIsLoading(false);
 
     if (error) {
-      Alert.alert('Login Failed', error.message);
+      showAlert('Login Failed', error.message);
     }
   };
 
@@ -52,15 +61,15 @@ export default function LoginScreen({ navigation }) {
 
   const handleTestLogin = async () => {
     if (!testUsername.trim()) {
-      Alert.alert('Error', 'Please enter a username');
+      showAlert('Oops!', 'Please enter a username.');
       return;
     }
     if (testUsername.trim().length < 3) {
-      Alert.alert('Error', 'Username must be at least 3 characters');
+      showAlert('Oops!', 'Username must be at least 3 characters.');
       return;
     }
     if (!testPassword || testPassword.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+      showAlert('Oops!', 'Password must be at least 6 characters.');
       return;
     }
 
@@ -69,7 +78,7 @@ export default function LoginScreen({ navigation }) {
     setIsLoading(false);
 
     if (error) {
-      Alert.alert('Login Failed', error.message);
+      showAlert('Login Failed', error.message);
     } else {
       setShowTestLogin(false);
       setTestUsername('');
@@ -270,6 +279,15 @@ export default function LoginScreen({ navigation }) {
           </View>
         </View>
       </Modal>
+
+      {/* Themed Alert */}
+      <ThemedAlert
+        visible={alertVisible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        onClose={() => setAlertVisible(false)}
+        theme={theme}
+      />
     </KeyboardAvoidingView>
   );
 }

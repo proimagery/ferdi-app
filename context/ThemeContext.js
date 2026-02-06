@@ -17,7 +17,7 @@ export const lightTheme = {
   pink: '#f472b6',
   orange: '#fb923c',
   inputBackground: '#ffffff',
-  inputBorder: '#e0e0e0',
+  inputBorder: '#c0c0c0',
   shadow: '#000000',
 };
 
@@ -35,8 +35,8 @@ export const darkTheme = {
   purple: '#a78bfa',
   pink: '#f472b6',
   orange: '#fb923c',
-  inputBackground: '#1a1a1a',
-  inputBorder: '#2a2a2a',
+  inputBackground: '#252525',
+  inputBorder: '#404040',
   shadow: '#000000',
 };
 

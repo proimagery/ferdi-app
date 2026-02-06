@@ -669,7 +669,7 @@ export default function TravelMapperScreen({ navigation, route }) {
               {pickerMode === 'country' ? (
                 <>
                   {/* Country Search Input */}
-                  <View style={[styles.searchContainer, { backgroundColor: theme.inputBackground, borderColor: theme.border }]}>
+                  <View style={[styles.searchContainer, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder }]}>
                     <Ionicons name="search" size={20} color={theme.textSecondary} />
                     <TextInput
                       style={[styles.searchInput, { color: theme.text }]}
@@ -732,7 +732,7 @@ export default function TravelMapperScreen({ navigation, route }) {
               ) : (
                 <>
                   {/* Address Search Input */}
-                  <View style={[styles.searchContainer, { backgroundColor: theme.inputBackground, borderColor: theme.border }]}>
+                  <View style={[styles.searchContainer, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder }]}>
                     <Ionicons name="location" size={20} color={theme.textSecondary} />
                     <TextInput
                       style={[styles.searchInput, { color: theme.text }]}

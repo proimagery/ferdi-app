@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Dimensions, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Dimensions, ActivityIndicator, RefreshControl } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -21,7 +21,7 @@ const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function PublicProfileScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
-  const { profile, completedTrips, visitedCities, trips, travelBuddies, highlightedBuddies, buddyRequests, sendBuddyRequest, updateProfile } = useAppContext();
+  const { profile, completedTrips, visitedCities, trips, travelBuddies, highlightedBuddies, buddyRequests, sendBuddyRequest, updateProfile, refreshData } = useAppContext();
   const { theme } = useTheme();
   const { checkAuth, showAuthModal, setShowAuthModal, featureMessage } = useAuthGuard();
 
@@ -33,6 +33,22 @@ export default function PublicProfileScreen({ navigation, route }) {
   const [fullProfileData, setFullProfileData] = useState(null);
   const [profileCompletedTrips, setProfileCompletedTrips] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Handle pull-to-refresh
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refreshData();
+      if (viewingUser && viewingUser.id) {
+        await fetchFullProfile(viewingUser.id);
+      }
+    } catch (error) {
+      console.log('Error refreshing data:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refreshData, viewingUser?.id]);
 
   // Fetch full profile data when viewing another user
   useEffect(() => {
@@ -145,21 +161,183 @@ export default function PublicProfileScreen({ navigation, route }) {
   const worldCountries = 195;
   const worldCoverage = ((totalCountriesVisited / worldCountries) * 100).toFixed(0);
 
-  // Get continents count
-  const continents = new Set();
+  // Get unique continents (comprehensive map)
   const continentMap = {
-    'USA': 'North America', 'United States': 'North America', 'Canada': 'North America', 'Mexico': 'North America',
-    'France': 'Europe', 'Germany': 'Europe', 'Italy': 'Europe', 'Spain': 'Europe', 'England': 'Europe', 'Scotland': 'Europe', 'Wales': 'Europe', 'Northern Ireland': 'Europe',
-    'Japan': 'Asia', 'China': 'Asia', 'India': 'Asia', 'Thailand': 'Asia',
-    'Australia': 'Oceania', 'New Zealand': 'Oceania',
+    // North America
+    'USA': 'North America', 'United States': 'North America', 'Canada': 'North America',
+    'Mexico': 'North America', 'Cuba': 'North America', 'Jamaica': 'North America',
+    'Costa Rica': 'North America', 'Panama': 'North America', 'Guatemala': 'North America',
+    'Belize': 'North America', 'Honduras': 'North America', 'Nicaragua': 'North America',
+    'El Salvador': 'North America', 'Dominican Republic': 'North America',
+    // Europe
+    'France': 'Europe', 'Italy': 'Europe', 'Spain': 'Europe', 'Germany': 'Europe',
+    'UK': 'Europe', 'England': 'Europe', 'Scotland': 'Europe', 'Wales': 'Europe', 'Northern Ireland': 'Europe', 'Netherlands': 'Europe', 'Belgium': 'Europe',
+    'Switzerland': 'Europe', 'Austria': 'Europe', 'Greece': 'Europe', 'Portugal': 'Europe',
+    'Poland': 'Europe', 'Sweden': 'Europe', 'Norway': 'Europe', 'Denmark': 'Europe',
+    'Finland': 'Europe', 'Iceland': 'Europe', 'Ireland': 'Europe', 'Croatia': 'Europe',
+    'Czech Republic': 'Europe', 'Hungary': 'Europe', 'Romania': 'Europe', 'Bulgaria': 'Europe',
+    'Slovakia': 'Europe', 'Slovenia': 'Europe', 'Estonia': 'Europe', 'Latvia': 'Europe',
+    'Lithuania': 'Europe', 'Luxembourg': 'Europe', 'Malta': 'Europe', 'Cyprus': 'Europe',
+    'Albania': 'Europe', 'North Macedonia': 'Europe', 'Serbia': 'Europe', 'Montenegro': 'Europe',
+    'Bosnia and Herzegovina': 'Europe', 'Russia': 'Europe',
+    // Asia
+    'Japan': 'Asia', 'China': 'Asia', 'India': 'Asia', 'Thailand': 'Asia', 'Vietnam': 'Asia',
+    'South Korea': 'Asia', 'Singapore': 'Asia', 'Malaysia': 'Asia', 'Indonesia': 'Asia',
+    'Philippines': 'Asia', 'Cambodia': 'Asia', 'Laos': 'Asia', 'Myanmar': 'Asia',
+    'Hong Kong': 'Asia', 'Turkey': 'Asia', 'United Arab Emirates': 'Asia', 'Saudi Arabia': 'Asia',
+    'Jordan': 'Asia', 'Oman': 'Asia', 'Qatar': 'Asia', 'Kuwait': 'Asia', 'Bahrain': 'Asia',
+    'Lebanon': 'Asia', 'Nepal': 'Asia', 'Bhutan': 'Asia', 'Sri Lanka': 'Asia', 'Maldives': 'Asia',
+    // South America
     'Brazil': 'South America', 'Argentina': 'South America', 'Chile': 'South America',
-    'Egypt': 'Africa', 'South Africa': 'Africa', 'Kenya': 'Africa',
+    'Peru': 'South America', 'Colombia': 'South America', 'Ecuador': 'South America',
+    'Bolivia': 'South America', 'Uruguay': 'South America', 'Paraguay': 'South America',
+    // Africa
+    'Egypt': 'Africa', 'South Africa': 'Africa', 'Morocco': 'Africa', 'Kenya': 'Africa',
+    'Tanzania': 'Africa', 'Ethiopia': 'Africa', 'Tunisia': 'Africa', 'Madagascar': 'Africa',
+    'Zimbabwe': 'Africa', 'Zambia': 'Africa',
+    // Oceania
+    'Australia': 'Oceania', 'New Zealand': 'Oceania', 'Fiji': 'Oceania', 'Papua New Guinea': 'Oceania',
   };
 
+  // UN Geoscheme Subregion mapping (22 subregions)
+  const subregionMap = {
+    // Eastern Africa
+    'Burundi': 'Eastern Africa', 'Comoros': 'Eastern Africa', 'Djibouti': 'Eastern Africa',
+    'Eritrea': 'Eastern Africa', 'Ethiopia': 'Eastern Africa', 'Kenya': 'Eastern Africa',
+    'Madagascar': 'Eastern Africa', 'Malawi': 'Eastern Africa', 'Mauritius': 'Eastern Africa',
+    'Mayotte': 'Eastern Africa', 'Mozambique': 'Eastern Africa', 'Réunion': 'Eastern Africa',
+    'Rwanda': 'Eastern Africa', 'Seychelles': 'Eastern Africa', 'Somalia': 'Eastern Africa',
+    'South Sudan': 'Eastern Africa', 'Tanzania': 'Eastern Africa', 'Uganda': 'Eastern Africa',
+    'Zambia': 'Eastern Africa', 'Zimbabwe': 'Eastern Africa',
+    // Middle Africa
+    'Angola': 'Middle Africa', 'Cameroon': 'Middle Africa', 'Central African Republic': 'Middle Africa',
+    'Chad': 'Middle Africa', 'Congo': 'Middle Africa', 'Democratic Republic of the Congo': 'Middle Africa',
+    'Equatorial Guinea': 'Middle Africa', 'Gabon': 'Middle Africa', 'São Tomé and Príncipe': 'Middle Africa',
+    // Northern Africa
+    'Algeria': 'Northern Africa', 'Egypt': 'Northern Africa', 'Libya': 'Northern Africa',
+    'Morocco': 'Northern Africa', 'Sudan': 'Northern Africa', 'Tunisia': 'Northern Africa',
+    'Western Sahara': 'Northern Africa',
+    // Southern Africa
+    'Botswana': 'Southern Africa', 'Eswatini': 'Southern Africa', 'Lesotho': 'Southern Africa',
+    'Namibia': 'Southern Africa', 'South Africa': 'Southern Africa',
+    // Western Africa
+    'Benin': 'Western Africa', 'Burkina Faso': 'Western Africa', 'Cabo Verde': 'Western Africa',
+    'Côte d\'Ivoire': 'Western Africa', 'Ivory Coast': 'Western Africa', 'Gambia': 'Western Africa',
+    'Ghana': 'Western Africa', 'Guinea': 'Western Africa', 'Guinea-Bissau': 'Western Africa',
+    'Liberia': 'Western Africa', 'Mali': 'Western Africa', 'Mauritania': 'Western Africa',
+    'Niger': 'Western Africa', 'Nigeria': 'Western Africa', 'Senegal': 'Western Africa',
+    'Sierra Leone': 'Western Africa', 'Togo': 'Western Africa',
+    // Caribbean
+    'Anguilla': 'Caribbean', 'Antigua and Barbuda': 'Caribbean', 'Aruba': 'Caribbean',
+    'Bahamas': 'Caribbean', 'Barbados': 'Caribbean', 'British Virgin Islands': 'Caribbean',
+    'Cayman Islands': 'Caribbean', 'Cuba': 'Caribbean', 'Curaçao': 'Caribbean',
+    'Dominica': 'Caribbean', 'Dominican Republic': 'Caribbean', 'Grenada': 'Caribbean',
+    'Guadeloupe': 'Caribbean', 'Haiti': 'Caribbean', 'Jamaica': 'Caribbean',
+    'Martinique': 'Caribbean', 'Montserrat': 'Caribbean', 'Puerto Rico': 'Caribbean',
+    'Saint Barthélemy': 'Caribbean', 'Saint Kitts and Nevis': 'Caribbean',
+    'Saint Lucia': 'Caribbean', 'Saint Martin': 'Caribbean', 'Saint Vincent and the Grenadines': 'Caribbean',
+    'Sint Maarten': 'Caribbean', 'Trinidad and Tobago': 'Caribbean', 'Turks and Caicos Islands': 'Caribbean',
+    'Virgin Islands': 'Caribbean',
+    // Central America
+    'Belize': 'Central America', 'Costa Rica': 'Central America', 'El Salvador': 'Central America',
+    'Guatemala': 'Central America', 'Honduras': 'Central America', 'Mexico': 'Central America',
+    'Nicaragua': 'Central America', 'Panama': 'Central America',
+    // South America
+    'Argentina': 'South America', 'Bolivia': 'South America', 'Brazil': 'South America',
+    'Chile': 'South America', 'Colombia': 'South America', 'Ecuador': 'South America',
+    'Falkland Islands': 'South America', 'French Guiana': 'South America', 'Guyana': 'South America',
+    'Paraguay': 'South America', 'Peru': 'South America', 'Suriname': 'South America',
+    'Uruguay': 'South America', 'Venezuela': 'South America',
+    // Northern America
+    'Bermuda': 'Northern America', 'Canada': 'Northern America', 'Greenland': 'Northern America',
+    'Saint Pierre and Miquelon': 'Northern America', 'USA': 'Northern America',
+    'United States': 'Northern America',
+    // Central Asia
+    'Kazakhstan': 'Central Asia', 'Kyrgyzstan': 'Central Asia', 'Tajikistan': 'Central Asia',
+    'Turkmenistan': 'Central Asia', 'Uzbekistan': 'Central Asia',
+    // Eastern Asia
+    'China': 'Eastern Asia', 'Hong Kong': 'Eastern Asia', 'Japan': 'Eastern Asia',
+    'Macao': 'Eastern Asia', 'Mongolia': 'Eastern Asia', 'North Korea': 'Eastern Asia',
+    'South Korea': 'Eastern Asia', 'Taiwan': 'Eastern Asia',
+    // South-eastern Asia
+    'Brunei': 'South-eastern Asia', 'Cambodia': 'South-eastern Asia', 'Indonesia': 'South-eastern Asia',
+    'Laos': 'South-eastern Asia', 'Malaysia': 'South-eastern Asia', 'Myanmar': 'South-eastern Asia',
+    'Philippines': 'South-eastern Asia', 'Singapore': 'South-eastern Asia', 'Thailand': 'South-eastern Asia',
+    'Timor-Leste': 'South-eastern Asia', 'Vietnam': 'South-eastern Asia',
+    // Southern Asia
+    'Afghanistan': 'Southern Asia', 'Bangladesh': 'Southern Asia', 'Bhutan': 'Southern Asia',
+    'India': 'Southern Asia', 'Iran': 'Southern Asia', 'Maldives': 'Southern Asia',
+    'Nepal': 'Southern Asia', 'Pakistan': 'Southern Asia', 'Sri Lanka': 'Southern Asia',
+    // Western Asia
+    'Armenia': 'Western Asia', 'Azerbaijan': 'Western Asia', 'Bahrain': 'Western Asia',
+    'Cyprus': 'Western Asia', 'Georgia': 'Western Asia', 'Iraq': 'Western Asia',
+    'Israel': 'Western Asia', 'Jordan': 'Western Asia', 'Kuwait': 'Western Asia',
+    'Lebanon': 'Western Asia', 'Oman': 'Western Asia', 'Palestine': 'Western Asia',
+    'Qatar': 'Western Asia', 'Saudi Arabia': 'Western Asia', 'Syria': 'Western Asia',
+    'Turkey': 'Western Asia', 'United Arab Emirates': 'Western Asia', 'Yemen': 'Western Asia',
+    // Eastern Europe
+    'Belarus': 'Eastern Europe', 'Bulgaria': 'Eastern Europe', 'Czech Republic': 'Eastern Europe',
+    'Czechia': 'Eastern Europe', 'Hungary': 'Eastern Europe', 'Moldova': 'Eastern Europe',
+    'Poland': 'Eastern Europe', 'Romania': 'Eastern Europe', 'Russia': 'Eastern Europe',
+    'Slovakia': 'Eastern Europe', 'Ukraine': 'Eastern Europe',
+    // Northern Europe
+    'Denmark': 'Northern Europe', 'Estonia': 'Northern Europe', 'Faroe Islands': 'Northern Europe',
+    'Finland': 'Northern Europe', 'Iceland': 'Northern Europe', 'Ireland': 'Northern Europe',
+    'Latvia': 'Northern Europe', 'Lithuania': 'Northern Europe', 'Norway': 'Northern Europe',
+    'Sweden': 'Northern Europe', 'UK': 'Northern Europe', 'United Kingdom': 'Northern Europe',
+    'England': 'Northern Europe', 'Scotland': 'Northern Europe', 'Wales': 'Northern Europe',
+    'Northern Ireland': 'Northern Europe',
+    // Southern Europe
+    'Albania': 'Southern Europe', 'Andorra': 'Southern Europe', 'Bosnia and Herzegovina': 'Southern Europe',
+    'Croatia': 'Southern Europe', 'Gibraltar': 'Southern Europe', 'Greece': 'Southern Europe',
+    'Italy': 'Southern Europe', 'Kosovo': 'Southern Europe', 'Malta': 'Southern Europe',
+    'Montenegro': 'Southern Europe', 'North Macedonia': 'Southern Europe', 'Portugal': 'Southern Europe',
+    'San Marino': 'Southern Europe', 'Serbia': 'Southern Europe', 'Slovenia': 'Southern Europe',
+    'Spain': 'Southern Europe', 'Vatican City': 'Southern Europe',
+    // Western Europe
+    'Austria': 'Western Europe', 'Belgium': 'Western Europe', 'France': 'Western Europe',
+    'Germany': 'Western Europe', 'Liechtenstein': 'Western Europe', 'Luxembourg': 'Western Europe',
+    'Monaco': 'Western Europe', 'Netherlands': 'Western Europe', 'Switzerland': 'Western Europe',
+    // Australia and New Zealand
+    'Australia': 'Australia and New Zealand', 'New Zealand': 'Australia and New Zealand',
+    'Norfolk Island': 'Australia and New Zealand',
+    // Melanesia
+    'Fiji': 'Melanesia', 'New Caledonia': 'Melanesia', 'Papua New Guinea': 'Melanesia',
+    'Solomon Islands': 'Melanesia', 'Vanuatu': 'Melanesia',
+    // Micronesia
+    'Guam': 'Micronesia', 'Kiribati': 'Micronesia', 'Marshall Islands': 'Micronesia',
+    'Micronesia': 'Micronesia', 'Nauru': 'Micronesia', 'Northern Mariana Islands': 'Micronesia',
+    'Palau': 'Micronesia',
+    // Polynesia
+    'American Samoa': 'Polynesia', 'Cook Islands': 'Polynesia', 'French Polynesia': 'Polynesia',
+    'Niue': 'Polynesia', 'Pitcairn Islands': 'Polynesia', 'Samoa': 'Polynesia',
+    'Tokelau': 'Polynesia', 'Tonga': 'Polynesia', 'Tuvalu': 'Polynesia', 'Wallis and Futuna': 'Polynesia',
+  };
+
+  // All 22 UN geoscheme subregions
+  const allSubregions = [
+    'Eastern Africa', 'Middle Africa', 'Northern Africa', 'Southern Africa', 'Western Africa',
+    'Caribbean', 'Central America', 'South America', 'Northern America',
+    'Central Asia', 'Eastern Asia', 'South-eastern Asia', 'Southern Asia', 'Western Asia',
+    'Eastern Europe', 'Northern Europe', 'Southern Europe', 'Western Europe',
+    'Australia and New Zealand', 'Melanesia', 'Micronesia', 'Polynesia'
+  ];
+
+  // Calculate visited continents and subregions
+  const continents = new Set();
   displayCompletedTrips.forEach(trip => {
     const continent = continentMap[trip.country];
     if (continent) continents.add(continent);
   });
+
+  const visitedContinents = [
+    ...new Set(displayCompletedTrips.map((trip) => continentMap[trip.country]).filter(Boolean)),
+  ];
+
+  const visitedSubregions = [
+    ...new Set(displayCompletedTrips.map((trip) => subregionMap[trip.country]).filter(Boolean)),
+  ];
+  const subregionCoverage = ((visitedSubregions.length / 22) * 100).toFixed(1);
 
   const userName = displayProfile?.name || 'Traveler';
   const userUsername = displayProfile?.username || '';
@@ -218,7 +396,17 @@ export default function PublicProfileScreen({ navigation, route }) {
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: theme.background }]}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={theme.primary}
+          colors={[theme.primary]}
+        />
+      }
+    >
       {/* Profile Header */}
       <View style={styles.header}>
         <View style={[styles.avatarContainer, { backgroundColor: theme.primary + '20', borderColor: theme.primary }]}>
@@ -317,91 +505,92 @@ export default function PublicProfileScreen({ navigation, route }) {
 
       {/* Top 3 Favorites */}
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>
-            {isOwnProfile ? 'My Top 3' : `${userName.split(' ')[0]}'s Top 3`}
-          </Text>
-        </View>
-        {!topCountries.top1 && !topCountries.top2 && !topCountries.top3 ? (
-          <View style={[styles.emptySection, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
-            <Ionicons name="star-outline" size={32} color={theme.textSecondary} />
-            <Text style={[styles.emptySectionText, { color: theme.textSecondary }]}>
-              {isOwnProfile ? 'Set your top 3 countries in Edit Profile' : 'No top countries selected yet'}
+        <View style={[styles.sectionContainer, { backgroundColor: theme.cardBackground, borderColor: theme.textSecondary + '40' }]}>
+          <View style={styles.sectionHeaderInner}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              {isOwnProfile ? 'My Top 3' : `${userName.split(' ')[0]}'s Top 3`}
             </Text>
           </View>
-        ) : (
-          <View style={styles.topCountries}>
-            {topCountries.top1 && (
-              <View style={[styles.topCountryBadge, { backgroundColor: '#FFD700' }]}>
-                <View style={styles.topCountryContent}>
-                  <Text style={styles.topCountryEmoji}>🥇</Text>
-                  <Text style={[styles.topCountryName, { color: '#000' }]}>{topCountries.top1}</Text>
+          {!topCountries.top1 && !topCountries.top2 && !topCountries.top3 ? (
+            <View style={styles.emptySectionInner}>
+              <Ionicons name="star-outline" size={32} color={theme.textSecondary} />
+              <Text style={[styles.emptySectionText, { color: theme.textSecondary }]}>
+                {isOwnProfile ? 'Set your top 3 countries in Edit Profile' : 'No top countries selected yet'}
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.topCountries}>
+              {topCountries.top1 && (
+                <View style={[styles.topCountryBadge, { backgroundColor: '#FFD700' }]}>
+                  <View style={styles.topCountryContent}>
+                    <Text style={styles.topCountryEmoji}>🥇</Text>
+                    <Text style={[styles.topCountryName, { color: '#000' }]}>{topCountries.top1}</Text>
+                  </View>
+                  <Text style={styles.topCountryFlag}>{getCountryFlag(topCountries.top1)}</Text>
                 </View>
-                <Text style={styles.topCountryFlag}>{getCountryFlag(topCountries.top1)}</Text>
-              </View>
-            )}
-            {topCountries.top2 && (
-              <View style={[styles.topCountryBadge, { backgroundColor: '#C0C0C0' }]}>
-                <View style={styles.topCountryContent}>
-                  <Text style={styles.topCountryEmoji}>🥈</Text>
-                  <Text style={[styles.topCountryName, { color: '#000' }]}>{topCountries.top2}</Text>
+              )}
+              {topCountries.top2 && (
+                <View style={[styles.topCountryBadge, { backgroundColor: '#C0C0C0' }]}>
+                  <View style={styles.topCountryContent}>
+                    <Text style={styles.topCountryEmoji}>🥈</Text>
+                    <Text style={[styles.topCountryName, { color: '#000' }]}>{topCountries.top2}</Text>
+                  </View>
+                  <Text style={styles.topCountryFlag}>{getCountryFlag(topCountries.top2)}</Text>
                 </View>
-                <Text style={styles.topCountryFlag}>{getCountryFlag(topCountries.top2)}</Text>
-              </View>
-            )}
-            {topCountries.top3 && (
-              <View style={[styles.topCountryBadge, { backgroundColor: '#CD7F32' }]}>
-                <View style={styles.topCountryContent}>
-                  <Text style={styles.topCountryEmoji}>🥉</Text>
-                  <Text style={[styles.topCountryName, { color: '#000' }]}>{topCountries.top3}</Text>
+              )}
+              {topCountries.top3 && (
+                <View style={[styles.topCountryBadge, { backgroundColor: '#CD7F32' }]}>
+                  <View style={styles.topCountryContent}>
+                    <Text style={styles.topCountryEmoji}>🥉</Text>
+                    <Text style={[styles.topCountryName, { color: '#000' }]}>{topCountries.top3}</Text>
+                  </View>
+                  <Text style={styles.topCountryFlag}>{getCountryFlag(topCountries.top3)}</Text>
                 </View>
-                <Text style={styles.topCountryFlag}>{getCountryFlag(topCountries.top3)}</Text>
-              </View>
-            )}
-          </View>
-        )}
+              )}
+            </View>
+          )}
+        </View>
       </View>
 
       {/* Next Stops */}
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>
-            {isOwnProfile ? 'Next Stops' : `${userName.split(' ')[0]}'s Next Stops`}
-          </Text>
-        </View>
-        {!nextStops.next1 && !nextStops.next2 && !nextStops.next3 ? (
-          <View style={[styles.emptySection, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
-            <Ionicons name="airplane-outline" size={32} color={theme.textSecondary} />
-            <Text style={[styles.emptySectionText, { color: theme.textSecondary }]}>
-              {isOwnProfile ? 'Set your next destinations in Edit Profile' : 'No next destinations selected yet'}
+        <View style={[styles.sectionContainer, { backgroundColor: theme.cardBackground, borderColor: theme.textSecondary + '40' }]}>
+          <View style={styles.sectionHeaderInner}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              {isOwnProfile ? 'Next Stops' : `${userName.split(' ')[0]}'s Next Stops`}
             </Text>
           </View>
-        ) : (
-          <View style={styles.nextStops}>
-            {nextStops.next1 && (
-              <TouchableOpacity style={[styles.nextStopBadge, { backgroundColor: theme.primary }]}>
-                <Text style={[styles.nextStopText, { color: theme.background }]}>{nextStops.next1}</Text>
-              </TouchableOpacity>
-            )}
-            {nextStops.next2 && (
-              <TouchableOpacity style={[styles.nextStopBadge, { backgroundColor: theme.primary }]}>
-                <Text style={[styles.nextStopText, { color: theme.background }]}>{nextStops.next2}</Text>
-              </TouchableOpacity>
-            )}
-            {nextStops.next3 && (
-              <TouchableOpacity style={[styles.nextStopBadge, { backgroundColor: theme.primary }]}>
-                <Text style={[styles.nextStopText, { color: theme.background }]}>{nextStops.next3}</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
+          {!nextStops.next1 && !nextStops.next2 && !nextStops.next3 ? (
+            <View style={styles.emptySectionInner}>
+              <Ionicons name="airplane-outline" size={32} color={theme.textSecondary} />
+              <Text style={[styles.emptySectionText, { color: theme.textSecondary }]}>
+                {isOwnProfile ? 'Set your next destinations in Edit Profile' : 'No next destinations selected yet'}
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.nextStops}>
+              {nextStops.next1 && (
+                <TouchableOpacity style={[styles.nextStopBadge, { backgroundColor: theme.primary }]}>
+                  <Text style={[styles.nextStopText, { color: theme.background }]}>{nextStops.next1}</Text>
+                </TouchableOpacity>
+              )}
+              {nextStops.next2 && (
+                <TouchableOpacity style={[styles.nextStopBadge, { backgroundColor: theme.primary }]}>
+                  <Text style={[styles.nextStopText, { color: theme.background }]}>{nextStops.next2}</Text>
+                </TouchableOpacity>
+              )}
+              {nextStops.next3 && (
+                <TouchableOpacity style={[styles.nextStopBadge, { backgroundColor: theme.primary }]}>
+                  <Text style={[styles.nextStopText, { color: theme.background }]}>{nextStops.next3}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+        </View>
       </View>
 
       {/* Travel Stats */}
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Travel Stats</Text>
-        </View>
         <View style={[styles.statsCard, { backgroundColor: theme.primary, borderColor: theme.primary }]}>
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
@@ -423,80 +612,81 @@ export default function PublicProfileScreen({ navigation, route }) {
       </View>
 
       {/* Travel Buddies */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Travel Buddies</Text>
-          {isOwnProfile && displayTravelBuddies.length > 0 && (
-            <TouchableOpacity onPress={() => navigation.navigate('TravelBuddies')}>
-              <Text style={[styles.viewAllText, { color: theme.primary }]}>
-                View All ({displayTravelBuddies.length})
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {displayTravelBuddies.length === 0 ? (
-          <View style={[styles.emptySection, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
-            <Ionicons name="people-outline" size={32} color={theme.textSecondary} />
-            <Text style={[styles.emptySectionText, { color: theme.textSecondary }]}>
-              {isOwnProfile ? 'Add travel buddies to see them here' : 'No travel buddies yet'}
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.buddiesContainer}>
-            {displayHighlightedBuddies.length > 0 ? (
-              displayHighlightedBuddies.slice(0, 3).map((buddyId) => {
-                const buddy = getUserById(buddyId);
-                if (!buddy) return null;
-
-                return (
-                  <TouchableOpacity
-                    key={buddyId}
-                    style={styles.buddyCircle}
-                    onPress={() => navigation.navigate('PublicProfile', { user: buddy })}
-                  >
-                    <Avatar
-                      avatar={buddy.avatar}
-                      avatarType={buddy.avatarType}
-                      size={70}
-                      style={{ borderWidth: 3, borderColor: theme.primary }}
-                    />
-                    <Text style={[styles.buddyName, { color: theme.text }]} numberOfLines={1}>
-                      {buddy.name.split(' ')[0]}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })
-            ) : (
-              displayTravelBuddies.slice(0, 3).map((buddyId) => {
-                const buddy = getUserById(buddyId);
-                if (!buddy) return null;
-
-                return (
-                  <TouchableOpacity
-                    key={buddyId}
-                    style={styles.buddyCircle}
-                    onPress={() => navigation.navigate('PublicProfile', { user: buddy })}
-                  >
-                    <Avatar
-                      avatar={buddy.avatar}
-                      avatarType={buddy.avatarType}
-                      size={70}
-                      style={{ borderWidth: 3, borderColor: theme.primary }}
-                    />
-                    <Text style={[styles.buddyName, { color: theme.text }]} numberOfLines={1}>
-                      {buddy.name.split(' ')[0]}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })
+      <View style={[styles.section, { marginTop: -3 }]}>
+        <View style={[styles.sectionContainer, { backgroundColor: theme.cardBackground, borderColor: theme.textSecondary + '40' }]}>
+          <View style={styles.sectionHeaderInner}>
+            <Text style={[styles.sectionTitle, { color: theme.text, marginTop: 8 }]}>Travel Buddies</Text>
+            {isOwnProfile && displayTravelBuddies.length > 0 && (
+              <TouchableOpacity onPress={() => navigation.navigate('TravelBuddies')}>
+                <Text style={[styles.viewAllText, { color: theme.primary, marginTop: 8 }]}>
+                  View All ({displayTravelBuddies.length})
+                </Text>
+              </TouchableOpacity>
             )}
           </View>
-        )}
+          {displayTravelBuddies.length === 0 ? (
+            <View style={styles.emptySectionInner}>
+              <Ionicons name="people-outline" size={32} color={theme.textSecondary} />
+              <Text style={[styles.emptySectionText, { color: theme.textSecondary }]}>
+                {isOwnProfile ? 'Add travel buddies to see them here' : 'No travel buddies yet'}
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.buddiesContainer}>
+              {displayHighlightedBuddies.length > 0 ? (
+                displayHighlightedBuddies.slice(0, 3).map((buddyId) => {
+                  const buddy = getUserById(buddyId);
+                  if (!buddy) return null;
+
+                  return (
+                    <TouchableOpacity
+                      key={buddyId}
+                      style={styles.buddyCircle}
+                      onPress={() => navigation.navigate('PublicProfile', { user: buddy })}
+                    >
+                      <Avatar
+                        avatar={buddy.avatar}
+                        avatarType={buddy.avatarType}
+                        size={70}
+                        style={{ borderWidth: 3, borderColor: theme.primary }}
+                      />
+                      <Text style={[styles.buddyName, { color: theme.text }]} numberOfLines={1}>
+                        {buddy.name.split(' ')[0]}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })
+              ) : (
+                displayTravelBuddies.slice(0, 3).map((buddyId) => {
+                  const buddy = getUserById(buddyId);
+                  if (!buddy) return null;
+
+                  return (
+                    <TouchableOpacity
+                      key={buddyId}
+                      style={styles.buddyCircle}
+                      onPress={() => navigation.navigate('PublicProfile', { user: buddy })}
+                    >
+                      <Avatar
+                        avatar={buddy.avatar}
+                        avatarType={buddy.avatarType}
+                        size={70}
+                        style={{ borderWidth: 3, borderColor: theme.primary }}
+                      />
+                      <Text style={[styles.buddyName, { color: theme.text }]} numberOfLines={1}>
+                        {buddy.name.split(' ')[0]}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })
+              )}
+            </View>
+          )}
+        </View>
       </View>
 
       {/* Spinning Globe */}
-      <View style={styles.globeSection}>
+      <View style={[styles.section, styles.globeSection]}>
         <SpinningGlobe
           completedTrips={isOwnProfile ? completedTrips : displayCompletedTrips}
           visitedCities={isOwnProfile ? visitedCities : []}
@@ -505,56 +695,60 @@ export default function PublicProfileScreen({ navigation, route }) {
 
       {/* Travel Photos */}
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Travel Photos</Text>
+        <View style={[styles.sectionContainer, { backgroundColor: theme.cardBackground, borderColor: theme.textSecondary + '40' }]}>
+          <View style={styles.sectionHeaderInner}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Travel Photos</Text>
+          </View>
+          {(!displayProfile?.travelPhotos || displayProfile.travelPhotos.length === 0) ? (
+            <View style={styles.emptySectionInner}>
+              <Ionicons name="camera-outline" size={32} color={theme.textSecondary} />
+              <Text style={[styles.emptySectionText, { color: theme.textSecondary }]}>
+                {isOwnProfile ? 'Add your favorite travel photos' : 'No photos shared yet'}
+              </Text>
+              {isOwnProfile && (
+                <TouchableOpacity
+                  style={[styles.manageButton, { backgroundColor: theme.primary }]}
+                  onPress={pickTravelPhoto}
+                >
+                  <Ionicons name="add-circle" size={18} color={theme.background} />
+                  <Text style={[styles.manageButtonText, { color: theme.background }]}>Add Photos</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ) : (
+            <View style={styles.photosGrid}>
+              {displayProfile.travelPhotos.map((photo, index) => (
+                <View key={index} style={[styles.photoCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+                  <Image source={{ uri: photo }} style={styles.photoImage} />
+                </View>
+              ))}
+            </View>
+          )}
         </View>
-        {(!displayProfile?.travelPhotos || displayProfile.travelPhotos.length === 0) ? (
-          <View style={[styles.emptySection, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
-            <Ionicons name="camera-outline" size={32} color={theme.textSecondary} />
-            <Text style={[styles.emptySectionText, { color: theme.textSecondary }]}>
-              {isOwnProfile ? 'Add your favorite travel photos' : 'No photos shared yet'}
-            </Text>
-            {isOwnProfile && (
-              <TouchableOpacity
-                style={[styles.manageButton, { backgroundColor: theme.primary }]}
-                onPress={pickTravelPhoto}
-              >
-                <Ionicons name="add-circle" size={18} color={theme.background} />
-                <Text style={[styles.manageButtonText, { color: theme.background }]}>Add Photos</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        ) : (
-          <View style={styles.photosGrid}>
-            {displayProfile.travelPhotos.map((photo, index) => (
-              <View key={index} style={[styles.photoCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
-                <Image source={{ uri: photo }} style={styles.photoImage} />
-              </View>
-            ))}
-          </View>
-        )}
       </View>
 
       {/* Shared Trip Maps */}
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Shared Trips</Text>
-        </View>
         {(!displayProfile?.sharedTripMaps || displayProfile.sharedTripMaps.length === 0) ? (
-          <View style={[styles.emptySection, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
-            <Ionicons name="map-outline" size={32} color={theme.textSecondary} />
-            <Text style={[styles.emptySectionText, { color: theme.textSecondary }]}>
-              {isOwnProfile ? 'Share your completed trips' : 'No trips shared yet'}
-            </Text>
-            {isOwnProfile && (
-              <TouchableOpacity
-                style={[styles.manageButton, { backgroundColor: theme.primary }]}
-                onPress={() => navigation.navigate('MyTrips', { sharingMode: true })}
-              >
-                <Ionicons name="add-circle" size={18} color={theme.background} />
-                <Text style={[styles.manageButtonText, { color: theme.background }]}>Select Trips</Text>
-              </TouchableOpacity>
-            )}
+          <View style={[styles.sectionContainer, { backgroundColor: theme.cardBackground, borderColor: theme.textSecondary + '40' }]}>
+            <View style={styles.sectionHeaderInner}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Shared Trips</Text>
+            </View>
+            <View style={styles.emptySectionInner}>
+              <Ionicons name="map-outline" size={32} color={theme.textSecondary} />
+              <Text style={[styles.emptySectionText, { color: theme.textSecondary }]}>
+                {isOwnProfile ? 'Share your completed trips' : 'No trips shared yet'}
+              </Text>
+              {isOwnProfile && (
+                <TouchableOpacity
+                  style={[styles.manageButton, { backgroundColor: theme.primary }]}
+                  onPress={() => navigation.navigate('MyTrips', { sharingMode: true })}
+                >
+                  <Ionicons name="add-circle" size={18} color={theme.background} />
+                  <Text style={[styles.manageButtonText, { color: theme.background }]}>Select Trips</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         ) : (
           <View style={styles.sharedTripsContainer}>
@@ -717,6 +911,106 @@ export default function PublicProfileScreen({ navigation, route }) {
         )}
       </View>
 
+      {/* Continents Visited */}
+      <View style={styles.section}>
+        <View style={[styles.sectionContainer, { backgroundColor: theme.cardBackground, borderColor: theme.textSecondary + '40' }]}>
+          <View style={styles.sectionHeaderInner}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flex: 1 }}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Continents Visited</Text>
+              <View style={[styles.subregionBadge, { backgroundColor: theme.primary }]}>
+                <Text style={[styles.subregionBadgeText, { color: theme.background }]}>
+                  {visitedContinents.length}/6
+                </Text>
+              </View>
+            </View>
+          </View>
+          <Text style={[styles.subregionSubtitle, { color: theme.textSecondary }]}>
+            Regions of the world
+          </Text>
+          {/* Progress Bar */}
+          <View style={styles.progressInner}>
+            <View style={styles.subregionProgressHeader}>
+              <Text style={[styles.subregionProgressLabel, { color: theme.textSecondary }]}>Continent Coverage</Text>
+              <Text style={[styles.subregionProgressValue, { color: theme.primary }]}>
+                {((visitedContinents.length / 6) * 100).toFixed(1)}%
+              </Text>
+            </View>
+            <View style={[styles.subregionProgressBar, { backgroundColor: theme.border }]}>
+              <View
+                style={[
+                  styles.subregionProgressFill,
+                  { backgroundColor: theme.primary, width: `${(visitedContinents.length / 6) * 100}%` }
+                ]}
+              />
+            </View>
+          </View>
+
+          {/* Visited Continents List */}
+          {visitedContinents.length > 0 && (
+            <View style={[styles.subregionsList, { marginBottom: 0 }]}>
+              {visitedContinents.map((continent, index) => (
+                <View
+                  key={index}
+                  style={[styles.subregionChip, { backgroundColor: theme.primary + '20', borderColor: theme.primary }]}
+                >
+                  <Ionicons name="checkmark-circle" size={14} color={theme.primary} />
+                  <Text style={[styles.subregionChipText, { color: theme.text }]}>{continent}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+      </View>
+
+      {/* Subregions Section (UN Geoscheme) */}
+      <View style={styles.section}>
+        <View style={[styles.sectionContainer, { backgroundColor: theme.cardBackground, borderColor: theme.textSecondary + '40' }]}>
+          <View style={styles.sectionHeaderInner}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flex: 1 }}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Subregions</Text>
+              <View style={[styles.subregionBadge, { backgroundColor: theme.primary }]}>
+                <Text style={[styles.subregionBadgeText, { color: theme.background }]}>
+                  {visitedSubregions.length}/22
+                </Text>
+              </View>
+            </View>
+          </View>
+          <Text style={[styles.subregionSubtitle, { color: theme.textSecondary }]}>
+            UN Geoscheme regions of the world
+          </Text>
+          {/* Progress Bar */}
+          <View style={styles.progressInner}>
+            <View style={styles.subregionProgressHeader}>
+              <Text style={[styles.subregionProgressLabel, { color: theme.textSecondary }]}>World Subregion Coverage</Text>
+              <Text style={[styles.subregionProgressValue, { color: theme.primary }]}>{subregionCoverage}%</Text>
+            </View>
+            <View style={[styles.subregionProgressBar, { backgroundColor: theme.border }]}>
+              <View
+                style={[
+                  styles.subregionProgressFill,
+                  { backgroundColor: theme.primary, width: `${subregionCoverage}%` }
+                ]}
+              />
+            </View>
+          </View>
+
+          {/* Visited Subregions List */}
+          {visitedSubregions.length > 0 && (
+            <View style={[styles.subregionsList, { marginBottom: 0 }]}>
+              {visitedSubregions.map((subregion, index) => (
+                <View
+                  key={index}
+                  style={[styles.subregionChip, { backgroundColor: theme.primary + '20', borderColor: theme.primary }]}
+                >
+                  <Ionicons name="checkmark-circle" size={14} color={theme.primary} />
+                  <Text style={[styles.subregionChipText, { color: theme.text }]}>{subregion}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+      </View>
+
       {/* Footer */}
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
         <Image source={ferdiLogo} style={styles.footerLogo} resizeMode="contain" />
@@ -835,6 +1129,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 25,
   },
+  globeSection: {
+    minHeight: 360,
+  },
+  sectionContainer: {
+    padding: 15,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  sectionHeaderInner: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  emptySectionInner: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    gap: 10,
+  },
+  progressInner: {
+    marginBottom: 15,
+  },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -844,6 +1160,72 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 5,
+  },
+  subregionBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  subregionBadgeText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  subregionSubtitle: {
+    fontSize: 13,
+    marginBottom: 15,
+  },
+  subregionProgressContainer: {
+    padding: 15,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 15,
+  },
+  subregionProgressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  subregionProgressLabel: {
+    fontSize: 14,
+  },
+  subregionProgressValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  subregionProgressBar: {
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  subregionProgressFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  subregionsList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 15,
+  },
+  subregionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 6,
+  },
+  subregionChipText: {
+    fontSize: 13,
+    fontWeight: '500',
   },
   viewAllText: {
     fontSize: 14,
@@ -895,8 +1277,8 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   statsCard: {
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: 16,
+    padding: 15,
     borderWidth: 2,
   },
   statsRow: {
@@ -912,28 +1294,24 @@ const styles = StyleSheet.create({
     flex: 1.5,
   },
   statValue: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  statValueEmphasis: {
     fontSize: 36,
     fontWeight: 'bold',
     marginBottom: 5,
   },
-  statValueEmphasis: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    marginBottom: 5,
-  },
   statLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     textAlign: 'center',
   },
   statDivider: {
     width: 1,
-    height: 40,
+    height: 32,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  globeSection: {
-    padding: 20,
-    paddingBottom: 40,
   },
   buddiesContainer: {
     flexDirection: 'row',

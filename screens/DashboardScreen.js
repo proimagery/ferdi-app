@@ -1,6 +1,7 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Modal, StatusBar, Alert, ActivityIndicator } from 'react-native';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Modal, StatusBar, Alert, ActivityIndicator, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { captureRef } from 'react-native-view-shot';
 import * as MediaLibrary from 'expo-media-library';
@@ -14,7 +15,7 @@ import { getTravelerRank, allRanks } from '../utils/rankingSystem';
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function DashboardScreen({ navigation }) {
-  const { completedTrips, visitedCities, trips, buddyRequestProfiles, profile } = useAppContext();
+  const { completedTrips, visitedCities, trips, buddyRequestProfiles, profile, refreshData } = useAppContext();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const [showRankInfo, setShowRankInfo] = useState(false);
@@ -22,7 +23,32 @@ export default function DashboardScreen({ navigation }) {
   const [showGlobeInfo, setShowGlobeInfo] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [globeKey, setGlobeKey] = useState(0);
   const shareCardRef = useRef(null);
+
+  // Force globe to remount when screen gains focus to fix loading issues
+  useFocusEffect(
+    useCallback(() => {
+      // Small delay to ensure the screen is fully rendered before mounting the globe
+      const timer = setTimeout(() => {
+        setGlobeKey(prev => prev + 1);
+      }, 100);
+      return () => clearTimeout(timer);
+    }, [])
+  );
+
+  // Handle pull-to-refresh
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refreshData();
+    } catch (error) {
+      console.log('Error refreshing data:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refreshData]);
 
   // Rank is based only on manually added countries (completedTrips)
   const totalCountriesVisited = completedTrips.length;
@@ -136,11 +162,18 @@ export default function DashboardScreen({ navigation }) {
       screen: 'TravelMapper',
     },
     {
-      title: 'World Rank',
-      description: 'Explore country rankings',
+      title: 'World Info',
+      description: 'Explore rankings and research the countries of the world',
       icon: 'globe',
       color: '#34d399',
       screen: 'WorldRank',
+    },
+    {
+      title: 'My Profile',
+      description: 'View your profile',
+      icon: 'person-circle',
+      color: '#06b6d4',
+      screen: 'Profile',
     },
     {
       title: 'Leaderboard',
@@ -159,7 +192,17 @@ export default function DashboardScreen({ navigation }) {
   ];
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: theme.background }]}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={theme.primary}
+          colors={[theme.primary]}
+        />
+      }
+    >
       {/* Spinning Globe Section */}
       <View style={styles.globeSection}>
         <View style={styles.globeHeaderRow}>
@@ -181,6 +224,7 @@ export default function DashboardScreen({ navigation }) {
             : 'Add countries and cities to see them on your globe'}
         </Text>
         <SpinningGlobe
+          key={`globe-dashboard-${globeKey}`}
           completedTrips={completedTrips}
           visitedCities={visitedCities}
           onFullscreen={() => setShowGlobeFullscreen(true)}
@@ -201,6 +245,25 @@ export default function DashboardScreen({ navigation }) {
             <Text style={[styles.travelStatsTitle, { color: theme.text }]}>My Travel Stats</Text>
             <Text style={[styles.travelStatsDescription, { color: theme.textSecondary }]}>
               View and add to your travel history
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={24} color={theme.textSecondary} />
+        </TouchableOpacity>
+      </View>
+
+      {/* World Info Wide Button */}
+      <View style={styles.travelStatsSection}>
+        <TouchableOpacity
+          style={[styles.travelStatsButton, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+          onPress={() => navigation.navigate('WorldRank')}
+        >
+          <View style={[styles.travelStatsIconContainer, { backgroundColor: '#34d39920' }]}>
+            <Ionicons name="globe" size={28} color="#34d399" />
+          </View>
+          <View style={styles.travelStatsTextContainer}>
+            <Text style={[styles.travelStatsTitle, { color: theme.text }]}>World Info</Text>
+            <Text style={[styles.travelStatsDescription, { color: theme.textSecondary }]}>
+              Explore rankings and research the countries of the world
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={24} color={theme.textSecondary} />
@@ -286,9 +349,9 @@ export default function DashboardScreen({ navigation }) {
         )}
       </View>
 
-      {/* Quick Access Row - World Rank, Travel Buddies, Leaderboard */}
+      {/* Quick Access Row - My Profile, Travel Buddies, Leaderboard */}
       <View style={styles.quickAccessRow}>
-        {features.filter(f => ['WorldRank', 'TravelBuddies', 'Leaderboard'].includes(f.screen)).map((feature, index) => {
+        {features.filter(f => ['Profile', 'TravelBuddies', 'Leaderboard'].includes(f.screen)).map((feature, index) => {
           const hasBadge = feature.screen === 'TravelBuddies' && buddyRequestProfiles.length > 0;
           return (
             <TouchableOpacity
@@ -318,7 +381,7 @@ export default function DashboardScreen({ navigation }) {
       </View>
 
       <View style={styles.grid}>
-        {features.filter(f => !['YourStats', 'WorldRank', 'TravelBuddies', 'Leaderboard'].includes(f.screen)).map((feature, index) => {
+        {features.filter(f => !['YourStats', 'WorldRank', 'TravelBuddies', 'Leaderboard', 'Profile'].includes(f.screen)).map((feature, index) => {
           const hasBadge = feature.screen === 'TravelBuddies' && buddyRequestProfiles.length > 0;
           return (
             <TouchableOpacity

@@ -6,7 +6,6 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  Alert,
   Platform,
   KeyboardAvoidingView,
   Image,
@@ -18,6 +17,7 @@ import { useAppContext } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { useAuthGuard } from '../hooks/useAuthGuard';
 import AuthPromptModal from '../components/AuthPromptModal';
+import ThemedAlert from '../components/ThemedAlert';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
@@ -42,6 +42,13 @@ export default function CreateTripScreen({ navigation, route }) {
   const [showDatePicker, setShowDatePicker] = useState({ index: null, type: null });
   const [dropdownVisible, setDropdownVisible] = useState(null);
   const [searchQuery, setSearchQuery] = useState({});
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({ title: '', message: '' });
+
+  const showAlert = (title, message) => {
+    setAlertConfig({ title, message });
+    setAlertVisible(true);
+  };
 
   // List of all countries
   const allCountries = [
@@ -141,14 +148,16 @@ export default function CreateTripScreen({ navigation, route }) {
   };
 
   const handleNext = () => {
-    if (step === 1 && !tripName.trim()) {
-      Alert.alert('Error', 'Please enter a trip name');
-      return;
-    }
-    if (step === 2) {
+    if (step === 1) {
       const hasEmptyCountry = countries.some(c => !c.name.trim());
       if (hasEmptyCountry) {
-        Alert.alert('Error', 'Please fill in all country names');
+        showAlert('Oops!', 'You forgot to add a country!');
+        return;
+      }
+    }
+    if (step === 2) {
+      if (!budget.trim() || isNaN(budget)) {
+        showAlert('Oops!', 'Please enter a valid budget amount.');
         return;
       }
     }
@@ -167,8 +176,8 @@ export default function CreateTripScreen({ navigation, route }) {
     // Check if guest user is trying to save a trip
     if (checkAuth('save your trip')) return;
 
-    if (!budget.trim() || isNaN(budget)) {
-      Alert.alert('Error', 'Please enter a valid budget');
+    if (!tripName.trim()) {
+      showAlert('Oops!', 'Don\'t forget to name your trip!');
       return;
     }
 
@@ -255,27 +264,11 @@ export default function CreateTripScreen({ navigation, route }) {
       </View>
 
       <ScrollView style={styles.scrollView}>
-        {/* Step 1: Trip Name */}
+        {/* Step 1: Countries */}
         {step === 1 && (
           <View style={styles.stepContainer}>
             <Text style={[styles.stepTitle, { color: theme.text }]}>
-              {editMode ? 'Edit Trip Name' : 'Step 1: Name Your Trip'}
-            </Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: theme.cardBackground, borderColor: theme.border, color: theme.text }]}
-              placeholder="Enter trip name"
-              placeholderTextColor={theme.textSecondary}
-              value={tripName}
-              onChangeText={setTripName}
-            />
-          </View>
-        )}
-
-        {/* Step 2: Countries */}
-        {step === 2 && (
-          <View style={styles.stepContainer}>
-            <Text style={[styles.stepTitle, { color: theme.text }]}>
-              {editMode ? 'Edit Countries' : 'Step 2: Add Countries'}
+              {editMode ? 'Edit Countries' : 'Step 1: Add Countries'}
             </Text>
             {countries.map((country, index) => (
               <View key={index} style={[styles.countryCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
@@ -290,7 +283,7 @@ export default function CreateTripScreen({ navigation, route }) {
 
                 {/* Country Dropdown */}
                 <TouchableOpacity
-                  style={[styles.dropdownButton, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+                  style={[styles.dropdownButton, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder }]}
                   onPress={() => setDropdownVisible(dropdownVisible === index ? null : index)}
                 >
                   <Text style={country.name ? { fontSize: 16, color: theme.text } : { fontSize: 16, color: theme.textSecondary }}>
@@ -304,9 +297,9 @@ export default function CreateTripScreen({ navigation, route }) {
                 </TouchableOpacity>
 
                 {dropdownVisible === index && (
-                  <View style={[styles.dropdownContainer, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+                  <View style={[styles.dropdownContainer, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder }]}>
                     <TextInput
-                      style={[styles.searchInput, { backgroundColor: theme.background, borderBottomColor: theme.border, color: theme.text }]}
+                      style={[styles.searchInput, { backgroundColor: theme.inputBackground, borderBottomColor: theme.inputBorder, color: theme.text }]}
                       placeholder="Search countries..."
                       placeholderTextColor={theme.textSecondary}
                       value={searchQuery[index] || ''}
@@ -330,7 +323,7 @@ export default function CreateTripScreen({ navigation, route }) {
                 {/* Date Pickers */}
                 <View style={styles.dateRow}>
                   <TouchableOpacity
-                    style={[styles.input, styles.dateInput, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+                    style={[styles.input, styles.dateInput, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder }]}
                     onPress={() => setShowDatePicker({ index, type: 'startDate' })}
                   >
                     <View style={styles.datePickerContent}>
@@ -342,7 +335,7 @@ export default function CreateTripScreen({ navigation, route }) {
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={[styles.input, styles.dateInput, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+                    style={[styles.input, styles.dateInput, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder }]}
                     onPress={() => setShowDatePicker({ index, type: 'endDate' })}
                   >
                     <View style={styles.datePickerContent}>
@@ -362,19 +355,35 @@ export default function CreateTripScreen({ navigation, route }) {
           </View>
         )}
 
-        {/* Step 3: Budget */}
-        {step === 3 && (
+        {/* Step 2: Budget */}
+        {step === 2 && (
           <View style={styles.stepContainer}>
             <Text style={[styles.stepTitle, { color: theme.text }]}>
-              {editMode ? 'Edit Budget' : 'Step 3: Set Your Budget'}
+              {editMode ? 'Edit Budget' : 'Step 2: Set Your Budget'}
             </Text>
             <TextInput
-              style={[styles.input, { backgroundColor: theme.cardBackground, borderColor: theme.border, color: theme.text }]}
+              style={[styles.input, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
               placeholder="Enter budget amount"
               placeholderTextColor={theme.textSecondary}
               keyboardType="numeric"
               value={budget}
               onChangeText={setBudget}
+            />
+          </View>
+        )}
+
+        {/* Step 3: Trip Name */}
+        {step === 3 && (
+          <View style={styles.stepContainer}>
+            <Text style={[styles.stepTitle, { color: theme.text }]}>
+              {editMode ? 'Edit Trip Name' : 'Step 3: Name Your Trip'}
+            </Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
+              placeholder="Enter trip name"
+              placeholderTextColor={theme.textSecondary}
+              value={tripName}
+              onChangeText={setTripName}
             />
           </View>
         )}
@@ -423,6 +432,15 @@ export default function CreateTripScreen({ navigation, route }) {
         visible={showAuthModal}
         onClose={() => setShowAuthModal(false)}
         feature={featureMessage}
+      />
+
+      {/* Themed Alert */}
+      <ThemedAlert
+        visible={alertVisible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        onClose={() => setAlertVisible(false)}
+        theme={theme}
       />
     </KeyboardAvoidingView>
   );

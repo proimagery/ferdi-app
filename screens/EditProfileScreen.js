@@ -461,7 +461,7 @@ export default function EditProfileScreen({ navigation }) {
                 key={preset.id}
                 style={[
                   styles.presetAvatarOption,
-                  { backgroundColor: theme.inputBackground, borderColor: theme.border },
+                  { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder },
                   avatar === preset.id && avatarType === 'preset' && { borderColor: theme.primary, borderWidth: 3 }
                 ]}
                 onPress={() => selectPresetAvatar(preset.id)}
