@@ -20,11 +20,13 @@ import { searchCities as searchLocalCities } from '../utils/cities';
 import { useTheme } from '../context/ThemeContext';
 import { useAuthGuard } from '../hooks/useAuthGuard';
 import AuthPromptModal from '../components/AuthPromptModal';
+import { useTranslation } from 'react-i18next';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function ManageCitiesScreen({ navigation, route }) {
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { visitedCities, addVisitedCity, deleteVisitedCity } = useAppContext();
   const { checkAuth, showAuthModal, setShowAuthModal, featureMessage } = useAuthGuard();
@@ -118,7 +120,7 @@ export default function ManageCitiesScreen({ navigation, route }) {
     if (checkAuth('add your travel history')) return;
 
     if (!selectedCity) {
-      Alert.alert('Error', 'Please select a city from the list');
+      Alert.alert(t('common.error'), t('manageCities.selectFromList'));
       return;
     }
 
@@ -141,13 +143,13 @@ export default function ManageCitiesScreen({ navigation, route }) {
     setNewYear('');
     setSearchResults([]);
 
-    Alert.alert('Success', `${newCityData.city} added to your visited cities!`);
+    Alert.alert(t('common.success'), `${newCityData.city} ${t('manageCities.cityAdded')}`);
   };
 
   const deleteCity = (index) => {
     Alert.alert(
-      'Delete City',
-      'Are you sure you want to remove this city?',
+      t('manageCities.deleteCity'),
+      t('manageCities.deleteConfirm'),
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -178,11 +180,11 @@ export default function ManageCitiesScreen({ navigation, route }) {
       <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
         <View style={styles.header}>
           <Text style={[styles.headerTitle, { color: theme.text }]}>Manage Cities</Text>
-          <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>Add cities you've visited in the past</Text>
+          <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>{t('manageCities.description')}</Text>
         </View>
 
       <View style={styles.addSection}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Add New City</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('manageCities.addNewCity')}</Text>
         <View style={styles.searchContainer}>
           <TextInput
             style={[styles.input, {
@@ -191,7 +193,7 @@ export default function ManageCitiesScreen({ navigation, route }) {
               color: theme.text,
               marginBottom: 0,
             }]}
-            placeholder="Search for any city worldwide..."
+            placeholder={t('manageCities.searchPlaceholder')}
             placeholderTextColor={theme.textSecondary}
             value={citySearch}
             onChangeText={handleCitySearchChange}
@@ -248,7 +250,7 @@ export default function ManageCitiesScreen({ navigation, route }) {
           <View style={[styles.noResults, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
             <ActivityIndicator size="small" color={theme.primary} style={{ marginBottom: 8 }} />
             <Text style={[styles.noResultsText, { color: theme.textSecondary }]}>
-              Searching worldwide...
+              {t('manageCities.searching')}
             </Text>
           </View>
         )}
@@ -260,7 +262,7 @@ export default function ManageCitiesScreen({ navigation, route }) {
             color: theme.text,
             marginTop: 15,
           }]}
-          placeholder="Year visited (optional)"
+          placeholder={t('manageCities.yearVisited')}
           placeholderTextColor={theme.textSecondary}
           keyboardType="numeric"
           value={newYear}
@@ -275,7 +277,7 @@ export default function ManageCitiesScreen({ navigation, route }) {
           disabled={!selectedCity}
         >
           <Ionicons name="add-circle" size={24} color={theme.background} />
-          <Text style={[styles.addButtonText, { color: theme.background }]}>Add City</Text>
+          <Text style={[styles.addButtonText, { color: theme.background }]}>{t('manageCities.addCity')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -286,7 +288,7 @@ export default function ManageCitiesScreen({ navigation, route }) {
         {visitedCities.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="business-outline" size={60} color={theme.textSecondary} />
-            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>No cities added yet</Text>
+            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>{t('manageCities.noCities')}</Text>
           </View>
         ) : (
           visitedCities.map((city, index) => (

@@ -4,11 +4,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppContext } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
+import { useTranslation } from 'react-i18next';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function CompletedTripsScreen({ navigation }) {
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { completedTrips, trips } = useAppContext();
 
@@ -41,7 +43,7 @@ export default function CompletedTripsScreen({ navigation }) {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Completed Trips</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>{t('completedTrips.title')}</Text>
         <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>
           {sortedTrips.length} {sortedTrips.length === 1 ? 'country' : 'countries'} visited
         </Text>
@@ -51,9 +53,9 @@ export default function CompletedTripsScreen({ navigation }) {
         {sortedTrips.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="airplane-outline" size={80} color={theme.textSecondary} />
-            <Text style={[styles.emptyTitle, { color: theme.text }]}>No completed trips yet</Text>
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>{t('completedTrips.noTrips')}</Text>
             <Text style={[styles.emptySubtitle, { color: theme.textSecondary }]}>
-              Add countries you've visited to see them here
+              {t('completedTrips.addCountriesPrompt')}
             </Text>
             <TouchableOpacity
               style={[styles.addButton, { backgroundColor: theme.primary }]}
@@ -62,7 +64,7 @@ export default function CompletedTripsScreen({ navigation }) {
               })}
             >
               <Ionicons name="add-circle" size={24} color={theme.background} />
-              <Text style={[styles.addButtonText, { color: theme.background }]}>Add Country</Text>
+              <Text style={[styles.addButtonText, { color: theme.background }]}>{t('completedTrips.addCountry')}</Text>
             </TouchableOpacity>
           </View>
         ) : (

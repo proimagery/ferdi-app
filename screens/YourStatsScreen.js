@@ -10,12 +10,14 @@ import { useAppContext } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import SpinningGlobe from '../components/SpinningGlobe';
 import ShareableStatsCard from '../components/ShareableStatsCard';
+import { useTranslation } from 'react-i18next';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function YourStatsScreen({ navigation }) {
   const { completedTrips, visitedCities, trips, profile, refreshData } = useAppContext();
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [showGlobeFullscreen, setShowGlobeFullscreen] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -352,7 +354,7 @@ export default function YourStatsScreen({ navigation }) {
       // Request permission
       const { status } = await MediaLibrary.requestPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Please allow access to save images to your device.');
+        Alert.alert(t('common.permissionRequired'), t('editProfile.cameraRollPermission'));
         setIsSaving(false);
         return;
       }
@@ -369,10 +371,10 @@ export default function YourStatsScreen({ navigation }) {
       await MediaLibrary.createAlbumAsync('Ferdi', asset, false);
 
       setShowShareModal(false);
-      Alert.alert('Saved!', 'Your travel stats have been saved to your photos.');
+      Alert.alert(t('common.saved'), t('yourStats.shareYourStats'));
     } catch (error) {
       console.log('Error saving image:', error);
-      Alert.alert('Error', 'Failed to save image. Please try again.');
+      Alert.alert(t('common.error'), t('editProfile.saveError'));
     } finally {
       setIsSaving(false);
     }
@@ -399,11 +401,11 @@ export default function YourStatsScreen({ navigation }) {
           dialogTitle: 'Share your Ferdi travel stats',
         });
       } else {
-        Alert.alert('Sharing not available', 'Sharing is not available on this device.');
+        Alert.alert(t('common.error'), t('editProfile.saveError'));
       }
     } catch (error) {
       console.log('Error sharing image:', error);
-      Alert.alert('Error', 'Failed to share image. Please try again.');
+      Alert.alert(t('common.error'), t('editProfile.saveError'));
     } finally {
       setIsSaving(false);
     }
@@ -422,14 +424,14 @@ export default function YourStatsScreen({ navigation }) {
       }
     >
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Your Travel Stats</Text>
-        <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>Track your journey around the world</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>{t('yourStats.title')}</Text>
+        <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>{t('yourStats.subtitle')}</Text>
       </View>
 
       {/* Globe with Markers - At top of page */}
       {completedTrips.length > 0 && (
         <View style={styles.globeSection}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Your World</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('yourStats.yourWorld')}</Text>
           <View style={styles.globeContainer}>
             <SpinningGlobe
               key={`globe-stats-${globeKey}`}
@@ -488,7 +490,7 @@ export default function YourStatsScreen({ navigation }) {
             <Ionicons name="close" size={28} color="#fff" />
           </TouchableOpacity>
           <View style={[styles.fullscreenHint, { bottom: insets.bottom + 20 }]}>
-            <Text style={styles.hintText}>Pinch to zoom • Drag to rotate</Text>
+            <Text style={styles.hintText}>{t('yourStats.globeHint')}</Text>
           </View>
         </View>
       </Modal>
@@ -510,7 +512,7 @@ export default function YourStatsScreen({ navigation }) {
               <Ionicons name="close" size={24} color={theme.text} />
             </TouchableOpacity>
 
-            <Text style={[styles.shareModalTitle, { color: theme.text }]}>Share Your Stats</Text>
+            <Text style={[styles.shareModalTitle, { color: theme.text }]}>{t('yourStats.shareYourStats')}</Text>
 
             {/* The card to capture */}
             <View style={styles.shareCardWrapper}>
@@ -536,12 +538,12 @@ export default function YourStatsScreen({ navigation }) {
                 ) : !mapReady ? (
                   <>
                     <ActivityIndicator size="small" color="#fff" />
-                    <Text style={styles.shareActionButtonText}>Loading...</Text>
+                    <Text style={styles.shareActionButtonText}>{t('common.loading')}</Text>
                   </>
                 ) : (
                   <>
                     <Ionicons name="download" size={20} color="#fff" />
-                    <Text style={styles.shareActionButtonText}>Save to Photos</Text>
+                    <Text style={styles.shareActionButtonText}>{t('common.saveToPhotos')}</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -556,12 +558,12 @@ export default function YourStatsScreen({ navigation }) {
                 ) : !mapReady ? (
                   <>
                     <ActivityIndicator size="small" color="#fff" />
-                    <Text style={styles.shareActionButtonText}>Loading...</Text>
+                    <Text style={styles.shareActionButtonText}>{t('common.loading')}</Text>
                   </>
                 ) : (
                   <>
                     <Ionicons name="share-social" size={20} color="#fff" />
-                    <Text style={styles.shareActionButtonText}>Share</Text>
+                    <Text style={styles.shareActionButtonText}>{t('common.share')}</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -573,7 +575,7 @@ export default function YourStatsScreen({ navigation }) {
       {/* Continents Visited */}
       <View style={styles.section}>
         <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Continents Visited</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('yourStats.continentsVisited')}</Text>
           <View style={[styles.subregionBadge, { backgroundColor: theme.primary }]}>
             <Text style={[styles.subregionBadgeText, { color: theme.background }]}>
               {visitedContinents.length}/7
@@ -581,13 +583,13 @@ export default function YourStatsScreen({ navigation }) {
           </View>
         </View>
         <Text style={[styles.subregionSubtitle, { color: theme.textSecondary }]}>
-          Regions of the world
+          {t('yourStats.regionsDesc')}
         </Text>
 
         {/* Progress Bar */}
         <View style={[styles.subregionProgressContainer, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
           <View style={styles.subregionProgressHeader}>
-            <Text style={[styles.subregionProgressLabel, { color: theme.textSecondary }]}>Continent Coverage</Text>
+            <Text style={[styles.subregionProgressLabel, { color: theme.textSecondary }]}>{t('yourStats.continentCoverage')}</Text>
             <Text style={[styles.subregionProgressValue, { color: theme.primary }]}>
               {((visitedContinents.length / 7) * 100).toFixed(1)}%
             </Text>
@@ -641,7 +643,7 @@ export default function YourStatsScreen({ navigation }) {
       {/* Subregions Section (UN Geoscheme) */}
       <View style={styles.section}>
         <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Subregions</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('yourStats.subregions')}</Text>
           <View style={[styles.subregionBadge, { backgroundColor: theme.primary }]}>
             <Text style={[styles.subregionBadgeText, { color: theme.background }]}>
               {visitedSubregions.length}/22
@@ -649,13 +651,13 @@ export default function YourStatsScreen({ navigation }) {
           </View>
         </View>
         <Text style={[styles.subregionSubtitle, { color: theme.textSecondary }]}>
-          UN Geoscheme regions of the world
+          {t('yourStats.subregionsDesc')}
         </Text>
 
         {/* Progress Bar */}
         <View style={[styles.subregionProgressContainer, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
           <View style={styles.subregionProgressHeader}>
-            <Text style={[styles.subregionProgressLabel, { color: theme.textSecondary }]}>World Subregion Coverage</Text>
+            <Text style={[styles.subregionProgressLabel, { color: theme.textSecondary }]}>{t('yourStats.worldSubregionCoverage')}</Text>
             <Text style={[styles.subregionProgressValue, { color: theme.primary }]}>{subregionCoverage}%</Text>
           </View>
           <View style={[styles.subregionProgressBar, { backgroundColor: theme.border }]}>
@@ -705,10 +707,10 @@ export default function YourStatsScreen({ navigation }) {
       </View>
 
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Travel Trends</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('yourStats.travelTrends')}</Text>
         <View style={[styles.trendsCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
           <View style={styles.trendItem}>
-            <Text style={[styles.trendLabel, { color: theme.textSecondary }]}>Most Visited Continent</Text>
+            <Text style={[styles.trendLabel, { color: theme.textSecondary }]}>{t('yourStats.mostVisitedContinent')}</Text>
             <View style={styles.trendValueContainer}>
               <Text style={[styles.trendValue, { color: theme.text }]}>{mostVisitedContinent}</Text>
               <Ionicons name="earth" size={20} color="#60a5fa" />
@@ -716,7 +718,7 @@ export default function YourStatsScreen({ navigation }) {
           </View>
           <View style={[styles.trendDivider, { backgroundColor: theme.border }]} />
           <View style={styles.trendItem}>
-            <Text style={[styles.trendLabel, { color: theme.textSecondary }]}>Favorite Season</Text>
+            <Text style={[styles.trendLabel, { color: theme.textSecondary }]}>{t('yourStats.favoriteSeason')}</Text>
             <View style={styles.trendValueContainer}>
               <Text style={[styles.trendValue, { color: theme.text }]}>{favoriteSeason}</Text>
               <Ionicons name="sunny" size={20} color="#fbbf24" />
@@ -724,7 +726,7 @@ export default function YourStatsScreen({ navigation }) {
           </View>
           <View style={[styles.trendDivider, { backgroundColor: theme.border }]} />
           <View style={styles.trendItem}>
-            <Text style={[styles.trendLabel, { color: theme.textSecondary }]}>Average Trip Length</Text>
+            <Text style={[styles.trendLabel, { color: theme.textSecondary }]}>{t('yourStats.averageTripLength')}</Text>
             <View style={styles.trendValueContainer}>
               <Text style={[styles.trendValue, { color: theme.text }]}>{avgTripLengthDisplay}</Text>
               <Ionicons name="time" size={20} color={theme.primary} />
@@ -734,11 +736,11 @@ export default function YourStatsScreen({ navigation }) {
       </View>
 
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Travel Milestones</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('yourStats.travelMilestones')}</Text>
         <View style={[styles.milestoneCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
           <Ionicons name="trophy" size={24} color="#fbbf24" />
           <View style={styles.milestoneContent}>
-            <Text style={[styles.milestoneTitle, { color: theme.text }]}>Getting Started</Text>
+            <Text style={[styles.milestoneTitle, { color: theme.text }]}>{t('yourStats.gettingStarted')}</Text>
             <Text style={[styles.milestoneDescription, { color: theme.textSecondary }]}>
               {totalCountriesVisited === 0
                 ? 'Start your travel journey!'

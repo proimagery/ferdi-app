@@ -4,11 +4,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAppContext } from '../context/AppContext';
 import SpinningGlobe from '../components/SpinningGlobe';
+import { useTranslation } from 'react-i18next';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function HomeScreen({ navigation }) {
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const { completedTrips, visitedCities } = useAppContext();
 
   return (
@@ -23,13 +25,13 @@ export default function HomeScreen({ navigation }) {
       {/* Content overlay */}
       <View style={styles.contentOverlay}>
         <Image source={ferdiLogo} style={styles.logo} resizeMode="contain" />
-        <Text style={styles.subtitle}>Plan. Connect. Explore.</Text>
+        <Text style={styles.subtitle}>{t('home.tagline')}</Text>
 
         <TouchableOpacity
           style={[styles.button, { backgroundColor: theme.primary }]}
           onPress={() => navigation.navigate('Dashboard')}
         >
-          <Text style={[styles.buttonText, { color: theme.background }]}>Welcome</Text>
+          <Text style={[styles.buttonText, { color: theme.background }]}>{t('home.welcome')}</Text>
           <Ionicons name="arrow-forward" size={20} color={theme.background} />
         </TouchableOpacity>
       </View>

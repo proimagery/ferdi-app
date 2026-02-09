@@ -16,13 +16,15 @@ import Avatar from '../components/Avatar';
 import { countryCoordinates } from '../utils/coordinates';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
+import { useTranslation } from 'react-i18next';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function PublicProfileScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
-  const { profile, completedTrips, visitedCities, trips, travelBuddies, highlightedBuddies, buddyRequests, sendBuddyRequest, updateProfile, refreshData } = useAppContext();
+  const { profile, completedTrips, visitedCities, trips, travelBuddies, highlightedBuddies, sentRequests, buddyActionLoading, sendBuddyRequest, updateProfile, refreshData } = useAppContext();
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const { checkAuth, showAuthModal, setShowAuthModal, featureMessage } = useAuthGuard();
 
   // Check if viewing another user's profile or own profile
@@ -112,7 +114,8 @@ export default function PublicProfileScreen({ navigation, route }) {
 
   // Check buddy status
   const isBuddy = viewingUser ? travelBuddies.includes(viewingUser.id) : false;
-  const isRequestSent = viewingUser ? buddyRequests.includes(viewingUser.id) : false;
+  const isRequestSent = viewingUser ? sentRequests.includes(viewingUser.id) : false;
+  const isLoading = viewingUser ? buddyActionLoading.has(viewingUser.id) : false;
 
   const handleAddBuddy = () => {
     // Check if guest user is trying to add a buddy
@@ -369,13 +372,13 @@ export default function PublicProfileScreen({ navigation, route }) {
   // Function to pick travel photo directly
   const pickTravelPhoto = async () => {
     if (profile.travelPhotos && profile.travelPhotos.length >= 5) {
-      Alert.alert('Maximum Reached', 'You can only add up to 5 travel photos.');
+      Alert.alert(t('editProfile.maximumReached'), t('editProfile.maxPhotosReached'));
       return;
     }
 
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'We need camera roll permissions to select a photo.');
+      Alert.alert(t('editProfile.permissionDenied'), t('editProfile.cameraRollPermission'));
       return;
     }
 
@@ -442,24 +445,28 @@ export default function PublicProfileScreen({ navigation, route }) {
           {isBuddy ? (
             <View style={[styles.buddyStatusButton, { backgroundColor: theme.primary + '20', borderColor: theme.primary }]}>
               <Ionicons name="checkmark-circle" size={20} color={theme.primary} />
-              <Text style={[styles.buddyStatusText, { color: theme.primary }]}>Travel Buddies</Text>
+              <Text style={[styles.buddyStatusText, { color: theme.primary }]}>{t('publicProfile.travelBuddies')}</Text>
             </View>
           ) : (
             <TouchableOpacity
               style={[styles.addBuddyButton, {
                 backgroundColor: isRequestSent ? theme.border : theme.primary,
-                opacity: isRequestSent ? 0.5 : 1
+                opacity: (isRequestSent || isLoading) ? 0.5 : 1
               }]}
               onPress={handleAddBuddy}
-              disabled={isRequestSent}
+              disabled={isRequestSent || isLoading}
             >
-              <Ionicons
-                name={isRequestSent ? "checkmark" : "person-add"}
-                size={20}
-                color={theme.background}
-              />
+              {isLoading ? (
+                <ActivityIndicator size="small" color={theme.background} />
+              ) : (
+                <Ionicons
+                  name={isRequestSent ? "checkmark" : "person-add"}
+                  size={20}
+                  color={theme.background}
+                />
+              )}
               <Text style={[styles.addBuddyText, { color: theme.background }]}>
-                {isRequestSent ? 'Request Sent' : 'Add Travel Buddy'}
+                {isLoading ? 'Sending...' : isRequestSent ? 'Buddy Request Sent' : 'Add Travel Buddy'}
               </Text>
             </TouchableOpacity>
           )}
@@ -595,17 +602,17 @@ export default function PublicProfileScreen({ navigation, route }) {
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <Text style={[styles.statValue, { color: theme.background }]}>{totalCountriesVisited}</Text>
-              <Text style={[styles.statLabel, { color: theme.background }]}>Countries</Text>
+              <Text style={[styles.statLabel, { color: theme.background }]}>{t('publicProfile.countriesLabel')}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={[styles.statItem, styles.statItemCenter]}>
               <Text style={[styles.statValueEmphasis, { color: theme.background }]}>{worldCoverage}%</Text>
-              <Text style={[styles.statLabel, { color: theme.background }]}>Of the World</Text>
+              <Text style={[styles.statLabel, { color: theme.background }]}>{t('publicProfile.ofTheWorld')}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <Text style={[styles.statValue, { color: theme.background }]}>{continents.size}</Text>
-              <Text style={[styles.statLabel, { color: theme.background }]}>Continents</Text>
+              <Text style={[styles.statLabel, { color: theme.background }]}>{t('publicProfile.continentsLabel')}</Text>
             </View>
           </View>
         </View>
@@ -615,7 +622,7 @@ export default function PublicProfileScreen({ navigation, route }) {
       <View style={[styles.section, { marginTop: -3 }]}>
         <View style={[styles.sectionContainer, { backgroundColor: theme.cardBackground, borderColor: theme.textSecondary + '40' }]}>
           <View style={styles.sectionHeaderInner}>
-            <Text style={[styles.sectionTitle, { color: theme.text, marginTop: 8 }]}>Travel Buddies</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text, marginTop: 8 }]}>{t('publicProfile.travelBuddies')}</Text>
             {isOwnProfile && displayTravelBuddies.length > 0 && (
               <TouchableOpacity onPress={() => navigation.navigate('TravelBuddies')}>
                 <Text style={[styles.viewAllText, { color: theme.primary, marginTop: 8 }]}>
@@ -697,7 +704,7 @@ export default function PublicProfileScreen({ navigation, route }) {
       <View style={styles.section}>
         <View style={[styles.sectionContainer, { backgroundColor: theme.cardBackground, borderColor: theme.textSecondary + '40' }]}>
           <View style={styles.sectionHeaderInner}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Travel Photos</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('publicProfile.travelPhotos')}</Text>
           </View>
           {(!displayProfile?.travelPhotos || displayProfile.travelPhotos.length === 0) ? (
             <View style={styles.emptySectionInner}>
@@ -711,7 +718,7 @@ export default function PublicProfileScreen({ navigation, route }) {
                   onPress={pickTravelPhoto}
                 >
                   <Ionicons name="add-circle" size={18} color={theme.background} />
-                  <Text style={[styles.manageButtonText, { color: theme.background }]}>Add Photos</Text>
+                  <Text style={[styles.manageButtonText, { color: theme.background }]}>{t('publicProfile.addPhotos')}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -732,7 +739,7 @@ export default function PublicProfileScreen({ navigation, route }) {
         {(!displayProfile?.sharedTripMaps || displayProfile.sharedTripMaps.length === 0) ? (
           <View style={[styles.sectionContainer, { backgroundColor: theme.cardBackground, borderColor: theme.textSecondary + '40' }]}>
             <View style={styles.sectionHeaderInner}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Shared Trips</Text>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('publicProfile.sharedTrips')}</Text>
             </View>
             <View style={styles.emptySectionInner}>
               <Ionicons name="map-outline" size={32} color={theme.textSecondary} />
@@ -745,7 +752,7 @@ export default function PublicProfileScreen({ navigation, route }) {
                   onPress={() => navigation.navigate('MyTrips', { sharingMode: true })}
                 >
                   <Ionicons name="add-circle" size={18} color={theme.background} />
-                  <Text style={[styles.manageButtonText, { color: theme.background }]}>Select Trips</Text>
+                  <Text style={[styles.manageButtonText, { color: theme.background }]}>{t('publicProfile.selectTrips')}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -901,7 +908,7 @@ export default function PublicProfileScreen({ navigation, route }) {
                   ) : (
                     <View style={[styles.noMapView, { backgroundColor: theme.border }]}>
                       <Ionicons name="map-outline" size={30} color={theme.textSecondary} />
-                      <Text style={[styles.noMapText, { color: theme.textSecondary }]}>Map unavailable</Text>
+                      <Text style={[styles.noMapText, { color: theme.textSecondary }]}>{t('publicProfile.mapUnavailable')}</Text>
                     </View>
                   )}
                 </View>
@@ -916,7 +923,7 @@ export default function PublicProfileScreen({ navigation, route }) {
         <View style={[styles.sectionContainer, { backgroundColor: theme.cardBackground, borderColor: theme.textSecondary + '40' }]}>
           <View style={styles.sectionHeaderInner}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flex: 1 }}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Continents Visited</Text>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('publicProfile.continentsVisited')}</Text>
               <View style={[styles.subregionBadge, { backgroundColor: theme.primary }]}>
                 <Text style={[styles.subregionBadgeText, { color: theme.background }]}>
                   {visitedContinents.length}/6
@@ -925,12 +932,12 @@ export default function PublicProfileScreen({ navigation, route }) {
             </View>
           </View>
           <Text style={[styles.subregionSubtitle, { color: theme.textSecondary }]}>
-            Regions of the world
+            {t('publicProfile.regionsOfWorld')}
           </Text>
           {/* Progress Bar */}
           <View style={styles.progressInner}>
             <View style={styles.subregionProgressHeader}>
-              <Text style={[styles.subregionProgressLabel, { color: theme.textSecondary }]}>Continent Coverage</Text>
+              <Text style={[styles.subregionProgressLabel, { color: theme.textSecondary }]}>{t('publicProfile.continentCoverage')}</Text>
               <Text style={[styles.subregionProgressValue, { color: theme.primary }]}>
                 {((visitedContinents.length / 6) * 100).toFixed(1)}%
               </Text>
@@ -967,7 +974,7 @@ export default function PublicProfileScreen({ navigation, route }) {
         <View style={[styles.sectionContainer, { backgroundColor: theme.cardBackground, borderColor: theme.textSecondary + '40' }]}>
           <View style={styles.sectionHeaderInner}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flex: 1 }}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Subregions</Text>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('publicProfile.subregions')}</Text>
               <View style={[styles.subregionBadge, { backgroundColor: theme.primary }]}>
                 <Text style={[styles.subregionBadgeText, { color: theme.background }]}>
                   {visitedSubregions.length}/22
@@ -976,12 +983,12 @@ export default function PublicProfileScreen({ navigation, route }) {
             </View>
           </View>
           <Text style={[styles.subregionSubtitle, { color: theme.textSecondary }]}>
-            UN Geoscheme regions of the world
+            {t('publicProfile.unGeoschemeRegions')}
           </Text>
           {/* Progress Bar */}
           <View style={styles.progressInner}>
             <View style={styles.subregionProgressHeader}>
-              <Text style={[styles.subregionProgressLabel, { color: theme.textSecondary }]}>World Subregion Coverage</Text>
+              <Text style={[styles.subregionProgressLabel, { color: theme.textSecondary }]}>{t('publicProfile.worldSubregionCoverage')}</Text>
               <Text style={[styles.subregionProgressValue, { color: theme.primary }]}>{subregionCoverage}%</Text>
             </View>
             <View style={[styles.subregionProgressBar, { backgroundColor: theme.border }]}>

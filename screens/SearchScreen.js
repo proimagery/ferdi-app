@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
+import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useAuthGuard } from '../hooks/useAuthGuard';
@@ -24,8 +25,9 @@ const ferdiLogo = require('../assets/Ferdi-transparent.png');
 export default function SearchScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const { user } = useAuth();
-  const { travelBuddies, sentRequests, sendBuddyRequest } = useAppContext();
+  const { travelBuddies, sentRequests, buddyActionLoading, sendBuddyRequest } = useAppContext();
   const { checkAuth, showAuthModal, setShowAuthModal, featureMessage } = useAuthGuard();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -146,7 +148,7 @@ export default function SearchScreen({ navigation }) {
           <Ionicons name="search" size={20} color={theme.textSecondary} />
           <TextInput
             style={[styles.searchInput, { color: theme.text }]}
-            placeholder="Search by name or @username..."
+            placeholder={t('search.searchPlaceholder')}
             placeholderTextColor={theme.textSecondary}
             value={searchQuery}
             onChangeText={handleSearch}
@@ -167,7 +169,7 @@ export default function SearchScreen({ navigation }) {
         </View>
         {searchQuery.length > 0 && searchQuery.length < 2 && (
           <Text style={[styles.hintText, { color: theme.textSecondary }]}>
-            Type at least 2 characters to search
+            {t('search.typeAtLeast2')}
           </Text>
         )}
       </View>
@@ -178,33 +180,33 @@ export default function SearchScreen({ navigation }) {
           <View style={styles.emptyState}>
             <Ionicons name="search-outline" size={80} color={theme.textSecondary} />
             <Text style={[styles.emptyTitle, { color: theme.text }]}>
-              Search for Travelers
+              {t('search.searchForTravelers')}
             </Text>
             <Text style={[styles.emptySubtitle, { color: theme.textSecondary }]}>
-              Find friends by name or @username
+              {t('search.findFriendsByUsername')}
             </Text>
           </View>
         ) : isSearching ? (
           <View style={styles.loadingState}>
             <ActivityIndicator size="large" color={theme.primary} />
             <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
-              Searching...
+              {t('common.searching')}
             </Text>
           </View>
         ) : hasSearched && searchResults.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="person-outline" size={80} color={theme.textSecondary} />
             <Text style={[styles.emptyTitle, { color: theme.text }]}>
-              No Results Found
+              {t('search.noResultsFound')}
             </Text>
             <Text style={[styles.emptySubtitle, { color: theme.textSecondary }]}>
-              Try searching for a different name or username
+              {t('search.tryDifferentSearch')}
             </Text>
           </View>
         ) : (
           <View style={styles.resultsList}>
             <Text style={[styles.resultsCount, { color: theme.textSecondary }]}>
-              {searchResults.length} {searchResults.length === 1 ? 'result' : 'results'} found
+              {searchResults.length === 1 ? t('search.resultFound') : t('search.resultsFound', { count: searchResults.length })}
             </Text>
             {searchResults.map((profileUser) => (
               <TouchableOpacity
@@ -239,25 +241,32 @@ export default function SearchScreen({ navigation }) {
                   </View>
                 </View>
                 {!isBuddy(profileUser.id) && (
-                  <TouchableOpacity
-                    style={[styles.addButton, {
-                      backgroundColor: isRequestSent(profileUser.id) ? theme.border : theme.primary,
-                      opacity: isRequestSent(profileUser.id) ? 0.5 : 1
-                    }]}
-                    onPress={() => handleAddBuddy(profileUser.id)}
-                    disabled={isRequestSent(profileUser.id)}
-                  >
-                    <Ionicons
-                      name={isRequestSent(profileUser.id) ? "checkmark" : "person-add"}
-                      size={18}
-                      color={theme.background}
-                    />
-                  </TouchableOpacity>
+                  isRequestSent(profileUser.id) ? (
+                    <View style={[styles.requestSentBadge, { backgroundColor: theme.border }]}>
+                      <Ionicons name="checkmark" size={14} color={theme.textSecondary} />
+                      <Text style={[styles.requestSentText, { color: theme.textSecondary }]}>{t('search.sent')}</Text>
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      style={[styles.addButton, {
+                        backgroundColor: theme.primary,
+                        opacity: buddyActionLoading.has(profileUser.id) ? 0.5 : 1
+                      }]}
+                      onPress={() => handleAddBuddy(profileUser.id)}
+                      disabled={buddyActionLoading.has(profileUser.id)}
+                    >
+                      {buddyActionLoading.has(profileUser.id) ? (
+                        <ActivityIndicator size="small" color={theme.background} />
+                      ) : (
+                        <Ionicons name="person-add" size={18} color={theme.background} />
+                      )}
+                    </TouchableOpacity>
+                  )
                 )}
                 {isBuddy(profileUser.id) && (
                   <View style={[styles.buddyBadge, { backgroundColor: theme.primary + '20' }]}>
                     <Ionicons name="checkmark-circle" size={16} color={theme.primary} />
-                    <Text style={[styles.buddyText, { color: theme.primary }]}>Buddy</Text>
+                    <Text style={[styles.buddyText, { color: theme.primary }]}>{t('search.buddy')}</Text>
                   </View>
                 )}
               </TouchableOpacity>
@@ -384,6 +393,18 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  requestSentBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  requestSentText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   buddyBadge: {
     flexDirection: 'row',

@@ -4,12 +4,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCountries } from '../context/CountryContext';
+import { useTranslation } from 'react-i18next';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function WorldRankScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const {
     countries,
     loading,
@@ -77,7 +79,7 @@ export default function WorldRankScreen({ navigation }) {
     return (
       <View style={[styles.container, styles.centerContent, { backgroundColor: theme.background }]}>
         <ActivityIndicator size="large" color={theme.primary} />
-        <Text style={[styles.loadingText, { color: theme.textSecondary }]}>Loading countries...</Text>
+        <Text style={[styles.loadingText, { color: theme.textSecondary }]}>{t('worldRank.loading')}</Text>
       </View>
     );
   }
@@ -87,14 +89,14 @@ export default function WorldRankScreen({ navigation }) {
     return (
       <View style={[styles.container, styles.centerContent, { backgroundColor: theme.background }]}>
         <Ionicons name="cloud-offline" size={48} color={theme.textSecondary} />
-        <Text style={[styles.errorText, { color: theme.text }]}>Unable to load countries</Text>
+        <Text style={[styles.errorText, { color: theme.text }]}>{t('worldRank.unableToLoad')}</Text>
         <Text style={[styles.errorSubtext, { color: theme.textSecondary }]}>{error}</Text>
         <TouchableOpacity
           style={[styles.retryButton, { backgroundColor: theme.primary }]}
           onPress={refreshCountries}
         >
           <Ionicons name="refresh" size={20} color="#fff" />
-          <Text style={styles.retryButtonText}>Tap to Retry</Text>
+          <Text style={styles.retryButtonText}>{t('worldRank.tapToRetry')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -131,7 +133,7 @@ export default function WorldRankScreen({ navigation }) {
           <Ionicons name="search" size={20} color={theme.textSecondary} />
           <TextInput
             style={[styles.searchInput, { color: theme.text }]}
-            placeholder="Search countries..."
+            placeholder={t('worldRank.searchPlaceholder')}
             placeholderTextColor={theme.textSecondary}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -182,7 +184,7 @@ export default function WorldRankScreen({ navigation }) {
       </ScrollView>
 
       <View style={styles.topSection}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Top 10 Countries</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('worldRank.top10Countries')}</Text>
         {topTen.map((country, index) => {
           const rankData = country.rankings[selectedCategory];
           return (
@@ -235,7 +237,7 @@ export default function WorldRankScreen({ navigation }) {
       </View>
 
       <View style={styles.dropdownSection}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>More Countries</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('worldRank.moreCountries')}</Text>
         <TouchableOpacity
           style={[styles.dropdownButton, {
             backgroundColor: theme.cardBackground,

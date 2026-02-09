@@ -21,7 +21,8 @@
           "photosPermission": "This app needs access to your photo library to upload travel photos.",
           "cameraPermission": "This app needs access to your camera to take travel photos."
         }
-      ]
+      ],
+      "expo-localization"
     ],
     "ios": {
       "supportsTablet": true,

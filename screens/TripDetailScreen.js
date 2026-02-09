@@ -7,11 +7,13 @@ import { useAppContext } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { useCountries } from '../context/CountryContext';
 import { countryCoordinates } from '../utils/coordinates';
+import { useTranslation } from 'react-i18next';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function TripDetailScreen({ route, navigation }) {
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { trips } = useAppContext();
   const { findCountryByName } = useCountries();
@@ -22,7 +24,7 @@ export default function TripDetailScreen({ route, navigation }) {
   if (!trip) {
     return (
       <View style={[styles.container, { backgroundColor: theme.background }]}>
-        <Text style={[styles.errorText, { color: theme.danger }]}>Trip not found</Text>
+        <Text style={[styles.errorText, { color: theme.danger }]}>{t('tripDetail.tripNotFound')}</Text>
       </View>
     );
   }
@@ -100,7 +102,7 @@ export default function TripDetailScreen({ route, navigation }) {
   // Save trip function
   const handleSaveTrip = () => {
     setIsSaved(true);
-    Alert.alert('Success', 'Trip saved successfully!');
+    Alert.alert(t('common.success'), t('tripDetail.saveTrip'));
   };
 
   // Edit trip function
@@ -167,7 +169,7 @@ export default function TripDetailScreen({ route, navigation }) {
         <View style={[styles.budgetCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
           <Ionicons name="wallet" size={24} color={theme.primary} />
           <View style={styles.budgetTextContainer}>
-            <Text style={[styles.budgetLabel, { color: theme.textSecondary }]}>Total Budget</Text>
+            <Text style={[styles.budgetLabel, { color: theme.textSecondary }]}>{t('tripDetail.totalBudget')}</Text>
             <Text style={[styles.budgetAmount, { color: theme.primary }]}>${trip.budget}</Text>
           </View>
         </View>
@@ -178,13 +180,13 @@ export default function TripDetailScreen({ route, navigation }) {
         <View style={[styles.breakdownCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
           <View style={styles.breakdownItem}>
             <Ionicons name="map-outline" size={20} color={theme.secondary} />
-            <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>Countries:</Text>
+            <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>{t('tripDetail.countriesLabel')}</Text>
             <Text style={[styles.breakdownValue, { color: theme.text }]}>{trip.countries.length}</Text>
           </View>
           {overallDates && (
             <View style={styles.breakdownItem}>
               <Ionicons name="calendar-outline" size={20} color={theme.pink} />
-              <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>Duration:</Text>
+              <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>{t('tripDetail.duration')}</Text>
               <View style={styles.durationContainer}>
                 <Text style={[styles.breakdownValue, { color: theme.text }]}>
                   {formatDate(overallDates.start)} - {formatDate(overallDates.end)}
@@ -201,7 +203,7 @@ export default function TripDetailScreen({ route, navigation }) {
       {/* Trip Route Map */}
       {markers.length > 0 ? (
         <View style={styles.mapSection}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Trip Route Map</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('tripDetail.tripRouteMap')}</Text>
           <MapView
             style={[styles.map, { borderColor: theme.border }]}
             initialRegion={initialRegion}
@@ -240,7 +242,7 @@ export default function TripDetailScreen({ route, navigation }) {
         <View style={[styles.noMapSection, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
           <Ionicons name="map-outline" size={40} color={theme.textSecondary} />
           <Text style={[styles.noMapText, { color: theme.textSecondary }]}>
-            Map unavailable - some countries may be missing coordinates
+            {t('tripDetail.mapUnavailable')}
           </Text>
         </View>
       )}
@@ -367,17 +369,17 @@ export default function TripDetailScreen({ route, navigation }) {
                     <View style={styles.travelModes}>
                       <View style={styles.modeItem}>
                         <Ionicons name="airplane-outline" size={16} color={theme.primary} />
-                        <Text style={[styles.modeLabel, { color: theme.textSecondary }]}>Plane:</Text>
+                        <Text style={[styles.modeLabel, { color: theme.textSecondary }]}>{t('tripDetail.plane')}</Text>
                         <Text style={[styles.modeTime, { color: theme.text }]}>{travelTimes.plane}</Text>
                       </View>
                       <View style={styles.modeItem}>
                         <Ionicons name="train-outline" size={16} color={theme.secondary} />
-                        <Text style={[styles.modeLabel, { color: theme.textSecondary }]}>Train:</Text>
+                        <Text style={[styles.modeLabel, { color: theme.textSecondary }]}>{t('tripDetail.train')}</Text>
                         <Text style={[styles.modeTime, { color: theme.text }]}>{travelTimes.train}</Text>
                       </View>
                       <View style={styles.modeItem}>
                         <Ionicons name="car-outline" size={16} color={theme.pink} />
-                        <Text style={[styles.modeLabel, { color: theme.textSecondary }]}>Car:</Text>
+                        <Text style={[styles.modeLabel, { color: theme.textSecondary }]}>{t('tripDetail.car')}</Text>
                         <Text style={[styles.modeTime, { color: theme.text }]}>{travelTimes.car}</Text>
                       </View>
                     </View>
@@ -395,7 +397,7 @@ export default function TripDetailScreen({ route, navigation }) {
           <>
             <TouchableOpacity style={[styles.editButton, { backgroundColor: theme.primary }]} onPress={handleEditTrip}>
               <Ionicons name="create-outline" size={24} color={theme.background} />
-              <Text style={[styles.buttonText, { color: theme.background }]}>Edit Trip</Text>
+              <Text style={[styles.buttonText, { color: theme.background }]}>{t('tripDetail.editTrip')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.createBudgetButton, { backgroundColor: theme.secondary, borderColor: theme.secondary }]}
@@ -410,20 +412,20 @@ export default function TripDetailScreen({ route, navigation }) {
               })}
             >
               <Ionicons name="wallet-outline" size={24} color={theme.background} />
-              <Text style={[styles.buttonText, { color: theme.background }]}>Create Budget</Text>
+              <Text style={[styles.buttonText, { color: theme.background }]}>{t('tripDetail.createBudget')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.doneButton, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
               onPress={() => navigation.navigate('MyTrips')}
             >
               <Ionicons name="checkmark-circle-outline" size={24} color={theme.text} />
-              <Text style={[styles.doneButtonText, { color: theme.text }]}>Done</Text>
+              <Text style={[styles.doneButtonText, { color: theme.text }]}>{t('common.done')}</Text>
             </TouchableOpacity>
           </>
         ) : (
           <TouchableOpacity style={[styles.saveButton, { backgroundColor: theme.primary }]} onPress={handleSaveTrip}>
             <Ionicons name="save-outline" size={24} color={theme.background} />
-            <Text style={[styles.buttonText, { color: theme.background }]}>Save Trip</Text>
+            <Text style={[styles.buttonText, { color: theme.background }]}>{t('tripDetail.saveTrip')}</Text>
           </TouchableOpacity>
         )}
       </View>

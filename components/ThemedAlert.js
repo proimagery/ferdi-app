@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 export default function ThemedAlert({
   visible,
@@ -18,6 +19,7 @@ export default function ThemedAlert({
   type = 'error', // 'error', 'success', 'warning', 'info'
   buttonText = 'Got it',
 }) {
+  const { t } = useTranslation();
   const getIconConfig = () => {
     switch (type) {
       case 'success':

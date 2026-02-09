@@ -8,23 +8,27 @@ import {
   Alert,
   Image,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { useAppContext } from '../context/AppContext';
 import Avatar from '../components/Avatar';
+import { useTranslation } from 'react-i18next';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function TravelBuddiesScreen({ navigation }) {
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [selectedTab, setSelectedTab] = useState('buddies'); // 'buddies' or 'requests'
   const [refreshing, setRefreshing] = useState(false);
   const {
     travelBuddyProfiles,
     buddyRequestProfiles,
+    buddyActionLoading,
     removeTravelBuddy,
     acceptBuddyRequest,
     rejectBuddyRequest,
@@ -64,7 +68,7 @@ export default function TravelBuddiesScreen({ navigation }) {
 
   const handleAcceptRequest = (userId, userName) => {
     acceptBuddyRequest(userId);
-    Alert.alert('Success', `You and ${userName} are now travel buddies!`);
+    Alert.alert(t('common.success'), t('travelBuddies.nowBuddies', { name: userName }));
   };
 
   const handleRejectRequest = (userId, userName) => {
@@ -88,10 +92,10 @@ export default function TravelBuddiesScreen({ navigation }) {
         <View style={styles.emptyState}>
           <Ionicons name="people-outline" size={80} color={theme.textSecondary} />
           <Text style={[styles.emptyTitle, { color: theme.text }]}>
-            No Travel Buddies Yet
+            {t('travelBuddies.noBuddies')}
           </Text>
           <Text style={[styles.emptySubtitle, { color: theme.textSecondary }]}>
-            Search for travelers and add them as buddies
+            {t('travelBuddies.searchPrompt')}
           </Text>
           <TouchableOpacity
             style={[styles.searchButton, { backgroundColor: theme.primary }]}
@@ -99,7 +103,7 @@ export default function TravelBuddiesScreen({ navigation }) {
           >
             <Ionicons name="search" size={20} color={theme.background} />
             <Text style={[styles.searchButtonText, { color: theme.background }]}>
-              Search Travelers
+              {t('travelBuddies.searchTravelers')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -148,10 +152,15 @@ export default function TravelBuddiesScreen({ navigation }) {
               </View>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.removeButton, { borderColor: theme.danger }]}
+              style={[styles.removeButton, { borderColor: theme.danger, opacity: buddyActionLoading.has(user.id) ? 0.5 : 1 }]}
               onPress={() => handleRemoveBuddy(user.id, user.name)}
+              disabled={buddyActionLoading.has(user.id)}
             >
-              <Ionicons name="person-remove" size={18} color={theme.danger} />
+              {buddyActionLoading.has(user.id) ? (
+                <ActivityIndicator size="small" color={theme.danger} />
+              ) : (
+                <Ionicons name="person-remove" size={18} color={theme.danger} />
+              )}
             </TouchableOpacity>
           </View>
         ))}
@@ -165,10 +174,10 @@ export default function TravelBuddiesScreen({ navigation }) {
         <View style={styles.emptyState}>
           <Ionicons name="mail-outline" size={80} color={theme.textSecondary} />
           <Text style={[styles.emptyTitle, { color: theme.text }]}>
-            No Pending Requests
+            {t('travelBuddies.noPendingRequests')}
           </Text>
           <Text style={[styles.emptySubtitle, { color: theme.textSecondary }]}>
-            When someone sends you a buddy request, it will appear here
+            {t('travelBuddies.requestsWillAppearHere')}
           </Text>
         </View>
       );
@@ -209,14 +218,20 @@ export default function TravelBuddiesScreen({ navigation }) {
             </TouchableOpacity>
             <View style={styles.requestActions}>
               <TouchableOpacity
-                style={[styles.acceptButton, { backgroundColor: theme.primary }]}
+                style={[styles.acceptButton, { backgroundColor: theme.primary, opacity: buddyActionLoading.has(requestUser.id) ? 0.5 : 1 }]}
                 onPress={() => handleAcceptRequest(requestUser.id, requestUser.name)}
+                disabled={buddyActionLoading.has(requestUser.id)}
               >
-                <Ionicons name="checkmark" size={20} color="#fff" />
+                {buddyActionLoading.has(requestUser.id) ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Ionicons name="checkmark" size={20} color="#fff" />
+                )}
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.declineButton, { borderColor: theme.danger }]}
+                style={[styles.declineButton, { borderColor: theme.danger, opacity: buddyActionLoading.has(requestUser.id) ? 0.5 : 1 }]}
                 onPress={() => handleRejectRequest(requestUser.id, requestUser.name)}
+                disabled={buddyActionLoading.has(requestUser.id)}
               >
                 <Ionicons name="close" size={20} color={theme.danger} />
               </TouchableOpacity>
@@ -233,7 +248,7 @@ export default function TravelBuddiesScreen({ navigation }) {
       <View style={styles.header}>
         <View style={styles.headerTitleContainer}>
           <Ionicons name="people" size={28} color={theme.primary} />
-          <Text style={[styles.headerTitle, { color: theme.text }]}>Travel Buddies</Text>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>{t('travelBuddies.travelBuddiesTab')}</Text>
         </View>
         <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>
           {travelBuddyProfiles.length} {travelBuddyProfiles.length === 1 ? 'buddy' : 'buddies'}
@@ -259,7 +274,7 @@ export default function TravelBuddiesScreen({ navigation }) {
             { color: theme.textSecondary },
             selectedTab === 'buddies' && [styles.tabTextActive, { color: theme.background }]
           ]}>
-            Travel Buddies
+            {t('travelBuddies.travelBuddiesTab')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -286,7 +301,7 @@ export default function TravelBuddiesScreen({ navigation }) {
             { color: theme.textSecondary },
             selectedTab === 'requests' && [styles.tabTextActive, { color: theme.background }]
           ]}>
-            Buddy Requests
+            {t('travelBuddies.buddyRequestsTab')}
           </Text>
           {buddyRequestProfiles.length > 0 && selectedTab === 'requests' && (
             <View style={[styles.tabBadgeActive, { backgroundColor: theme.background }]}>

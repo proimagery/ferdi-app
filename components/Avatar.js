@@ -3,6 +3,7 @@ import { View, Image, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getAvatarSource, isEmojiAvatar, getEmojiValue } from '../utils/avatarHelper';
 import { useTheme } from '../context/ThemeContext';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Avatar component that handles both emoji presets and custom images
@@ -13,6 +14,7 @@ import { useTheme } from '../context/ThemeContext';
  */
 export default function Avatar({ avatar, avatarType = 'default', style, size = 50 }) {
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const [imageError, setImageError] = useState(false);
 
   // Normalize avatarType - treat null/undefined as 'default'

@@ -4,12 +4,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppContext } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
+import { useTranslation } from 'react-i18next';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function MyTripsScreen({ navigation, route }) {
   const { trips, deleteTrip, profile, updateProfile, refreshData } = useAppContext();
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const sharingMode = route.params?.sharingMode || false;
 
@@ -133,7 +135,7 @@ export default function MyTripsScreen({ navigation, route }) {
             styles.toggleText,
             viewMode === 'upcoming' ? { color: theme.background } : { color: theme.primary }
           ]}>
-            Upcoming
+            {t('myTrips.upcoming')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -148,7 +150,7 @@ export default function MyTripsScreen({ navigation, route }) {
             styles.toggleText,
             viewMode === 'active' ? { color: theme.background } : { color: theme.primary }
           ]}>
-            Active
+            {t('myTrips.active')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -163,7 +165,7 @@ export default function MyTripsScreen({ navigation, route }) {
             styles.toggleText,
             viewMode === 'past' ? { color: theme.background } : { color: theme.primary }
           ]}>
-            Past
+            {t('myTrips.past')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -171,13 +173,13 @@ export default function MyTripsScreen({ navigation, route }) {
       {sharingMode && (
         <View style={[styles.sharingModeHeader, { backgroundColor: theme.primary + '20', borderBottomColor: theme.primary }]}>
           <Text style={[styles.sharingModeText, { color: theme.text }]}>
-            Select trips to share on your profile
+            {t('myTrips.selectTripsPrompt')}
           </Text>
           <TouchableOpacity
             style={[styles.saveSharingButton, { backgroundColor: theme.primary }]}
             onPress={handleSaveSharing}
           >
-            <Text style={[styles.saveSharingText, { color: theme.background }]}>Save</Text>
+            <Text style={[styles.saveSharingText, { color: theme.background }]}>{t('common.save')}</Text>
           </TouchableOpacity>
         </View>
       )}

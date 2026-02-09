@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { countryCoordinates, officialCountryNames } from '../utils/coordinates';
+import { useTranslation } from 'react-i18next';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
@@ -79,6 +80,7 @@ const getCountryFlag = (country) => {
 
 export default function TravelMapperScreen({ navigation, route }) {
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const [selectedLocations, setSelectedLocations] = useState([]);
@@ -425,17 +427,17 @@ export default function TravelMapperScreen({ navigation, route }) {
             <View style={styles.statItem}>
               <Ionicons name="location" size={20} color={theme.primary} />
               <Text style={[styles.statValue, { color: theme.text }]}>{journeyStats.locations}</Text>
-              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Stops</Text>
+              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{t('travelMapper.stops')}</Text>
             </View>
             <View style={styles.statItem}>
               <Ionicons name="swap-horizontal" size={20} color={theme.secondary} />
               <Text style={[styles.statValue, { color: theme.text }]}>{journeyStats.legs}</Text>
-              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Legs</Text>
+              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{t('travelMapper.legs')}</Text>
             </View>
             <View style={styles.statItem}>
               <Ionicons name="navigate" size={20} color={theme.orange} />
               <Text style={[styles.statValue, { color: theme.text }]}>{journeyStats.totalMiles.toLocaleString()}</Text>
-              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Miles</Text>
+              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{t('travelMapper.miles')}</Text>
             </View>
           </View>
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
@@ -459,14 +461,14 @@ export default function TravelMapperScreen({ navigation, route }) {
       {/* Location List Panel */}
       <View style={[styles.bottomPanel, { backgroundColor: theme.cardBackground, borderTopColor: theme.border, height: screenHeight * 0.5 }]}>
         <View style={styles.panelHeader}>
-          <Text style={[styles.panelTitle, { color: theme.text }]}>Journey Route</Text>
+          <Text style={[styles.panelTitle, { color: theme.text }]}>{t('travelMapper.journeyRoute')}</Text>
           {selectedLocations.length >= 2 && (
             <TouchableOpacity
               style={[styles.saveButton, { backgroundColor: theme.primary }]}
               onPress={saveToMyTrips}
             >
               <Ionicons name="save" size={18} color={theme.background} />
-              <Text style={[styles.saveButtonText, { color: theme.background }]}>Save Trip</Text>
+              <Text style={[styles.saveButtonText, { color: theme.background }]}>{t('travelMapper.saveTrip')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -476,7 +478,7 @@ export default function TravelMapperScreen({ navigation, route }) {
             <View style={styles.emptyState}>
               <Ionicons name="map-outline" size={40} color={theme.textSecondary} />
               <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-                Add countries or addresses to plan your journey
+                {t('travelMapper.emptyMessage')}
               </Text>
             </View>
           ) : (
@@ -518,7 +520,7 @@ export default function TravelMapperScreen({ navigation, route }) {
                       </View>
                       {typeof location === 'object' && (
                         <Text style={[styles.locationType, { color: theme.textSecondary }]}>
-                          Address/City
+                          {t('travelMapper.addressCity')}
                         </Text>
                       )}
                     </View>
@@ -606,7 +608,7 @@ export default function TravelMapperScreen({ navigation, route }) {
           >
             <View style={[styles.modalContent, { backgroundColor: theme.cardBackground }]}>
               <View style={styles.modalHeader}>
-                <Text style={[styles.modalTitle, { color: theme.text }]}>Add Location</Text>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>{t('travelMapper.addLocation')}</Text>
                 <TouchableOpacity onPress={() => {
                   setShowLocationPicker(false);
                   setSearchText('');
@@ -639,7 +641,7 @@ export default function TravelMapperScreen({ navigation, route }) {
                     styles.modeTabText,
                     { color: pickerMode === 'country' ? theme.background : theme.textSecondary }
                   ]}>
-                    Country
+                    {t('travelMapper.country')}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -661,7 +663,7 @@ export default function TravelMapperScreen({ navigation, route }) {
                     styles.modeTabText,
                     { color: pickerMode === 'address' ? theme.background : theme.textSecondary }
                   ]}>
-                    Address/City
+                    {t('travelMapper.addressCity')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -673,7 +675,7 @@ export default function TravelMapperScreen({ navigation, route }) {
                     <Ionicons name="search" size={20} color={theme.textSecondary} />
                     <TextInput
                       style={[styles.searchInput, { color: theme.text }]}
-                      placeholder="Search countries..."
+                      placeholder={t('travelMapper.searchCountriesPlaceholder')}
                       placeholderTextColor={theme.textSecondary}
                       value={searchText}
                       onChangeText={setSearchText}
@@ -736,7 +738,7 @@ export default function TravelMapperScreen({ navigation, route }) {
                     <Ionicons name="location" size={20} color={theme.textSecondary} />
                     <TextInput
                       style={[styles.searchInput, { color: theme.text }]}
-                      placeholder="Enter address, city, or place..."
+                      placeholder={t('travelMapper.locationPlaceholder')}
                       placeholderTextColor={theme.textSecondary}
                       value={addressSearch}
                       onChangeText={setAddressSearch}
@@ -765,7 +767,7 @@ export default function TravelMapperScreen({ navigation, route }) {
                       <>
                         <Ionicons name="search" size={18} color={theme.background} />
                         <Text style={[styles.searchButtonText, { color: theme.background }]}>
-                          Search Location
+                          {t('travelMapper.searchLocation')}
                         </Text>
                       </>
                     )}

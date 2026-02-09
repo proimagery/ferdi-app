@@ -3,6 +3,7 @@ import { View, StyleSheet, TouchableOpacity, ActivityIndicator, Text, useWindowD
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { countryCoordinates } from '../utils/coordinates';
+import { useTranslation } from 'react-i18next';
 
 // Multi-color palette for markers
 const markerColors = [
@@ -31,6 +32,7 @@ const cityColors = [
 ];
 
 export default function SpinningGlobe({ completedTrips = [], visitedCities = [], onFullscreen, onDownload, isFullscreen = false, size = 'normal', background = false }) {
+  const { t } = useTranslation();
   const { width: screenWidth } = useWindowDimensions();
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);

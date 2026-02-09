@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
+import React, { createContext, useState, useContext, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { getCityCoordinatesFromDB } from '../utils/cities';
@@ -46,6 +46,12 @@ export const AppProvider = ({ children }) => {
 
   // Track previous request IDs to detect new requests for notifications
   const previousRequestIds = useRef([]);
+
+  // Loading state for buddy actions (prevents double-taps)
+  const [buddyActionLoading, setBuddyActionLoading] = useState(new Set());
+
+  // In-app notification state
+  const [inAppNotification, setInAppNotification] = useState(null);
 
   // ============================================
   // LOAD ALL USER DATA ON LOGIN
@@ -99,6 +105,35 @@ export const AppProvider = ({ children }) => {
       resetAllState();
     }
   }, [user, isGuest]);
+
+  // Supabase Realtime subscription for travel_buddies changes
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('buddy-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'travel_buddies',
+        filter: `buddy_id=eq.${user.id}`,
+      }, () => {
+        loadTravelBuddies();
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'travel_buddies',
+        filter: `user_id=eq.${user.id}`,
+      }, () => {
+        loadTravelBuddies();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
 
   const loadAllUserData = async () => {
     if (!user) return;
@@ -661,6 +696,18 @@ export const AppProvider = ({ children }) => {
   // ============================================
   // TRAVEL BUDDIES FUNCTIONS
   // ============================================
+  const addBuddyLoading = useCallback((id) => {
+    setBuddyActionLoading(prev => new Set(prev).add(id));
+  }, []);
+
+  const removeBuddyLoading = useCallback((id) => {
+    setBuddyActionLoading(prev => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  }, []);
+
   const loadTravelBuddies = async () => {
     if (!user) return;
 
@@ -747,7 +794,13 @@ export const AppProvider = ({ children }) => {
           for (const newId of newRequestIds) {
             const newRequester = formattedProfiles.find(p => p.id === newId);
             if (newRequester) {
+              // Device push notification
               scheduleBuddyRequestNotification(newRequester.name);
+              // In-app banner notification
+              setInAppNotification({
+                title: 'New Buddy Request!',
+                body: `${newRequester.name} wants to be your travel buddy`,
+              });
             }
           }
 
@@ -769,105 +822,124 @@ export const AppProvider = ({ children }) => {
 
   const sendBuddyRequest = async (buddyId) => {
     if (!user) return { success: false, message: 'Not logged in' };
+    if (buddyActionLoading.has(buddyId)) return { success: false, message: 'Processing...' };
     if (travelBuddies.includes(buddyId)) return { success: false, message: 'Already a buddy' };
     if (sentRequests.includes(buddyId)) return { success: false, message: 'Request already sent' };
     if (buddyRequests.includes(buddyId)) {
-      // If they've already sent us a request, auto-accept it
       await acceptBuddyRequest(buddyId);
       return { success: true, message: 'You are now buddies!' };
     }
 
-    // Optimistically add to sent requests
+    addBuddyLoading(buddyId);
     setSentRequests(prev => [...prev, buddyId]);
 
-    const { error } = await supabase
-      .from('travel_buddies')
-      .insert({
-        user_id: user.id,
-        buddy_id: buddyId,
-        status: 'pending',
-      });
+    try {
+      const { error } = await supabase
+        .from('travel_buddies')
+        .insert({
+          user_id: user.id,
+          buddy_id: buddyId,
+          status: 'pending',
+        });
 
-    if (error) {
-      console.error('Error sending buddy request:', error);
-      // Rollback
-      setSentRequests(prev => prev.filter(id => id !== buddyId));
-      return { success: false, message: 'Failed to send request' };
+      if (error) {
+        console.error('Error sending buddy request:', error);
+        setSentRequests(prev => prev.filter(id => id !== buddyId));
+        return { success: false, message: 'Failed to send request' };
+      }
+
+      return { success: true, message: 'Request sent!' };
+    } finally {
+      removeBuddyLoading(buddyId);
     }
-
-    return { success: true, message: 'Request sent!' };
   };
 
   const acceptBuddyRequest = async (buddyId) => {
-    // Move from requests to buddies
-    const requestProfile = buddyRequestProfiles.find(p => p.id === buddyId);
+    if (buddyActionLoading.has(buddyId)) return;
+    addBuddyLoading(buddyId);
 
-    setBuddyRequests(prev => {
-      const newRequests = prev.filter(id => id !== buddyId);
-      // Update badge count
-      setBadgeCount(newRequests.length);
-      // Update ref for notification tracking
-      previousRequestIds.current = newRequests;
-      return newRequests;
-    });
-    setBuddyRequestProfiles(prev => prev.filter(p => p.id !== buddyId));
-    setTravelBuddies(prev => [...prev, buddyId]);
+    try {
+      const requestProfile = buddyRequestProfiles.find(p => p.id === buddyId);
 
-    if (requestProfile) {
-      setTravelBuddyProfiles(prev => [...prev, { ...requestProfile, countriesVisited: [] }]);
-    }
+      setBuddyRequests(prev => {
+        const newRequests = prev.filter(id => id !== buddyId);
+        setBadgeCount(newRequests.length);
+        previousRequestIds.current = newRequests;
+        return newRequests;
+      });
+      setBuddyRequestProfiles(prev => prev.filter(p => p.id !== buddyId));
+      setTravelBuddies(prev => [...prev, buddyId]);
 
-    if (!user) return;
+      if (requestProfile) {
+        setTravelBuddyProfiles(prev => [...prev, { ...requestProfile, countriesVisited: [] }]);
+      }
 
-    const { error } = await supabase
-      .from('travel_buddies')
-      .update({ status: 'accepted', updated_at: new Date().toISOString() })
-      .eq('user_id', buddyId)
-      .eq('buddy_id', user.id);
+      if (!user) return;
 
-    if (error) {
-      console.error('Error accepting buddy request:', error);
+      const { error } = await supabase
+        .from('travel_buddies')
+        .update({ status: 'accepted', updated_at: new Date().toISOString() })
+        .eq('user_id', buddyId)
+        .eq('buddy_id', user.id);
+
+      if (error) {
+        console.error('Error accepting buddy request:', error);
+      }
+    } finally {
+      removeBuddyLoading(buddyId);
     }
   };
 
   const rejectBuddyRequest = async (buddyId) => {
-    setBuddyRequests(prev => {
-      const newRequests = prev.filter(id => id !== buddyId);
-      // Update badge count
-      setBadgeCount(newRequests.length);
-      // Update ref for notification tracking
-      previousRequestIds.current = newRequests;
-      return newRequests;
-    });
-    setBuddyRequestProfiles(prev => prev.filter(p => p.id !== buddyId));
+    if (buddyActionLoading.has(buddyId)) return;
+    addBuddyLoading(buddyId);
 
-    if (!user) return;
+    try {
+      setBuddyRequests(prev => {
+        const newRequests = prev.filter(id => id !== buddyId);
+        setBadgeCount(newRequests.length);
+        previousRequestIds.current = newRequests;
+        return newRequests;
+      });
+      setBuddyRequestProfiles(prev => prev.filter(p => p.id !== buddyId));
 
-    const { error } = await supabase
-      .from('travel_buddies')
-      .delete()
-      .eq('user_id', buddyId)
-      .eq('buddy_id', user.id);
+      if (!user) return;
 
-    if (error) {
-      console.error('Error rejecting buddy request:', error);
+      const { error } = await supabase
+        .from('travel_buddies')
+        .delete()
+        .eq('user_id', buddyId)
+        .eq('buddy_id', user.id);
+
+      if (error) {
+        console.error('Error rejecting buddy request:', error);
+      }
+    } finally {
+      removeBuddyLoading(buddyId);
     }
   };
 
   const removeTravelBuddy = async (buddyId) => {
-    setTravelBuddies(prev => prev.filter(id => id !== buddyId));
-    setTravelBuddyProfiles(prev => prev.filter(p => p.id !== buddyId));
-    setHighlightedBuddies(prev => prev.filter(id => id !== buddyId));
+    if (buddyActionLoading.has(buddyId)) return;
+    addBuddyLoading(buddyId);
 
-    if (!user) return;
+    try {
+      setTravelBuddies(prev => prev.filter(id => id !== buddyId));
+      setTravelBuddyProfiles(prev => prev.filter(p => p.id !== buddyId));
+      setHighlightedBuddies(prev => prev.filter(id => id !== buddyId));
 
-    const { error } = await supabase
-      .from('travel_buddies')
-      .delete()
-      .or(`and(user_id.eq.${user.id},buddy_id.eq.${buddyId}),and(user_id.eq.${buddyId},buddy_id.eq.${user.id})`);
+      if (!user) return;
 
-    if (error) {
-      console.error('Error removing travel buddy:', error);
+      const { error } = await supabase
+        .from('travel_buddies')
+        .delete()
+        .or(`and(user_id.eq.${user.id},buddy_id.eq.${buddyId}),and(user_id.eq.${buddyId},buddy_id.eq.${user.id})`);
+
+      if (error) {
+        console.error('Error removing travel buddy:', error);
+      }
+    } finally {
+      removeBuddyLoading(buddyId);
     }
   };
 
@@ -883,13 +955,13 @@ export const AppProvider = ({ children }) => {
       .update({ is_highlighted: false })
       .eq('user_id', user.id);
 
-    // Set highlighted flags for selected buddies
-    for (const buddyId of limitedIds) {
+    // Batch set highlighted flags for selected buddies
+    if (limitedIds.length > 0) {
       await supabase
         .from('travel_buddies')
         .update({ is_highlighted: true })
         .eq('user_id', user.id)
-        .eq('buddy_id', buddyId);
+        .in('buddy_id', limitedIds);
     }
   };
 
@@ -926,10 +998,14 @@ export const AppProvider = ({ children }) => {
         buddyRequests,
         buddyRequestProfiles,
         sentRequests,
+        buddyActionLoading,
         sendBuddyRequest,
         acceptBuddyRequest,
         rejectBuddyRequest,
         removeTravelBuddy,
+        // In-app notification
+        inAppNotification,
+        dismissInAppNotification: () => setInAppNotification(null),
         // Refresh function
         refreshData: loadAllUserData,
       }}

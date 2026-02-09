@@ -11,12 +11,14 @@ import { useTheme } from '../context/ThemeContext';
 import SpinningGlobe from '../components/SpinningGlobe';
 import ShareableStatsCard from '../components/ShareableStatsCard';
 import { getTravelerRank, allRanks } from '../utils/rankingSystem';
+import { useTranslation } from 'react-i18next';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function DashboardScreen({ navigation }) {
   const { completedTrips, visitedCities, trips, buddyRequestProfiles, profile, refreshData } = useAppContext();
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [showRankInfo, setShowRankInfo] = useState(false);
   const [showGlobeFullscreen, setShowGlobeFullscreen] = useState(false);
@@ -68,7 +70,7 @@ export default function DashboardScreen({ navigation }) {
       // Request permission
       const { status } = await MediaLibrary.requestPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Please allow access to save images to your device.');
+        Alert.alert(t('common.permissionRequired'), t('editProfile.cameraRollPermission'));
         setIsSaving(false);
         return;
       }
@@ -85,10 +87,10 @@ export default function DashboardScreen({ navigation }) {
       await MediaLibrary.createAlbumAsync('Ferdi', asset, false);
 
       setShowShareModal(false);
-      Alert.alert('Saved!', 'Your travel stats have been saved to your photos.');
+      Alert.alert(t('common.saved'), t('yourStats.shareYourStats'));
     } catch (error) {
       console.log('Error saving image:', error);
-      Alert.alert('Error', 'Failed to save image. Please try again.');
+      Alert.alert(t('common.error'), t('editProfile.saveError'));
     } finally {
       setIsSaving(false);
     }
@@ -115,11 +117,11 @@ export default function DashboardScreen({ navigation }) {
           dialogTitle: 'Share your Ferdi travel stats',
         });
       } else {
-        Alert.alert('Sharing not available', 'Sharing is not available on this device.');
+        Alert.alert(t('common.error'), t('editProfile.saveError'));
       }
     } catch (error) {
       console.log('Error sharing image:', error);
-      Alert.alert('Error', 'Failed to share image. Please try again.');
+      Alert.alert(t('common.error'), t('editProfile.saveError'));
     } finally {
       setIsSaving(false);
     }
@@ -208,7 +210,7 @@ export default function DashboardScreen({ navigation }) {
         <View style={styles.globeHeaderRow}>
           <View style={styles.globeHeader}>
             <Ionicons name="earth" size={24} color={theme.primary} />
-            <Text style={[styles.globeTitle, { color: theme.text }]}>Your Travel Journey</Text>
+            <Text style={[styles.globeTitle, { color: theme.text }]}>{t('dashboard.title')}</Text>
           </View>
           <TouchableOpacity
             onPress={() => setShowGlobeInfo(!showGlobeInfo)}
@@ -242,9 +244,9 @@ export default function DashboardScreen({ navigation }) {
             <Ionicons name="stats-chart" size={28} color="#a78bfa" />
           </View>
           <View style={styles.travelStatsTextContainer}>
-            <Text style={[styles.travelStatsTitle, { color: theme.text }]}>My Travel Stats</Text>
+            <Text style={[styles.travelStatsTitle, { color: theme.text }]}>{t('dashboard.myTravelStats')}</Text>
             <Text style={[styles.travelStatsDescription, { color: theme.textSecondary }]}>
-              View and add to your travel history
+              {t('dashboard.myTravelStatsDesc')}
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={24} color={theme.textSecondary} />
@@ -261,9 +263,9 @@ export default function DashboardScreen({ navigation }) {
             <Ionicons name="globe" size={28} color="#34d399" />
           </View>
           <View style={styles.travelStatsTextContainer}>
-            <Text style={[styles.travelStatsTitle, { color: theme.text }]}>World Info</Text>
+            <Text style={[styles.travelStatsTitle, { color: theme.text }]}>{t('dashboard.worldInfo')}</Text>
             <Text style={[styles.travelStatsDescription, { color: theme.textSecondary }]}>
-              Explore rankings and research the countries of the world
+              {t('dashboard.worldInfoDesc')}
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={24} color={theme.textSecondary} />
@@ -291,7 +293,7 @@ export default function DashboardScreen({ navigation }) {
             </TouchableOpacity>
             <Ionicons name="information-circle" size={32} color="#fff" style={styles.infoBubbleIcon} />
             <Text style={styles.infoBubbleText}>
-              Click Travel Stats to add/view past trips, travel trends, milestones, and world coverage
+              {t('dashboard.statsInstructions')}
             </Text>
           </View>
         </TouchableOpacity>
@@ -316,9 +318,9 @@ export default function DashboardScreen({ navigation }) {
         {showRankInfo && (
           <View style={[styles.rankDropdown, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
             <View style={styles.dropdownHeader}>
-              <Text style={[styles.dropdownTitle, { color: theme.text }]}>All Ranks</Text>
+              <Text style={[styles.dropdownTitle, { color: theme.text }]}>{t('dashboard.allRanks')}</Text>
               <Text style={[styles.dropdownSubtitle, { color: theme.textSecondary }]}>
-                Countries needed to reach each rank
+                {t('dashboard.allRanksDesc')}
               </Text>
             </View>
             <ScrollView style={styles.rankList} nestedScrollEnabled={true}>
@@ -376,8 +378,8 @@ export default function DashboardScreen({ navigation }) {
       </View>
 
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Tools</Text>
-        <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>Choose a feature to get started</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>{t('dashboard.tools')}</Text>
+        <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>{t('dashboard.toolsDesc')}</Text>
       </View>
 
       <View style={styles.grid}>
@@ -427,7 +429,7 @@ export default function DashboardScreen({ navigation }) {
             <Ionicons name="close" size={28} color="#fff" />
           </TouchableOpacity>
           <View style={[styles.fullscreenHint, { bottom: insets.bottom + 20 }]}>
-            <Text style={styles.hintText}>Pinch to zoom • Drag to rotate</Text>
+            <Text style={styles.hintText}>{t('dashboard.globeHint')}</Text>
           </View>
         </View>
       </Modal>
@@ -449,7 +451,7 @@ export default function DashboardScreen({ navigation }) {
               <Ionicons name="close" size={24} color={theme.text} />
             </TouchableOpacity>
 
-            <Text style={[styles.shareModalTitle, { color: theme.text }]}>Share Your Stats</Text>
+            <Text style={[styles.shareModalTitle, { color: theme.text }]}>{t('dashboard.shareYourStats')}</Text>
 
             {/* The card to capture */}
             <View style={styles.shareCardWrapper}>
@@ -474,7 +476,7 @@ export default function DashboardScreen({ navigation }) {
                 ) : (
                   <>
                     <Ionicons name="download" size={20} color="#fff" />
-                    <Text style={styles.shareActionButtonText}>Save to Photos</Text>
+                    <Text style={styles.shareActionButtonText}>{t('common.saveToPhotos')}</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -489,7 +491,7 @@ export default function DashboardScreen({ navigation }) {
                 ) : (
                   <>
                     <Ionicons name="share-social" size={20} color="#fff" />
-                    <Text style={styles.shareActionButtonText}>Share</Text>
+                    <Text style={styles.shareActionButtonText}>{t('common.share')}</Text>
                   </>
                 )}
               </TouchableOpacity>

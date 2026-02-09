@@ -14,6 +14,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import ThemedAlert from '../components/ThemedAlert';
+import LanguageSelector from '../components/LanguageSelector';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
@@ -26,6 +29,8 @@ export default function LoginScreen({ navigation }) {
   const [showTestPassword, setShowTestPassword] = useState(false);
   const { signIn, testSignIn, continueAsGuest } = useAuth();
   const { theme } = useTheme();
+  const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
 
   // Themed alert state
   const [alertVisible, setAlertVisible] = useState(false);
@@ -38,11 +43,11 @@ export default function LoginScreen({ navigation }) {
 
   const handleLogin = async () => {
     if (!email.trim()) {
-      showAlert('Oops!', 'Please enter your email.');
+      showAlert(t('common.oops'), t('login.promptEmail'));
       return;
     }
     if (!password) {
-      showAlert('Oops!', 'Please enter your password.');
+      showAlert(t('common.oops'), t('login.promptPassword'));
       return;
     }
 
@@ -51,7 +56,7 @@ export default function LoginScreen({ navigation }) {
     setIsLoading(false);
 
     if (error) {
-      showAlert('Login Failed', error.message);
+      showAlert(t('login.loginFailed'), error.message);
     }
   };
 
@@ -61,15 +66,15 @@ export default function LoginScreen({ navigation }) {
 
   const handleTestLogin = async () => {
     if (!testUsername.trim()) {
-      showAlert('Oops!', 'Please enter a username.');
+      showAlert(t('common.oops'), t('login.testerModal.usernamePrompt'));
       return;
     }
     if (testUsername.trim().length < 3) {
-      showAlert('Oops!', 'Username must be at least 3 characters.');
+      showAlert(t('common.oops'), t('login.testerModal.usernameMinLength'));
       return;
     }
     if (!testPassword || testPassword.length < 6) {
-      showAlert('Oops!', 'Password must be at least 6 characters.');
+      showAlert(t('common.oops'), t('login.testerModal.passwordMinLength'));
       return;
     }
 
@@ -78,7 +83,7 @@ export default function LoginScreen({ navigation }) {
     setIsLoading(false);
 
     if (error) {
-      showAlert('Login Failed', error.message);
+      showAlert(t('login.loginFailed'), error.message);
     } else {
       setShowTestLogin(false);
       setTestUsername('');
@@ -91,15 +96,19 @@ export default function LoginScreen({ navigation }) {
       style={[styles.container, { backgroundColor: theme.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
+      {/* Language Selector */}
+      <View style={[styles.languageBar, { paddingTop: insets.top + 10 }]}>
+        <LanguageSelector />
+      </View>
       <View style={styles.content}>
         {/* Logo / Header */}
         <View style={styles.header}>
           <View style={[styles.iconContainer, { backgroundColor: theme.primary + '20' }]}>
             <Ionicons name="airplane" size={50} color={theme.primary} />
           </View>
-          <Text style={[styles.title, { color: theme.text }]}>Welcome Back</Text>
+          <Text style={[styles.title, { color: theme.text }]}>{t('login.welcomeTitle')}</Text>
           <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-            Sign in to continue your journey
+            {t('login.welcomeSubtitle')}
           </Text>
         </View>
 
@@ -113,7 +122,7 @@ export default function LoginScreen({ navigation }) {
                 borderColor: theme.inputBorder,
                 color: theme.text
               }]}
-              placeholder="Email"
+              placeholder={t('login.emailPlaceholder')}
               placeholderTextColor={theme.textSecondary}
               value={email}
               onChangeText={setEmail}
@@ -131,7 +140,7 @@ export default function LoginScreen({ navigation }) {
                 borderColor: theme.inputBorder,
                 color: theme.text
               }]}
-              placeholder="Password"
+              placeholder={t('login.passwordPlaceholder')}
               placeholderTextColor={theme.textSecondary}
               value={password}
               onChangeText={setPassword}
@@ -151,7 +160,7 @@ export default function LoginScreen({ navigation }) {
 
           <TouchableOpacity onPress={handleForgotPassword} style={styles.forgotPassword}>
             <Text style={[styles.forgotPasswordText, { color: theme.primary }]}>
-              Forgot Password?
+              {t('login.forgotPassword')}
             </Text>
           </TouchableOpacity>
 
@@ -164,7 +173,7 @@ export default function LoginScreen({ navigation }) {
               <ActivityIndicator color={theme.background} />
             ) : (
               <Text style={[styles.loginButtonText, { color: theme.background }]}>
-                Sign In
+                {t('login.signInButton')}
               </Text>
             )}
           </TouchableOpacity>
@@ -177,17 +186,17 @@ export default function LoginScreen({ navigation }) {
         >
           <Ionicons name="eye-outline" size={20} color={theme.primary} />
           <Text style={[styles.guestButtonText, { color: theme.primary }]}>
-            Continue as Guest
+            {t('login.continueAsGuest')}
           </Text>
         </TouchableOpacity>
 
         {/* Footer */}
         <View style={styles.footer}>
           <Text style={[styles.footerText, { color: theme.textSecondary }]}>
-            Don't have an account?{' '}
+            {t('login.noAccountPrompt')}{' '}
           </Text>
           <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
-            <Text style={[styles.signupText, { color: theme.primary }]}>Sign Up</Text>
+            <Text style={[styles.signupText, { color: theme.primary }]}>{t('login.signUpLink')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -198,7 +207,7 @@ export default function LoginScreen({ navigation }) {
         >
           <Ionicons name="flask-outline" size={18} color={theme.textSecondary} />
           <Text style={[styles.testerButtonText, { color: theme.textSecondary }]}>
-            Tester Login
+            {t('login.testerLogin')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -208,14 +217,14 @@ export default function LoginScreen({ navigation }) {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: theme.cardBackground || theme.surface }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: theme.text }]}>Tester Login</Text>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>{t('login.testerModal.title')}</Text>
               <TouchableOpacity onPress={() => setShowTestLogin(false)}>
                 <Ionicons name="close" size={24} color={theme.text} />
               </TouchableOpacity>
             </View>
 
             <Text style={[styles.modalSubtitle, { color: theme.textSecondary }]}>
-              Create a unique username and password. If this is your first time, an account will be created automatically.
+              {t('login.testerModal.description')}
             </Text>
 
             <View style={styles.modalForm}>
@@ -227,7 +236,7 @@ export default function LoginScreen({ navigation }) {
                     borderColor: theme.inputBorder,
                     color: theme.text
                   }]}
-                  placeholder="Username"
+                  placeholder={t('login.testerModal.usernamePlaceholder')}
                   placeholderTextColor={theme.textSecondary}
                   value={testUsername}
                   onChangeText={setTestUsername}
@@ -244,7 +253,7 @@ export default function LoginScreen({ navigation }) {
                     borderColor: theme.inputBorder,
                     color: theme.text
                   }]}
-                  placeholder="Password (min 6 characters)"
+                  placeholder={t('login.testerModal.passwordPlaceholder')}
                   placeholderTextColor={theme.textSecondary}
                   value={testPassword}
                   onChangeText={setTestPassword}
@@ -271,7 +280,7 @@ export default function LoginScreen({ navigation }) {
                   <ActivityIndicator color={theme.background} />
                 ) : (
                   <Text style={[styles.loginButtonText, { color: theme.background }]}>
-                    Continue as Tester
+                    {t('login.testerModal.continueButton')}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -295,6 +304,11 @@ export default function LoginScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  languageBar: {
+    alignItems: 'flex-end',
+    paddingHorizontal: 20,
+    paddingBottom: 5,
   },
   content: {
     flex: 1,

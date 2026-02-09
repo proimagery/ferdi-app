@@ -21,12 +21,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthGuard } from '../hooks/useAuthGuard';
 import AuthPromptModal from '../components/AuthPromptModal';
 import ThemedAlert from '../components/ThemedAlert';
+import { useTranslation } from 'react-i18next';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function BudgetMakerScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const { addBudget, updateBudget, budgets } = useAppContext();
   const { checkAuth, showAuthModal, setShowAuthModal, featureMessage } = useAuthGuard();
 
@@ -286,12 +288,12 @@ export default function BudgetMakerScreen({ navigation, route }) {
 
     // Validation
     if (tripType === 'single' && !selectedCountry) {
-      showAlert('Oops!', 'You forgot to select a country!');
+      showAlert(t('common.oops'), t('budgetMaker.selectCountry'));
       return;
     }
 
     if (tripType === 'multi' && countries.length === 0) {
-      showAlert('Oops!', 'Please add at least one country to your trip.');
+      showAlert(t('common.oops'), t('budgetMaker.addCountriesPrompt'));
       return;
     }
 
@@ -379,7 +381,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
     // Save or update to global context
     if (editMode) {
       updateBudget(budgetIndex, budget);
-      showAlert('Success!', 'Your budget has been updated.', 'success', 'View Budget', () => navigation.navigate('MyBudget'));
+      showAlert(t('common.success'), t('budgetMaker.updateBudget'), 'success', t('myBudget.budgetMaker'), () => navigation.navigate('MyBudget'));
     } else {
       // Check if a budget already exists for this trip
       const existingBudgetIndex = fromTrip && tripData?.tripId
@@ -389,10 +391,10 @@ export default function BudgetMakerScreen({ navigation, route }) {
       if (existingBudgetIndex !== -1) {
         // Update existing budget instead of creating a new one
         updateBudget(existingBudgetIndex, budget);
-        showAlert('Success!', 'Your budget has been updated.', 'success', 'View Budget', () => navigation.navigate('MyBudget'));
+        showAlert(t('common.success'), t('budgetMaker.updateBudget'), 'success', t('myBudget.budgetMaker'), () => navigation.navigate('MyBudget'));
       } else {
         addBudget(budget);
-        showAlert('Success!', 'Your budget has been saved.', 'success', 'View Budget', () => navigation.navigate('MyBudget'));
+        showAlert(t('common.success'), t('budgetMaker.saveToMyBudget'), 'success', t('myBudget.budgetMaker'), () => navigation.navigate('MyBudget'));
       }
     }
   };
@@ -468,7 +470,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
         <View style={[styles.tripBanner, { backgroundColor: theme.secondary + '20', borderColor: theme.secondary }]}>
           <Ionicons name="airplane" size={24} color={theme.secondary} />
           <View style={styles.tripBannerText}>
-            <Text style={[styles.tripBannerTitle, { color: theme.text }]}>Trip Pre-loaded</Text>
+            <Text style={[styles.tripBannerTitle, { color: theme.text }]}>{t('budgetMaker.tripPreloaded')}</Text>
             <Text style={[styles.tripBannerSubtitle, { color: theme.textSecondary }]}>
               {tripData.name} - {tripData.countries.length} {tripData.countries.length === 1 ? 'country' : 'countries'}
             </Text>
@@ -483,7 +485,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
           onPress={() => setTripType('single')}
         >
           <Text style={[styles.modeButtonText, { color: theme.textSecondary }, tripType === 'single' && [styles.modeButtonTextActive, { color: theme.background }]]}>
-            Single Country
+            {t('budgetMaker.singleCountry')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -491,28 +493,28 @@ export default function BudgetMakerScreen({ navigation, route }) {
           onPress={() => setTripType('multi')}
         >
           <Text style={[styles.modeButtonText, { color: theme.textSecondary }, tripType === 'multi' && [styles.modeButtonTextActive, { color: theme.background }]]}>
-            Multi-Country
+            {t('budgetMaker.multiCountry')}
           </Text>
         </TouchableOpacity>
       </View>
 
       {/* Budget Name Input */}
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Budget Name</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('budgetMaker.budgetNameLabel')}</Text>
         <TextInput
           style={[styles.budgetNameInput, {
             backgroundColor: theme.inputBackground,
             borderColor: theme.inputBorder,
             color: theme.text
           }]}
-          placeholder="e.g., Summer Europe Trip, Honeymoon Budget..."
+          placeholder={t('budgetMaker.budgetNamePlaceholder')}
           placeholderTextColor={theme.textSecondary}
           value={budgetName}
           onChangeText={setBudgetName}
           maxLength={50}
         />
         <Text style={[styles.budgetNameHint, { color: theme.textSecondary }]}>
-          Optional - helps you identify this budget later
+          {t('budgetMaker.budgetNameHint')}
         </Text>
       </View>
 
@@ -523,7 +525,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
           onPress={() => setMode('manual')}
         >
           <Text style={[styles.modeButtonText, { color: theme.textSecondary }, mode === 'manual' && [styles.modeButtonTextActive, { color: theme.background }]]}>
-            Manual
+            {t('budgetMaker.manual')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -531,7 +533,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
           onPress={() => setMode('recommended')}
         >
           <Text style={[styles.modeButtonText, { color: theme.textSecondary }, mode === 'recommended' && [styles.modeButtonTextActive, { color: theme.background }]]}>
-            Recommended
+            {t('budgetMaker.recommended')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -539,7 +541,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
       {/* Recommended Presets */}
       {mode === 'recommended' && (
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Select Preset</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('budgetMaker.selectPreset')}</Text>
           <View style={styles.presetGrid}>
             {['foodie', 'hotel_lover', 'tourist', 'standard'].map((preset) => (
               <TouchableOpacity
@@ -563,7 +565,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
       {/* Country Selector - Single Country */}
       {tripType === 'single' ? (
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Select Country</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('budgetMaker.selectCountry')}</Text>
           <TouchableOpacity
             style={[styles.dropdownButton, {
               backgroundColor: theme.inputBackground,
@@ -604,7 +606,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: theme.cardBackground }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: theme.text }]}>Select Country</Text>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>{t('budgetMaker.selectCountry')}</Text>
               <TouchableOpacity onPress={() => {
                 setDropdownVisible(false);
                 setSearchText('');
@@ -673,7 +675,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: theme.cardBackground }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: theme.text }]}>Add Country to Trip</Text>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>{t('budgetMaker.addCountryToTrip')}</Text>
               <TouchableOpacity onPress={() => {
                 setCountryModalVisible(false);
                 setSearchText('');
@@ -735,7 +737,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
       {tripType === 'single' ? (
         <>
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Total Budget</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('budgetMaker.totalBudget')}</Text>
             <View style={styles.sliderInputRow}>
               <Text style={[styles.sliderValuePrefix, { color: theme.text }]}>$</Text>
               <TextInput
@@ -767,7 +769,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
           </View>
 
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Trip Duration</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('budgetMaker.tripDuration')}</Text>
             <View style={styles.sliderInputRow}>
               <TextInput
                 style={[styles.sliderInput, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
@@ -779,7 +781,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
                 }}
                 selectTextOnFocus
               />
-              <Text style={[styles.sliderValueSuffix, { color: theme.text }]}>days</Text>
+              <Text style={[styles.sliderValueSuffix, { color: theme.text }]}>{t('common.days')}</Text>
             </View>
             <Slider
               style={styles.slider}
@@ -802,7 +804,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
         <>
           {/* Multi-Country: Budget and Duration Sliders First */}
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Total Budget</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('budgetMaker.totalBudget')}</Text>
             <View style={styles.sliderInputRow}>
               <Text style={[styles.sliderValuePrefix, { color: theme.text }]}>$</Text>
               <TextInput
@@ -834,7 +836,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
           </View>
 
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Trip Duration</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('budgetMaker.tripDuration')}</Text>
             <View style={styles.sliderInputRow}>
               <TextInput
                 style={[styles.sliderInput, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
@@ -846,7 +848,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
                 }}
                 selectTextOnFocus
               />
-              <Text style={[styles.sliderValueSuffix, { color: theme.text }]}>days</Text>
+              <Text style={[styles.sliderValueSuffix, { color: theme.text }]}>{t('common.days')}</Text>
             </View>
             <Slider
               style={styles.slider}
@@ -867,13 +869,13 @@ export default function BudgetMakerScreen({ navigation, route }) {
 
           {/* Multi-Country Selector */}
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Countries on Your Trip</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('budgetMaker.countriesOnYourTrip')}</Text>
 
             {countries.length === 0 ? (
               <View style={[styles.emptyCountryState, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
                 <Ionicons name="earth-outline" size={40} color={theme.textSecondary} />
                 <Text style={[styles.emptyCountryText, { color: theme.textSecondary }]}>
-                  Add countries to your multi-country trip
+                  {t('budgetMaker.addCountriesPrompt')}
                 </Text>
               </View>
             ) : (
@@ -920,7 +922,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
                         <View style={styles.accommodationInputHeader}>
                           <Ionicons name="bed-outline" size={18} color={theme.primary} />
                           <Text style={[styles.accommodationInputLabel, { color: theme.textSecondary }]}>
-                            Accommodation Cost (Optional)
+                            {t('budgetMaker.accommodationCostOptional')}
                           </Text>
                         </View>
                         <TextInput
@@ -960,7 +962,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
                 backgroundColor: totalDaysMulti === tripDuration ? theme.primary + '20' : theme.danger + '20',
                 borderColor: totalDaysMulti === tripDuration ? theme.primary : theme.danger
               }]}>
-                <Text style={[styles.totalDaysLabel, { color: theme.text }]}>Days Allocated</Text>
+                <Text style={[styles.totalDaysLabel, { color: theme.text }]}>{t('budgetMaker.daysAllocated')}</Text>
                 <Text style={[styles.totalDaysValue, {
                   color: totalDaysMulti === tripDuration ? theme.primary : theme.danger
                 }]}>
@@ -1004,7 +1006,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
           </View>
         ) : (
           <>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Budget Per Country</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('budgetMaker.budgetPerCountry')}</Text>
             {countries.map((country, index) => {
               // Calculate raw budget allocation based on days
               const countryBudget = totalDaysMulti > 0 ? (totalBudget / totalDaysMulti) * country.days : 0;
@@ -1049,7 +1051,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
                       </Text>
                     </View>
                     <View style={styles.countryBudgetItem}>
-                      <Text style={[styles.countryBudgetLabel, { color: theme.textSecondary }]}>Per Day</Text>
+                      <Text style={[styles.countryBudgetLabel, { color: theme.textSecondary }]}>{t('budgetMaker.perDay')}</Text>
                       <Text style={[styles.countryBudgetValue, { color: theme.primary }]}>
                         ${Math.round(dailyBudgetCountry).toLocaleString()}
                       </Text>
@@ -1070,7 +1072,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
             <View style={[styles.totalBudgetSummary, { backgroundColor: theme.primary + '20', borderColor: theme.primary }]}>
               <View style={styles.budgetRow}>
                 <View style={styles.budgetSummaryItem}>
-                  <Text style={[styles.budgetSummaryLabel, { color: theme.textSecondary }]}>Total Budget</Text>
+                  <Text style={[styles.budgetSummaryLabel, { color: theme.textSecondary }]}>{t('budgetMaker.totalBudget')}</Text>
                   <Text style={[styles.budgetSummaryValue, { color: theme.primary }]}>${totalBudget.toLocaleString()}</Text>
                 </View>
                 <View style={styles.budgetSummaryItem}>
@@ -1096,7 +1098,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
       {/* Accommodations - Only show for single country mode */}
       {tripType === 'single' && (
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Accommodations</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('budgetMaker.accommodations')}</Text>
           <View style={styles.accommodationToggle}>
             <TouchableOpacity
               style={[styles.accommodationButton, {
@@ -1186,7 +1188,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
             backgroundColor: theme.cardBackground,
             borderColor: theme.primary
           }]}>
-            <Text style={[styles.budgetAfterLabel, { color: theme.textSecondary }]}>Budget After Accommodations</Text>
+            <Text style={[styles.budgetAfterLabel, { color: theme.textSecondary }]}>{t('budgetMaker.budgetAfterAccommodations')}</Text>
             <Text style={[styles.budgetAfterValue, { color: theme.primary }]}>
               ${Math.round(budgetAfterAccommodation).toLocaleString()}
               {showLocalCurrency && ` / ${displaySymbol}${Math.round(localAmount).toLocaleString()}`}
@@ -1198,7 +1200,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
       {/* Budget Breakdown - Single Country Mode */}
       {tripType === 'single' ? (
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Budget Breakdown</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('budgetMaker.budgetBreakdown')}</Text>
 
           {lineItems.map((item, index) => {
             const percent = mode === 'recommended' ? getLineItemPercent(item.name) : item.percent;
@@ -1258,7 +1260,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
               borderColor: theme.border
             }]} onPress={addCustomLineItem}>
               <Ionicons name="add-circle" size={24} color={theme.primary} />
-              <Text style={[styles.addItemButtonText, { color: theme.primary }]}>Add More</Text>
+              <Text style={[styles.addItemButtonText, { color: theme.primary }]}>{t('budgetMaker.addMore')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -1454,9 +1456,9 @@ export default function BudgetMakerScreen({ navigation, route }) {
           onPress={() => setShowAddCategoryModal(false)}
         >
           <View style={[styles.addCategoryModal, { backgroundColor: theme.cardBackground }]}>
-            <Text style={[styles.addCategoryTitle, { color: theme.text }]}>Add Budget Category</Text>
+            <Text style={[styles.addCategoryTitle, { color: theme.text }]}>{t('budgetMaker.addBudgetCategory')}</Text>
             <Text style={[styles.addCategorySubtitle, { color: theme.textSecondary }]}>
-              Enter the name of your custom budget category
+              {t('budgetMaker.categoryNamePrompt')}
             </Text>
             <TextInput
               style={[styles.addCategoryInput, {
@@ -1464,7 +1466,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
                 color: theme.text,
                 borderColor: theme.border
               }]}
-              placeholder="e.g., Shopping, Souvenirs, Tips"
+              placeholder={t('budgetMaker.categoryPlaceholder')}
               placeholderTextColor={theme.textSecondary}
               value={newCategoryName}
               onChangeText={setNewCategoryName}
@@ -1479,13 +1481,13 @@ export default function BudgetMakerScreen({ navigation, route }) {
                   setShowAddCategoryModal(false);
                 }}
               >
-                <Text style={[styles.cancelButtonText, { color: theme.textSecondary }]}>Cancel</Text>
+                <Text style={[styles.cancelButtonText, { color: theme.textSecondary }]}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.addCategoryButton, styles.confirmButton, { backgroundColor: theme.primary }]}
                 onPress={handleAddCategory}
               >
-                <Text style={styles.confirmButtonText}>Add Category</Text>
+                <Text style={styles.confirmButtonText}>{t('budgetMaker.addCategory')}</Text>
               </TouchableOpacity>
             </View>
           </View>

@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { View, Image, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import usePlacePhoto from '../hooks/usePlacePhoto';
+import { useTranslation } from 'react-i18next';
 
 export default function HotelCard({ hotelName, countryName, theme, customImageUrl }) {
+  const { t } = useTranslation();
   // Only fetch from Google Places if no custom URL provided
   const { photoUrl: googlePhotoUrl, loading: fetchingPhoto } = usePlacePhoto(
     customImageUrl ? null : `${hotelName} hotel ${countryName}`,

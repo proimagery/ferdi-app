@@ -12,10 +12,15 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabase';
+import LanguageSelector from '../components/LanguageSelector';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function UsernameSetupScreen({ navigation, onComplete }) {
   const { theme } = useTheme();
+  const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [username, setUsername] = useState('');
   const [isChecking, setIsChecking] = useState(false);
   const [isAvailable, setIsAvailable] = useState(null);
@@ -47,7 +52,7 @@ export default function UsernameSetupScreen({ navigation, onComplete }) {
     const usernameRegex = /^[a-zA-Z0-9_]+$/;
     if (!usernameRegex.test(username)) {
       setIsAvailable(false);
-      setError('Username can only contain letters, numbers, and underscores');
+      setError(t('usernameSetup.invalidFormat'));
       return;
     }
 
@@ -80,7 +85,7 @@ export default function UsernameSetupScreen({ navigation, onComplete }) {
       } else if (data) {
         // Username exists
         setIsAvailable(false);
-        setError('This username is already taken');
+        setError(t('usernameSetup.alreadyTaken'));
       } else {
         setIsAvailable(true);
       }
@@ -94,12 +99,12 @@ export default function UsernameSetupScreen({ navigation, onComplete }) {
 
   const handleSubmit = async () => {
     if (!username || username.length < 3) {
-      setError('Username must be at least 3 characters');
+      setError(t('usernameSetup.tooShort'));
       return;
     }
 
     if (!isAvailable) {
-      setError('Please choose an available username');
+      setError(t('usernameSetup.unavailable'));
       return;
     }
 
@@ -110,7 +115,7 @@ export default function UsernameSetupScreen({ navigation, onComplete }) {
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
-        setError('Not authenticated');
+        setError(t('common.error'));
         return;
       }
 
@@ -121,7 +126,7 @@ export default function UsernameSetupScreen({ navigation, onComplete }) {
 
       if (updateError) {
         if (updateError.code === '23505') {
-          setError('This username was just taken. Please try another.');
+          setError(t('usernameSetup.justTaken'));
           setIsAvailable(false);
         } else {
           throw updateError;
@@ -135,7 +140,7 @@ export default function UsernameSetupScreen({ navigation, onComplete }) {
       }
     } catch (err) {
       console.error('Error saving username:', err);
-      setError('Failed to save username. Please try again.');
+      setError(t('common.error'));
     } finally {
       setIsSubmitting(false);
     }
@@ -159,6 +164,10 @@ export default function UsernameSetupScreen({ navigation, onComplete }) {
       style={[styles.container, { backgroundColor: theme.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
+      {/* Language Selector */}
+      <View style={[styles.languageBar, { paddingTop: insets.top + 10 }]}>
+        <LanguageSelector />
+      </View>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
@@ -169,20 +178,20 @@ export default function UsernameSetupScreen({ navigation, onComplete }) {
             <View style={[styles.iconContainer, { backgroundColor: theme.primary + '20' }]}>
               <Ionicons name="at" size={50} color={theme.primary} />
             </View>
-            <Text style={[styles.title, { color: theme.text }]}>Create Your Username</Text>
+            <Text style={[styles.title, { color: theme.text }]}>{t('usernameSetup.title')}</Text>
             <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-              Choose a unique username that other travelers can use to find you. This will be displayed as @username on your profile.
+              {t('usernameSetup.description')}
             </Text>
           </View>
 
           {/* Username Input */}
           <View style={styles.inputSection}>
-            <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Username</Text>
+            <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>{t('common.username')}</Text>
             <View style={[styles.inputContainer, { backgroundColor: theme.inputBackground, borderColor: isAvailable === false ? theme.error : isAvailable === true ? theme.primary : theme.inputBorder }]}>
               <Text style={[styles.atSymbol, { color: theme.primary }]}>@</Text>
               <TextInput
                 style={[styles.input, { color: theme.text }]}
-                placeholder="username"
+                placeholder={t('usernameSetup.placeholder')}
                 placeholderTextColor={theme.textSecondary}
                 value={username}
                 onChangeText={handleUsernameChange}
@@ -206,7 +215,7 @@ export default function UsernameSetupScreen({ navigation, onComplete }) {
                   color={username.length >= 3 ? theme.primary : theme.textSecondary}
                 />
                 <Text style={[styles.requirementText, { color: username.length >= 3 ? theme.primary : theme.textSecondary }]}>
-                  At least 3 characters
+                  {t('usernameSetup.requirement1')}
                 </Text>
               </View>
               <View style={styles.requirementRow}>
@@ -216,7 +225,7 @@ export default function UsernameSetupScreen({ navigation, onComplete }) {
                   color={username.length <= 20 && username.length > 0 ? theme.primary : theme.textSecondary}
                 />
                 <Text style={[styles.requirementText, { color: username.length <= 20 && username.length > 0 ? theme.primary : theme.textSecondary }]}>
-                  Maximum 20 characters
+                  {t('usernameSetup.requirement2')}
                 </Text>
               </View>
               <View style={styles.requirementRow}>
@@ -226,7 +235,7 @@ export default function UsernameSetupScreen({ navigation, onComplete }) {
                   color={/^[a-zA-Z0-9_]*$/.test(username) && username.length > 0 ? theme.primary : theme.textSecondary}
                 />
                 <Text style={[styles.requirementText, { color: /^[a-zA-Z0-9_]*$/.test(username) && username.length > 0 ? theme.primary : theme.textSecondary }]}>
-                  Letters, numbers, and underscores only
+                  {t('usernameSetup.requirement3')}
                 </Text>
               </View>
             </View>
@@ -244,7 +253,7 @@ export default function UsernameSetupScreen({ navigation, onComplete }) {
               <View style={[styles.successContainer, { backgroundColor: theme.primary + '20' }]}>
                 <Ionicons name="checkmark-circle" size={20} color={theme.primary} />
                 <Text style={[styles.successText, { color: theme.primary }]}>
-                  @{username} is available!
+                  @{username} {t('usernameSetup.available')}
                 </Text>
               </View>
             )}
@@ -268,7 +277,7 @@ export default function UsernameSetupScreen({ navigation, onComplete }) {
               <>
                 <Ionicons name="checkmark" size={24} color={theme.background} />
                 <Text style={[styles.submitButtonText, { color: theme.background }]}>
-                  Confirm Username
+                  {t('usernameSetup.confirmButton')}
                 </Text>
               </>
             )}
@@ -278,7 +287,7 @@ export default function UsernameSetupScreen({ navigation, onComplete }) {
           <View style={styles.infoSection}>
             <Ionicons name="information-circle" size={20} color={theme.textSecondary} />
             <Text style={[styles.infoText, { color: theme.textSecondary }]}>
-              Your username can be changed later in your profile settings, as long as the new username is available.
+              {t('usernameSetup.changeInfo')}
             </Text>
           </View>
         </View>
@@ -290,6 +299,11 @@ export default function UsernameSetupScreen({ navigation, onComplete }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  languageBar: {
+    alignItems: 'flex-end',
+    paddingHorizontal: 20,
+    paddingBottom: 5,
   },
   scrollContent: {
     flexGrow: 1,

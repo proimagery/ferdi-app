@@ -13,11 +13,13 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useTranslation } from 'react-i18next';
 
 export default function ForgotPasswordScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const { t } = useTranslation();
   const { resetPassword } = useAuth();
   const { theme } = useTheme();
 
@@ -28,11 +30,11 @@ export default function ForgotPasswordScreen({ navigation }) {
 
   const handleResetPassword = async () => {
     if (!email.trim()) {
-      Alert.alert('Error', 'Please enter your email');
+      Alert.alert(t('forgotPassword.errorTitle'), t('forgotPassword.promptEmail'));
       return;
     }
     if (!validateEmail(email.trim())) {
-      Alert.alert('Error', 'Please enter a valid email address');
+      Alert.alert(t('forgotPassword.errorTitle'), t('forgotPassword.invalidEmail'));
       return;
     }
 
@@ -41,7 +43,7 @@ export default function ForgotPasswordScreen({ navigation }) {
     setIsLoading(false);
 
     if (error) {
-      Alert.alert('Error', error.message);
+      Alert.alert(t('forgotPassword.errorTitle'), error.message);
     } else {
       setEmailSent(true);
     }
@@ -54,13 +56,13 @@ export default function ForgotPasswordScreen({ navigation }) {
           <View style={[styles.iconContainer, { backgroundColor: theme.primary + '20' }]}>
             <Ionicons name="mail" size={50} color={theme.primary} />
           </View>
-          <Text style={[styles.title, { color: theme.text }]}>Check Your Email</Text>
+          <Text style={[styles.title, { color: theme.text }]}>{t('forgotPassword.successTitle')}</Text>
           <Text style={[styles.subtitle, { color: theme.textSecondary, textAlign: 'center' }]}>
-            We've sent a password reset link to{'\n'}
+            {t('forgotPassword.successMessage')}{'\n'}
             <Text style={{ color: theme.primary }}>{email}</Text>
           </Text>
           <Text style={[styles.note, { color: theme.textSecondary }]}>
-            Didn't receive the email? Check your spam folder or try again.
+            {t('forgotPassword.didntReceive')}
           </Text>
 
           <TouchableOpacity
@@ -71,7 +73,7 @@ export default function ForgotPasswordScreen({ navigation }) {
             }}
           >
             <Text style={[styles.buttonText, { color: theme.background }]}>
-              Try Another Email
+              {t('forgotPassword.tryAnotherEmail')}
             </Text>
           </TouchableOpacity>
 
@@ -80,7 +82,7 @@ export default function ForgotPasswordScreen({ navigation }) {
             onPress={() => navigation.navigate('Login')}
           >
             <Text style={[styles.secondaryButtonText, { color: theme.text }]}>
-              Back to Sign In
+              {t('forgotPassword.backToSignIn')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -106,9 +108,9 @@ export default function ForgotPasswordScreen({ navigation }) {
           <View style={[styles.iconContainer, { backgroundColor: theme.primary + '20' }]}>
             <Ionicons name="key-outline" size={50} color={theme.primary} />
           </View>
-          <Text style={[styles.title, { color: theme.text }]}>Forgot Password?</Text>
+          <Text style={[styles.title, { color: theme.text }]}>{t('forgotPassword.title')}</Text>
           <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-            Enter your email and we'll send you a link to reset your password
+            {t('forgotPassword.instructions')}
           </Text>
         </View>
 
@@ -122,7 +124,7 @@ export default function ForgotPasswordScreen({ navigation }) {
                 borderColor: theme.inputBorder,
                 color: theme.text
               }]}
-              placeholder="Email"
+              placeholder={t('forgotPassword.emailPlaceholder')}
               placeholderTextColor={theme.textSecondary}
               value={email}
               onChangeText={setEmail}
@@ -141,7 +143,7 @@ export default function ForgotPasswordScreen({ navigation }) {
               <ActivityIndicator color={theme.background} />
             ) : (
               <Text style={[styles.buttonText, { color: theme.background }]}>
-                Send Reset Link
+                {t('forgotPassword.sendResetLink')}
               </Text>
             )}
           </TouchableOpacity>
@@ -150,10 +152,10 @@ export default function ForgotPasswordScreen({ navigation }) {
         {/* Footer */}
         <View style={styles.footer}>
           <Text style={[styles.footerText, { color: theme.textSecondary }]}>
-            Remember your password?{' '}
+            {t('forgotPassword.rememberPassword')}{' '}
           </Text>
           <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-            <Text style={[styles.loginText, { color: theme.primary }]}>Sign In</Text>
+            <Text style={[styles.loginText, { color: theme.primary }]}>{t('login.signInButton')}</Text>
           </TouchableOpacity>
         </View>
       </View>

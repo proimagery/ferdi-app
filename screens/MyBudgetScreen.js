@@ -15,12 +15,14 @@ import { useTheme } from '../context/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getCurrencyInfo } from '../utils/currencyData';
 import { getCountryFlag } from '../utils/countryFlags';
+import { useTranslation } from 'react-i18next';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function MyBudgetScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const { budgets, deleteBudget, trips, refreshData } = useAppContext();
   const [expandedId, setExpandedId] = useState(null);
   const [selectedCountryForBudget, setSelectedCountryForBudget] = useState({});
@@ -128,7 +130,7 @@ export default function MyBudgetScreen({ navigation }) {
             styles.tabText,
             { color: selectedTab === 'past' ? '#fff' : theme.textSecondary }
           ]}>
-            Past
+            {t('myBudget.past')}
           </Text>
         </TouchableOpacity>
 
@@ -144,7 +146,7 @@ export default function MyBudgetScreen({ navigation }) {
             styles.tabText,
             { color: selectedTab === 'upcoming' ? '#fff' : theme.textSecondary }
           ]}>
-            Upcoming
+            {t('myBudget.upcoming')}
           </Text>
         </TouchableOpacity>
 
@@ -160,7 +162,7 @@ export default function MyBudgetScreen({ navigation }) {
             styles.tabText,
             { color: selectedTab === 'active' ? '#fff' : theme.textSecondary }
           ]}>
-            Active
+            {t('myBudget.active')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -316,21 +318,21 @@ export default function MyBudgetScreen({ navigation }) {
                       backgroundColor: theme.background,
                       borderColor: theme.border
                     }]}>
-                      <Text style={[styles.briefLabel, { color: theme.textSecondary }]}>Total Budget</Text>
+                      <Text style={[styles.briefLabel, { color: theme.textSecondary }]}>{t('myBudget.totalBudget')}</Text>
                       <Text style={[styles.briefValue, { color: theme.text }]}>${budget.totalBudget.toLocaleString()}</Text>
                     </View>
                     <View style={[styles.briefItem, {
                       backgroundColor: theme.background,
                       borderColor: theme.border
                     }]}>
-                      <Text style={[styles.briefLabel, { color: theme.textSecondary }]}>Duration</Text>
+                      <Text style={[styles.briefLabel, { color: theme.textSecondary }]}>{t('myBudget.duration')}</Text>
                       <Text style={[styles.briefValue, { color: theme.text }]}>{tripDuration} days</Text>
                     </View>
                     <View style={[styles.briefItem, {
                       backgroundColor: theme.background,
                       borderColor: theme.border
                     }]}>
-                      <Text style={[styles.briefLabel, { color: theme.textSecondary }]}>Daily Budget</Text>
+                      <Text style={[styles.briefLabel, { color: theme.textSecondary }]}>{t('myBudget.dailyBudget')}</Text>
                       <Text style={[styles.briefValue, { color: theme.text }]}>${Math.round(dailyBudget).toLocaleString()}</Text>
                     </View>
                   </View>
@@ -346,7 +348,7 @@ export default function MyBudgetScreen({ navigation }) {
                             backgroundColor: theme.background,
                             borderColor: theme.primary
                           }]}>
-                            <Text style={[styles.dailyBudgetLabel, { color: theme.textSecondary }]}>Daily Budget</Text>
+                            <Text style={[styles.dailyBudgetLabel, { color: theme.textSecondary }]}>{t('myBudget.dailyBudget')}</Text>
                             <Text style={[styles.dailyBudgetValue, { color: theme.primary }]}>
                               ${Math.round(dailyBudget).toLocaleString()} USD
                               {localCurrencyInfo.currency !== 'USD' && ` / ${localCurrencyInfo.symbol}${Math.round(dailyBudgetLocal).toLocaleString()} ${localCurrencyInfo.currency}`}
@@ -357,7 +359,7 @@ export default function MyBudgetScreen({ navigation }) {
                           <View style={styles.section}>
                             <View style={styles.sectionHeader}>
                               <Ionicons name="bed" size={18} color={theme.primary} />
-                              <Text style={[styles.sectionTitle, { color: theme.text }]}>Accommodation</Text>
+                              <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('myBudget.accommodation')}</Text>
                             </View>
                             <View style={styles.breakdownRow}>
                               <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>Total ({userCurrency.currency})</Text>
@@ -390,7 +392,7 @@ export default function MyBudgetScreen({ navigation }) {
                           {/* Budget Breakdown */}
                           {budget.lineItems && budget.lineItems.length > 0 && (
                             <View style={styles.section}>
-                              <Text style={[styles.sectionTitle, { color: theme.text }]}>Budget Breakdown</Text>
+                              <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('myBudget.budgetBreakdown')}</Text>
                               {budget.lineItems.map((item, idx) => {
                                 const itemLocal = (item.total || 0) * localCurrencyInfo.rate;
                                 const itemDailyLocal = ((item.total || 0) / tripDuration) * localCurrencyInfo.rate;
@@ -527,7 +529,7 @@ export default function MyBudgetScreen({ navigation }) {
                                       <View style={[styles.countryAccommodation, { borderTopColor: theme.border }]}>
                                         <View style={styles.countryAccomHeader}>
                                           <Ionicons name="bed" size={16} color={theme.primary} />
-                                          <Text style={[styles.countryAccomLabel, { color: theme.textSecondary }]}>Accommodation</Text>
+                                          <Text style={[styles.countryAccomLabel, { color: theme.textSecondary }]}>{t('myBudget.accommodation')}</Text>
                                         </View>
                                         <Text style={[styles.countryAccomValue, { color: theme.text }]}>
                                           ${Math.round(countryBreakdown.accommodation).toLocaleString()} • {countryData.symbol}{Math.round(countryBreakdown.accommodation * countryData.rate).toLocaleString()}
@@ -548,7 +550,7 @@ export default function MyBudgetScreen({ navigation }) {
                                     {/* Line Items for this country */}
                                     {countryBreakdown.lineItems && countryBreakdown.lineItems.length > 0 && (
                                       <View style={styles.countryLineItems}>
-                                        <Text style={[styles.lineItemsHeader, { color: theme.text }]}>Spending Categories</Text>
+                                        <Text style={[styles.lineItemsHeader, { color: theme.text }]}>{t('myBudget.spendingCategories')}</Text>
                                         {countryBreakdown.lineItems.map((item, itemIdx) => {
                                           const perDay = countryData.days > 0 ? item.total / countryData.days : 0;
                                           const perDayLocal = perDay * countryData.rate;
@@ -617,7 +619,7 @@ export default function MyBudgetScreen({ navigation }) {
                           onPress={() => handleEdit(budget, index)}
                         >
                           <Ionicons name="pencil" size={20} color={theme.background} />
-                          <Text style={[styles.editButtonText, { color: theme.background }]}>Edit Budget</Text>
+                          <Text style={[styles.editButtonText, { color: theme.background }]}>{t('myBudget.editBudget')}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                           style={[styles.deleteButton, {

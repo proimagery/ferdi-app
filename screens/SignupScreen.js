@@ -14,6 +14,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import ThemedAlert from '../components/ThemedAlert';
+import LanguageSelector from '../components/LanguageSelector';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 export default function SignupScreen({ navigation }) {
   const [email, setEmail] = useState('');
@@ -24,6 +27,8 @@ export default function SignupScreen({ navigation }) {
   const [isLoading, setIsLoading] = useState(false);
   const { signUp } = useAuth();
   const { theme } = useTheme();
+  const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
 
   // Themed alert state
   const [alertVisible, setAlertVisible] = useState(false);
@@ -42,23 +47,23 @@ export default function SignupScreen({ navigation }) {
   const handleSignup = async () => {
     // Validation
     if (!email.trim()) {
-      showAlert('Oops!', 'Please enter your email.');
+      showAlert(t('common.oops'), t('signup.promptEmail'));
       return;
     }
     if (!validateEmail(email.trim())) {
-      showAlert('Oops!', 'Please enter a valid email address.');
+      showAlert(t('common.oops'), t('signup.invalidEmail'));
       return;
     }
     if (!password) {
-      showAlert('Oops!', 'Please enter a password.');
+      showAlert(t('common.oops'), t('signup.promptPassword'));
       return;
     }
     if (password.length < 6) {
-      showAlert('Oops!', 'Password must be at least 6 characters.');
+      showAlert(t('common.oops'), t('signup.passwordTooShort'));
       return;
     }
     if (password !== confirmPassword) {
-      showAlert('Oops!', 'Passwords do not match.');
+      showAlert(t('common.oops'), t('signup.passwordMismatch'));
       return;
     }
 
@@ -67,11 +72,11 @@ export default function SignupScreen({ navigation }) {
     setIsLoading(false);
 
     if (error) {
-      showAlert('Sign Up Failed', error.message);
+      showAlert(t('signup.signUpFailed'), error.message);
     } else {
       showAlert(
-        'Success!',
-        'Account created! Please check your email to verify your account.',
+        t('signup.successTitle'),
+        t('signup.successMessage'),
         'success',
         () => navigation.navigate('Login')
       );
@@ -83,6 +88,10 @@ export default function SignupScreen({ navigation }) {
       style={[styles.container, { backgroundColor: theme.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
+      {/* Language Selector */}
+      <View style={[styles.languageBar, { paddingTop: insets.top + 10 }]}>
+        <LanguageSelector />
+      </View>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
           {/* Header */}
@@ -90,9 +99,9 @@ export default function SignupScreen({ navigation }) {
             <View style={[styles.iconContainer, { backgroundColor: theme.primary + '20' }]}>
               <Ionicons name="globe-outline" size={50} color={theme.primary} />
             </View>
-            <Text style={[styles.title, { color: theme.text }]}>Create Account</Text>
+            <Text style={[styles.title, { color: theme.text }]}>{t('signup.title')}</Text>
             <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-              Start planning your adventures
+              {t('signup.subtitle')}
             </Text>
           </View>
 
@@ -106,7 +115,7 @@ export default function SignupScreen({ navigation }) {
                   borderColor: theme.inputBorder,
                   color: theme.text
                 }]}
-                placeholder="Email"
+                placeholder={t('signup.emailPlaceholder')}
                 placeholderTextColor={theme.textSecondary}
                 value={email}
                 onChangeText={setEmail}
@@ -124,7 +133,7 @@ export default function SignupScreen({ navigation }) {
                   borderColor: theme.inputBorder,
                   color: theme.text
                 }]}
-                placeholder="Password"
+                placeholder={t('signup.passwordPlaceholder')}
                 placeholderTextColor={theme.textSecondary}
                 value={password}
                 onChangeText={setPassword}
@@ -150,7 +159,7 @@ export default function SignupScreen({ navigation }) {
                   borderColor: theme.inputBorder,
                   color: theme.text
                 }]}
-                placeholder="Confirm Password"
+                placeholder={t('signup.confirmPasswordPlaceholder')}
                 placeholderTextColor={theme.textSecondary}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
@@ -171,7 +180,7 @@ export default function SignupScreen({ navigation }) {
             <View style={[styles.passwordHint, { backgroundColor: theme.cardBackground }]}>
               <Ionicons name="information-circle-outline" size={16} color={theme.textSecondary} />
               <Text style={[styles.passwordHintText, { color: theme.textSecondary }]}>
-                Password must be at least 6 characters
+                {t('signup.passwordHint')}
               </Text>
             </View>
 
@@ -184,7 +193,7 @@ export default function SignupScreen({ navigation }) {
                 <ActivityIndicator color={theme.background} />
               ) : (
                 <Text style={[styles.signupButtonText, { color: theme.background }]}>
-                  Create Account
+                  {t('signup.createAccountButton')}
                 </Text>
               )}
             </TouchableOpacity>
@@ -193,10 +202,10 @@ export default function SignupScreen({ navigation }) {
           {/* Footer */}
           <View style={styles.footer}>
             <Text style={[styles.footerText, { color: theme.textSecondary }]}>
-              Already have an account?{' '}
+              {t('signup.hasAccountPrompt')}{' '}
             </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-              <Text style={[styles.loginText, { color: theme.primary }]}>Sign In</Text>
+              <Text style={[styles.loginText, { color: theme.primary }]}>{t('signup.signInLink')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -219,6 +228,11 @@ export default function SignupScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  languageBar: {
+    alignItems: 'flex-end',
+    paddingHorizontal: 20,
+    paddingBottom: 5,
   },
   scrollContent: {
     flexGrow: 1,

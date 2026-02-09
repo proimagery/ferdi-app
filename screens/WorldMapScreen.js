@@ -6,12 +6,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppContext } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { countryCoordinates } from '../utils/coordinates';
+import { useTranslation } from 'react-i18next';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function WorldMapScreen({ route }) {
   const { completedTrips, visitedCities } = useAppContext();
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
 
   // Collect all visited locations with coordinates
@@ -57,7 +59,7 @@ export default function WorldMapScreen({ route }) {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Your Travel Map</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>{t('worldMap.title')}</Text>
         <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>
           {markers.length} location{markers.length !== 1 ? 's' : ''} visited
         </Text>
@@ -86,9 +88,9 @@ export default function WorldMapScreen({ route }) {
       {markers.length === 0 && (
         <View style={styles.emptyState}>
           <Ionicons name="map-outline" size={64} color={theme.primary} />
-          <Text style={[styles.emptyTitle, { color: theme.text }]}>No Trips Yet</Text>
+          <Text style={[styles.emptyTitle, { color: theme.text }]}>{t('worldMap.noTripsYet')}</Text>
           <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-            Start adding countries you've visited to see them on the map!
+            {t('worldMap.startAddingCountries')}
           </Text>
         </View>
       )}
@@ -96,11 +98,11 @@ export default function WorldMapScreen({ route }) {
       <View style={[styles.legend, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: '#ff4444' }]} />
-          <Text style={[styles.legendText, { color: theme.text }]}>Country</Text>
+          <Text style={[styles.legendText, { color: theme.text }]}>{t('worldMap.mapCountry')}</Text>
         </View>
         <View style={[styles.legendItem, { marginTop: 8 }]}>
           <View style={[styles.legendDot, { backgroundColor: '#3b82f6' }]} />
-          <Text style={[styles.legendText, { color: theme.text }]}>City</Text>
+          <Text style={[styles.legendText, { color: theme.text }]}>{t('worldMap.mapCity')}</Text>
         </View>
       </View>
 

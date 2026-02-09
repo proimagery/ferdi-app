@@ -16,11 +16,13 @@ import { useAuth } from '../context/AuthContext';
 import Avatar from '../components/Avatar';
 import { getTravelerRank } from '../utils/rankingSystem';
 import { supabase } from '../lib/supabase';
+import { useTranslation } from 'react-i18next';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function LeaderboardScreen({ navigation }) {
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [selectedTab, setSelectedTab] = useState('allTime'); // 'year', 'allTime'
@@ -147,7 +149,7 @@ export default function LeaderboardScreen({ navigation }) {
           <Text style={[styles.headerTitle, { color: theme.text }]}>Leaderboard</Text>
         </View>
         <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>
-          Top 50 travelers worldwide
+          {t('leaderboard.subtitle')}
         </Text>
       </View>
 
@@ -165,7 +167,7 @@ export default function LeaderboardScreen({ navigation }) {
             { color: theme.textSecondary },
             selectedTab === 'year' && [styles.tabTextActive, { color: theme.background }]
           ]}>
-            Year
+            {t('leaderboard.year')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -180,7 +182,7 @@ export default function LeaderboardScreen({ navigation }) {
             { color: theme.textSecondary },
             selectedTab === 'allTime' && [styles.tabTextActive, { color: theme.background }]
           ]}>
-            All Time
+            {t('leaderboard.allTime')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -190,13 +192,13 @@ export default function LeaderboardScreen({ navigation }) {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.primary} />
           <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
-            Loading leaderboard...
+            {t('leaderboard.loading')}
           </Text>
         </View>
       ) : leaderboardData.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="trophy-outline" size={60} color={theme.textSecondary} />
-          <Text style={[styles.emptyTitle, { color: theme.text }]}>No Travelers Yet</Text>
+          <Text style={[styles.emptyTitle, { color: theme.text }]}>{t('leaderboard.noTravelersYet')}</Text>
           <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
             {selectedTab === 'year'
               ? 'No countries have been added this year yet.'
@@ -275,7 +277,7 @@ export default function LeaderboardScreen({ navigation }) {
                     {leaderboardUser.countryCount}
                   </Text>
                   <Text style={[styles.countryLabel, { color: theme.textSecondary }]}>
-                    countries
+                    {t('common.countries')}
                   </Text>
                 </View>
               </TouchableOpacity>

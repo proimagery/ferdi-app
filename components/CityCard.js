@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { View, Image, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import usePlacePhoto from '../hooks/usePlacePhoto';
+import { useTranslation } from 'react-i18next';
 
 export default function CityCard({ cityName, countryName, rank, population, theme }) {
+  const { t } = useTranslation();
   const { photoUrl, loading: fetchingPhoto } = usePlacePhoto(
     `${cityName} ${countryName} city`,
     400

@@ -15,6 +15,8 @@ import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
+import { LANGUAGES, saveLanguage } from '../i18n';
 
 // Check if running in Expo Go (notifications don't work in Expo Go)
 const isExpoGo = Constants.appOwnership === 'expo';
@@ -29,42 +31,6 @@ if (!isExpoGo) {
 const PRIVACY_POLICY_URL = 'https://proimagery.github.io/ferdi-privacy/';
 const SUPPORT_URL = 'https://proimagery.github.io/ferdi-support/';
 
-const languages = [
-  { code: 'en', name: 'English' },
-  { code: 'es', name: 'Español' },
-  { code: 'fr', name: 'Français' },
-  { code: 'de', name: 'Deutsch' },
-  { code: 'it', name: 'Italiano' },
-  { code: 'pt', name: 'Português' },
-  { code: 'pt-br', name: 'Português (Brasil)' },
-  { code: 'nl', name: 'Nederlands' },
-  { code: 'ja', name: '日本語' },
-  { code: 'zh', name: '中文 (简体)' },
-  { code: 'zh-tw', name: '中文 (繁體)' },
-  { code: 'ko', name: '한국어' },
-  { code: 'ar', name: 'العربية' },
-  { code: 'hi', name: 'हिन्दी' },
-  { code: 'ru', name: 'Русский' },
-  { code: 'pl', name: 'Polski' },
-  { code: 'tr', name: 'Türkçe' },
-  { code: 'vi', name: 'Tiếng Việt' },
-  { code: 'th', name: 'ไทย' },
-  { code: 'id', name: 'Bahasa Indonesia' },
-  { code: 'ms', name: 'Bahasa Melayu' },
-  { code: 'sv', name: 'Svenska' },
-  { code: 'da', name: 'Dansk' },
-  { code: 'no', name: 'Norsk' },
-  { code: 'fi', name: 'Suomi' },
-  { code: 'cs', name: 'Čeština' },
-  { code: 'el', name: 'Ελληνικά' },
-  { code: 'he', name: 'עברית' },
-  { code: 'uk', name: 'Українська' },
-  { code: 'ro', name: 'Română' },
-  { code: 'hu', name: 'Magyar' },
-  { code: 'bn', name: 'বাংলা' },
-  { code: 'ta', name: 'தமிழ்' },
-  { code: 'fil', name: 'Filipino' },
-];
 
 const currencies = [
   { code: 'USD', symbol: '$', name: 'US Dollar' },
@@ -112,6 +78,7 @@ const currencies = [
 export default function SettingsScreen({ navigation }) {
   const { theme, isDarkMode, toggleTheme } = useTheme();
   const { signOut, user, isGuest, exitGuestMode } = useAuth();
+  const { t, i18n } = useTranslation();
 
   // Check if user is a guest (not logged in but using the app)
   const isGuestUser = !user && isGuest;
@@ -119,7 +86,7 @@ export default function SettingsScreen({ navigation }) {
   const handleCreateAccount = () => {
     exitGuestMode();
   };
-  const [selectedLanguage, setSelectedLanguage] = useState('en');
+  const [selectedLanguage, setSelectedLanguage] = useState(i18n.language || 'en');
   const [selectedCurrency, setSelectedCurrency] = useState('USD');
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
   const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
@@ -154,9 +121,9 @@ export default function SettingsScreen({ navigation }) {
     // Show message if in Expo Go
     if (isExpoGo || !Notifications) {
       Alert.alert(
-        'Not Available in Expo Go',
-        'Push notifications are only available in the standalone app (APK/IPA). Please build the app to use this feature.',
-        [{ text: 'OK' }]
+        t('settings.notAvailableInExpoGo'),
+        t('settings.notAvailableInExpoGoMessage'),
+        [{ text: t('common.ok') }]
       );
       return;
     }
@@ -165,12 +132,12 @@ export default function SettingsScreen({ navigation }) {
       if (pushNotifications) {
         // User wants to turn off - direct them to settings
         Alert.alert(
-          'Disable Notifications',
-          'To disable push notifications, please go to your device settings and turn off notifications for Ferdi.',
+          t('settings.disableNotifications'),
+          t('settings.disableNotificationsMessage'),
           [
-            { text: 'Cancel', style: 'cancel' },
+            { text: t('common.cancel'), style: 'cancel' },
             {
-              text: 'Open Settings',
+              text: t('settings.openSettings'),
               onPress: () => {
                 if (Platform.OS === 'ios') {
                   Linking.openURL('app-settings:');
@@ -188,16 +155,16 @@ export default function SettingsScreen({ navigation }) {
         if (existingStatus === 'granted') {
           setPushNotifications(true);
           setNotificationStatus('granted');
-          Alert.alert('Notifications Enabled', 'You will receive notifications for travel buddy requests, upcoming trips, and more.');
+          Alert.alert(t('settings.notificationsEnabled'), t('settings.notificationsEnabledMessage'));
         } else if (existingStatus === 'denied') {
           // Permission was previously denied, need to go to settings
           Alert.alert(
-            'Enable Notifications',
-            'Notifications were previously disabled. Please enable them in your device settings to receive alerts for travel buddy requests and upcoming trips.',
+            t('settings.enableNotifications'),
+            t('settings.enableNotificationsMessage'),
             [
-              { text: 'Cancel', style: 'cancel' },
+              { text: t('common.cancel'), style: 'cancel' },
               {
-                text: 'Open Settings',
+                text: t('settings.openSettings'),
                 onPress: () => {
                   if (Platform.OS === 'ios') {
                     Linking.openURL('app-settings:');
@@ -215,24 +182,30 @@ export default function SettingsScreen({ navigation }) {
 
           if (status === 'granted') {
             setPushNotifications(true);
-            Alert.alert('Notifications Enabled', 'You will receive notifications for travel buddy requests, upcoming trips, and more.');
+            Alert.alert(t('settings.notificationsEnabled'), t('settings.notificationsEnabledMessage'));
           } else {
             Alert.alert(
-              'Notifications Disabled',
-              'You won\'t receive notifications for travel buddy requests or upcoming trips. You can enable them later in settings.'
+              t('settings.notificationsDisabled'),
+              t('settings.notificationsDisabledMessage')
             );
           }
         }
       }
     } catch (error) {
       console.log('Error handling notification toggle:', error);
-      Alert.alert('Error', 'Unable to change notification settings. Please try again.');
+      Alert.alert(t('common.error'), t('settings.unableToChange'));
     }
   };
 
   const getLanguageName = (code) => {
-    const lang = languages.find((l) => l.code === code);
-    return lang ? lang.name : 'English';
+    const lang = LANGUAGES.find((l) => l.code === code);
+    return lang ? `${lang.flag} ${lang.name}` : 'English';
+  };
+
+  const handleLanguageSelect = async (code) => {
+    setSelectedLanguage(code);
+    setLanguageModalVisible(false);
+    await saveLanguage(code);
   };
 
   const getCurrencyDisplay = (code) => {
@@ -242,25 +215,25 @@ export default function SettingsScreen({ navigation }) {
 
   const handleDeleteAccount = () => {
     Alert.alert(
-      'Delete Account',
-      'Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently lost.',
+      t('settings.deleteAccount'),
+      t('settings.deleteAccountWarning'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: () => {
             Alert.alert(
-              'Confirm Deletion',
-              'Please type "DELETE" to confirm account deletion.',
+              t('settings.confirmDeletion'),
+              t('settings.confirmDeletionMessage'),
               [
-                { text: 'Cancel', style: 'cancel' },
+                { text: t('common.cancel'), style: 'cancel' },
                 {
-                  text: 'I Understand',
+                  text: t('settings.iUnderstand'),
                   style: 'destructive',
                   onPress: () => {
                     // TODO: Implement actual account deletion
-                    Alert.alert('Account Deleted', 'Your account has been deleted.');
+                    Alert.alert(t('settings.accountDeleted'), t('settings.accountDeletedMessage'));
                     signOut();
                   },
                 },
@@ -274,13 +247,13 @@ export default function SettingsScreen({ navigation }) {
 
   const handlePrivacyPolicy = () => {
     Linking.openURL(PRIVACY_POLICY_URL).catch(() => {
-      Alert.alert('Error', 'Unable to open Privacy Policy. Please try again later.');
+      Alert.alert(t('common.error'), t('settings.unableToOpenPrivacy'));
     });
   };
 
   const handleSupport = () => {
     Linking.openURL(SUPPORT_URL).catch(() => {
-      Alert.alert('Error', 'Unable to open Support page. Please try again later.');
+      Alert.alert(t('common.error'), t('settings.unableToOpenSupport'));
     });
   };
 
@@ -355,24 +328,24 @@ export default function SettingsScreen({ navigation }) {
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Preferences Section */}
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>PREFERENCES</Text>
+        <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{t('settings.preferences')}</Text>
         <View style={[styles.sectionContent, { backgroundColor: theme.surface }]}>
           <SettingItem
             icon="language"
-            title="Language"
+            title={t('settings.language')}
             value={getLanguageName(selectedLanguage)}
             onPress={() => setLanguageModalVisible(true)}
           />
           <SettingItem
             icon="cash-outline"
-            title="Currency"
+            title={t('settings.currency')}
             value={getCurrencyDisplay(selectedCurrency)}
             onPress={() => setCurrencyModalVisible(true)}
           />
           <SettingItem
             icon={isDarkMode ? 'moon' : 'sunny'}
-            title="Dark Mode"
-            value={isDarkMode ? 'On' : 'Off'}
+            title={t('settings.darkMode')}
+            value={isDarkMode ? t('settings.on') : t('settings.off')}
             onPress={toggleTheme}
             showArrow={false}
           />
@@ -381,12 +354,12 @@ export default function SettingsScreen({ navigation }) {
 
       {/* Notifications Section */}
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>NOTIFICATIONS</Text>
+        <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{t('settings.notifications')}</Text>
         <View style={[styles.sectionContent, { backgroundColor: theme.surface }]}>
           <SettingItem
             icon={pushNotifications ? 'notifications' : 'notifications-off-outline'}
-            title="Push Notifications"
-            value={pushNotifications ? 'On' : 'Off'}
+            title={t('settings.pushNotifications')}
+            value={pushNotifications ? t('settings.on') : t('settings.off')}
             onPress={handlePushNotificationToggle}
             showArrow={false}
           />
@@ -395,16 +368,16 @@ export default function SettingsScreen({ navigation }) {
 
       {/* Legal & Support Section */}
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>LEGAL & SUPPORT</Text>
+        <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{t('settings.legalAndSupport')}</Text>
         <View style={[styles.sectionContent, { backgroundColor: theme.surface }]}>
           <SettingItem
             icon="shield-checkmark-outline"
-            title="Privacy Policy"
+            title={t('settings.privacyPolicy')}
             onPress={handlePrivacyPolicy}
           />
           <SettingItem
             icon="help-circle-outline"
-            title="Support"
+            title={t('settings.support')}
             onPress={handleSupport}
           />
         </View>
@@ -412,7 +385,7 @@ export default function SettingsScreen({ navigation }) {
 
       {/* Account Section */}
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>ACCOUNT</Text>
+        <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{t('settings.account')}</Text>
         <View style={[styles.sectionContent, { backgroundColor: theme.surface }]}>
           {isGuestUser ? (
             <>
@@ -420,17 +393,17 @@ export default function SettingsScreen({ navigation }) {
               <View style={[styles.guestBanner, { backgroundColor: theme.primary + '15', borderBottomColor: theme.border }]}>
                 <Ionicons name="information-circle" size={20} color={theme.primary} />
                 <Text style={[styles.guestBannerText, { color: theme.text }]}>
-                  You're browsing as a guest. Create an account to save trips, budgets, and photos.
+                  {t('settings.guestBanner')}
                 </Text>
               </View>
               <SettingItem
                 icon="person-add-outline"
-                title="Create Account"
+                title={t('settings.createAccount')}
                 onPress={handleCreateAccount}
               />
               <SettingItem
                 icon="log-in-outline"
-                title="Sign In"
+                title={t('settings.signIn')}
                 onPress={handleCreateAccount}
               />
             </>
@@ -439,18 +412,18 @@ export default function SettingsScreen({ navigation }) {
               {/* Authenticated User - Show Sign Out and Delete options */}
               <SettingItem
                 icon="log-out-outline"
-                title="Sign Out"
+                title={t('settings.signOut')}
                 onPress={() => {
-                  Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-                    { text: 'Cancel', style: 'cancel' },
-                    { text: 'Sign Out', onPress: signOut },
+                  Alert.alert(t('settings.signOut'), t('settings.signOutConfirm'), [
+                    { text: t('common.cancel'), style: 'cancel' },
+                    { text: t('settings.signOut'), onPress: signOut },
                   ]);
                 }}
                 showArrow={false}
               />
               <SettingItem
                 icon="trash-outline"
-                title="Delete Account"
+                title={t('settings.deleteAccount')}
                 onPress={handleDeleteAccount}
                 showArrow={false}
                 danger
@@ -469,14 +442,42 @@ export default function SettingsScreen({ navigation }) {
       </View>
 
       {/* Language Picker Modal */}
-      {renderPickerModal(
-        languageModalVisible,
-        setLanguageModalVisible,
-        languages,
-        selectedLanguage,
-        setSelectedLanguage,
-        'Select Language'
-      )}
+      <Modal visible={languageModalVisible} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: theme.cardBackground || theme.surface }]}>
+            <View style={[styles.modalHeader, { backgroundColor: theme.cardBackground || theme.surface, borderBottomColor: theme.border }]}>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>{t('settings.selectLanguage')}</Text>
+              <TouchableOpacity onPress={() => setLanguageModalVisible(false)}>
+                <Ionicons name="close" size={24} color={theme.text} />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={LANGUAGES}
+              keyExtractor={(item) => item.code}
+              style={{ backgroundColor: theme.cardBackground || theme.surface }}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.pickerItem,
+                    {
+                      borderBottomColor: theme.border,
+                      backgroundColor: selectedLanguage === item.code ? (theme.primary + '20') : (theme.cardBackground || theme.surface),
+                    },
+                  ]}
+                  onPress={() => handleLanguageSelect(item.code)}
+                >
+                  <Text style={[styles.pickerItemText, { color: theme.text }]}>
+                    {item.flag} {item.name}
+                  </Text>
+                  {selectedLanguage === item.code && (
+                    <Ionicons name="checkmark" size={22} color={theme.primary} />
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
 
       {/* Currency Picker Modal */}
       {renderPickerModal(
@@ -485,7 +486,7 @@ export default function SettingsScreen({ navigation }) {
         currencies,
         selectedCurrency,
         setSelectedCurrency,
-        'Select Currency'
+        t('settings.selectCurrency')
       )}
     </ScrollView>
   );

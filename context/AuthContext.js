@@ -17,25 +17,29 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
   const [needsUsername, setNeedsUsername] = useState(false);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [isGuest, setIsGuest] = useState(false);
   const initializationComplete = useRef(false);
 
-  // Check if user has set up a username (non-blocking)
+  // Check if user has set up a username and completed onboarding (non-blocking)
   const checkUsernameSetup = async (userId) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('username')
+        .select('username, onboarding_complete')
         .eq('id', userId)
         .single();
 
       if (error) {
-        return false;
+        return { needsUsername: false, needsOnboarding: false };
       }
 
-      return !data?.username;
+      return {
+        needsUsername: !data?.username,
+        needsOnboarding: data?.username && !data?.onboarding_complete,
+      };
     } catch (err) {
-      return false;
+      return { needsUsername: false, needsOnboarding: false };
     }
   };
 
@@ -59,10 +63,11 @@ export const AuthProvider = ({ children }) => {
           if (session?.user) {
             setSession(session);
             setUser(session.user);
-            // Check username in background - don't block UI
-            checkUsernameSetup(session.user.id).then(needsSetup => {
+            // Check username and onboarding in background - don't block UI
+            checkUsernameSetup(session.user.id).then(result => {
               if (isMounted) {
-                setNeedsUsername(needsSetup);
+                setNeedsUsername(result.needsUsername);
+                setNeedsOnboarding(result.needsOnboarding);
               }
             });
           }
@@ -101,14 +106,16 @@ export const AuthProvider = ({ children }) => {
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Check username in background
-          checkUsernameSetup(session.user.id).then(needsSetup => {
+          // Check username and onboarding in background
+          checkUsernameSetup(session.user.id).then(result => {
             if (isMounted) {
-              setNeedsUsername(needsSetup);
+              setNeedsUsername(result.needsUsername);
+              setNeedsOnboarding(result.needsOnboarding);
             }
           });
         } else {
           setNeedsUsername(false);
+          setNeedsOnboarding(false);
         }
 
         // Mark initialization complete on first auth event
@@ -129,6 +136,12 @@ export const AuthProvider = ({ children }) => {
   // Function to mark username as set up
   const completeUsernameSetup = () => {
     setNeedsUsername(false);
+    setNeedsOnboarding(true); // After username, go to onboarding
+  };
+
+  // Function to mark onboarding as complete
+  const completeOnboarding = () => {
+    setNeedsOnboarding(false);
   };
 
   // Sign up with email and password
@@ -323,6 +336,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     initializing,
     needsUsername,
+    needsOnboarding,
     isGuest,
     signUp,
     signIn,
@@ -330,6 +344,7 @@ export const AuthProvider = ({ children }) => {
     signOut,
     resetPassword,
     completeUsernameSetup,
+    completeOnboarding,
     continueAsGuest,
     exitGuestMode,
     requireAuth,

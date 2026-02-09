@@ -9,11 +9,13 @@ import HotelCard from '../components/HotelCard';
 import CityCard from '../components/CityCard';
 import { getCountryFlag } from '../utils/countryFlags';
 import countryCities from '../data/countryCities';
+import { useTranslation } from 'react-i18next';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function CountryDetailScreen({ route }) {
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { country } = route.params;
 
@@ -55,19 +57,19 @@ export default function CountryDetailScreen({ route }) {
         <View style={styles.statItem}>
           <Ionicons name="trophy" size={24} color="#fbbf24" />
           <Text style={[styles.statValue, { color: theme.text }]}>#{country.rank}</Text>
-          <Text style={[styles.statLabel, { color: theme.textSecondary }]}>World Rank</Text>
+          <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{t('countryDetail.worldRank')}</Text>
         </View>
         <View style={styles.statItem}>
           <Ionicons name="people" size={24} color={theme.primary} />
           <Text style={[styles.statValue, { color: theme.text }]}>{country.visitors}</Text>
-          <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Annual Visitors</Text>
+          <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{t('countryDetail.annualVisitors')}</Text>
         </View>
       </View>
 
       {country.rankings && country.rankings.transportation && typeof country.rankings.transportation === 'number' && (
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Category Rankings</Text>
-          <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>Based on public travel data (1-10 scale)</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('countryDetail.categoryRankings')}</Text>
+          <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>{t('countryDetail.categoryRankingsDesc')}</Text>
 
           <View style={[styles.rankingCard, {
             backgroundColor: theme.cardBackground,
@@ -75,7 +77,7 @@ export default function CountryDetailScreen({ route }) {
           }]}>
             <View style={styles.rankingHeader}>
               <Ionicons name="car" size={24} color="#60a5fa" />
-              <Text style={[styles.rankingTitle, { color: theme.text }]}>Transportation</Text>
+              <Text style={[styles.rankingTitle, { color: theme.text }]}>{t('countryDetail.transportation')}</Text>
             </View>
             <View style={[styles.rankingBar, { backgroundColor: theme.border }]}>
               <View
@@ -102,7 +104,7 @@ export default function CountryDetailScreen({ route }) {
           }]}>
             <View style={styles.rankingHeader}>
               <Ionicons name="restaurant" size={24} color="#f472b6" />
-              <Text style={[styles.rankingTitle, { color: theme.text }]}>Food & Dining</Text>
+              <Text style={[styles.rankingTitle, { color: theme.text }]}>{t('countryDetail.foodDining')}</Text>
             </View>
             <View style={[styles.rankingBar, { backgroundColor: theme.border }]}>
               <View
@@ -129,7 +131,7 @@ export default function CountryDetailScreen({ route }) {
           }]}>
             <View style={styles.rankingHeader}>
               <Ionicons name="camera" size={24} color="#a78bfa" />
-              <Text style={[styles.rankingTitle, { color: theme.text }]}>Tourist Activities</Text>
+              <Text style={[styles.rankingTitle, { color: theme.text }]}>{t('countryDetail.touristActivities')}</Text>
             </View>
             <View style={[styles.rankingBar, { backgroundColor: theme.border }]}>
               <View
@@ -156,7 +158,7 @@ export default function CountryDetailScreen({ route }) {
           }]}>
             <View style={styles.rankingHeader}>
               <Ionicons name="people" size={24} color="#fb923c" />
-              <Text style={[styles.rankingTitle, { color: theme.text }]}>Crowdedness</Text>
+              <Text style={[styles.rankingTitle, { color: theme.text }]}>{t('countryDetail.crowdedness')}</Text>
             </View>
             <View style={[styles.rankingBar, { backgroundColor: theme.border }]}>
               <View
@@ -175,7 +177,7 @@ export default function CountryDetailScreen({ route }) {
                 {getRatingLabel(country.rankings.crowdedness)}
               </Text>
             </View>
-            <Text style={[styles.rankingNote, { color: theme.textSecondary }]}>Higher is less crowded</Text>
+            <Text style={[styles.rankingNote, { color: theme.textSecondary }]}>{t('countryDetail.higherLessCrowded')}</Text>
           </View>
         </View>
       )}
@@ -183,7 +185,7 @@ export default function CountryDetailScreen({ route }) {
       {/* Educational Information Section */}
       {(country.population || country.capital || country.leader || country.language || country.currency) && (
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Educational Information</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('countryDetail.educationalInfo')}</Text>
           <View style={[styles.infoCard, {
             backgroundColor: theme.cardBackground,
             borderColor: theme.border
@@ -192,7 +194,7 @@ export default function CountryDetailScreen({ route }) {
               <View style={styles.infoRow}>
                 <Ionicons name="people" size={20} color={theme.primary} />
                 <View style={styles.infoTextContainer}>
-                  <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Population</Text>
+                  <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>{t('countryDetail.population')}</Text>
                   <Text style={[styles.infoValue, { color: theme.text }]}>{country.population}</Text>
                 </View>
               </View>
@@ -201,7 +203,7 @@ export default function CountryDetailScreen({ route }) {
               <View style={styles.infoRow}>
                 <Ionicons name="business" size={20} color={theme.primary} />
                 <View style={styles.infoTextContainer}>
-                  <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Capital</Text>
+                  <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>{t('countryDetail.capital')}</Text>
                   <Text style={[styles.infoValue, { color: theme.text }]}>{country.capital}</Text>
                 </View>
               </View>
@@ -210,7 +212,7 @@ export default function CountryDetailScreen({ route }) {
               <View style={styles.infoRow}>
                 <Ionicons name="person" size={20} color={theme.primary} />
                 <View style={styles.infoTextContainer}>
-                  <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Leader</Text>
+                  <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>{t('countryDetail.leader')}</Text>
                   <Text style={[styles.infoValue, { color: theme.text }]}>{country.leader}</Text>
                 </View>
               </View>
@@ -219,7 +221,7 @@ export default function CountryDetailScreen({ route }) {
               <View style={styles.infoRow}>
                 <Ionicons name="language" size={20} color={theme.primary} />
                 <View style={styles.infoTextContainer}>
-                  <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Language</Text>
+                  <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>{t('countryDetail.language')}</Text>
                   <Text style={[styles.infoValue, { color: theme.text }]}>{country.language}</Text>
                 </View>
               </View>
@@ -228,7 +230,7 @@ export default function CountryDetailScreen({ route }) {
               <View style={styles.infoRow}>
                 <Ionicons name="cash" size={20} color={theme.primary} />
                 <View style={styles.infoTextContainer}>
-                  <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Currency</Text>
+                  <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>{t('countryDetail.currency')}</Text>
                   <Text style={[styles.infoValue, { color: theme.text }]}>{country.currency}</Text>
                 </View>
               </View>
@@ -240,7 +242,7 @@ export default function CountryDetailScreen({ route }) {
       {/* Top Cities Section */}
       {countryCities[country.name] && countryCities[country.name].length > 0 && (
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Largest Cities</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('countryDetail.largestCities')}</Text>
           {countryCities[country.name].map((city, index) => (
             <CityCard
               key={index}
@@ -256,7 +258,7 @@ export default function CountryDetailScreen({ route }) {
 
       {country.highlights && country.highlights.length > 0 && (
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Top Attractions</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('countryDetail.topAttractions')}</Text>
           {country.highlights.map((highlight, index) => (
             <AttractionCard
               key={index}
@@ -272,7 +274,7 @@ export default function CountryDetailScreen({ route }) {
       {/* Transportation Section */}
       {(country.mainAirports || country.mainTrainStations || country.avgFlightCost || country.avgTrainCost) && (
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Transportation</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('countryDetail.transportation')}</Text>
 
           {country.mainAirports && country.mainAirports.length > 0 && (
             <View style={[styles.infoCard, {
@@ -281,7 +283,7 @@ export default function CountryDetailScreen({ route }) {
             }]}>
               <View style={styles.subsectionHeader}>
                 <Ionicons name="airplane" size={18} color={theme.secondary} />
-                <Text style={[styles.subsectionTitle, { color: theme.text }]}>Main Airports</Text>
+                <Text style={[styles.subsectionTitle, { color: theme.text }]}>{t('countryDetail.mainAirports')}</Text>
               </View>
               {country.mainAirports.map((airport, index) => (
                 <Text key={index} style={[styles.listItem, { color: theme.textSecondary }]}>• {airport}</Text>
@@ -300,7 +302,7 @@ export default function CountryDetailScreen({ route }) {
             }]}>
               <View style={styles.subsectionHeader}>
                 <Ionicons name="train" size={18} color={theme.secondary} />
-                <Text style={[styles.subsectionTitle, { color: theme.text }]}>Main Train Stations</Text>
+                <Text style={[styles.subsectionTitle, { color: theme.text }]}>{t('countryDetail.mainTrainStations')}</Text>
               </View>
               {country.mainTrainStations.map((station, index) => (
                 <Text key={index} style={[styles.listItem, { color: theme.textSecondary }]}>• {station}</Text>
@@ -318,7 +320,7 @@ export default function CountryDetailScreen({ route }) {
         <View style={styles.section}>
           <View style={styles.subsectionHeader}>
             <Ionicons name="bed" size={18} color={theme.secondary} />
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Top Hotels</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('countryDetail.topHotels')}</Text>
           </View>
           {country.topHotels.map((hotel, index) => (
             <HotelCard
@@ -335,7 +337,7 @@ export default function CountryDetailScreen({ route }) {
       {/* Travel Tips Section */}
       {(country.bestTimeToVisit || country.visaRequired) && (
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Travel Tips</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('countryDetail.travelTips')}</Text>
           <View style={[styles.infoCard, {
             backgroundColor: theme.cardBackground,
             borderColor: theme.border
@@ -344,7 +346,7 @@ export default function CountryDetailScreen({ route }) {
               <View style={styles.infoRow}>
                 <Ionicons name="sunny" size={20} color={theme.primary} />
                 <View style={styles.infoTextContainer}>
-                  <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Best Time to Visit</Text>
+                  <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>{t('countryDetail.bestTimeToVisit')}</Text>
                   <Text style={[styles.infoText, { color: theme.text }]}>{country.bestTimeToVisit}</Text>
                 </View>
               </View>
@@ -353,7 +355,7 @@ export default function CountryDetailScreen({ route }) {
               <View style={styles.infoRow}>
                 <Ionicons name="document-text" size={20} color={theme.primary} />
                 <View style={styles.infoTextContainer}>
-                  <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Visa Requirements</Text>
+                  <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>{t('countryDetail.visaRequirements')}</Text>
                   <Text style={[styles.infoText, { color: theme.text }]}>{country.visaRequired}</Text>
                 </View>
               </View>

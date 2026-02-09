@@ -1,3 +1,4 @@
+import './i18n';
 import React, { useEffect } from 'react';
 import { initializeCurrencyService } from './utils/currencyService';
 import { initializeRankingService } from './utils/rankingService';
@@ -12,7 +13,8 @@ import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CountryProvider } from './context/CountryContext';
 import { presetAvatars } from './utils/presetAvatars';
-import { configureNotifications } from './utils/notifications';
+import { configureNotifications, requestNotificationPermissions } from './utils/notifications';
+import InAppNotification from './components/InAppNotification';
 
 // Configure font scaling for accessibility
 // This ensures text scales with user's accessibility settings while preventing layout breaks
@@ -53,6 +55,7 @@ import LoginScreen from './screens/LoginScreen';
 import SignupScreen from './screens/SignupScreen';
 import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
 import UsernameSetupScreen from './screens/UsernameSetupScreen';
+import OnboardingScreen from './screens/OnboardingScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -127,6 +130,28 @@ function AuthNavigator() {
   );
 }
 
+// In-app notification overlay (must be inside AppProvider)
+function NotificationOverlay() {
+  const { inAppNotification, dismissInAppNotification } = useAppContext();
+
+  return (
+    <InAppNotification
+      visible={!!inAppNotification}
+      title={inAppNotification?.title || ''}
+      body={inAppNotification?.body || ''}
+      onDismiss={dismissInAppNotification}
+    />
+  );
+}
+
+// Request push notification permissions (must be inside AppProvider)
+function NotificationPermissionRequester() {
+  useEffect(() => {
+    requestNotificationPermissions();
+  }, []);
+  return null;
+}
+
 // Main App Navigator - for authenticated users
 function MainNavigator() {
   const { theme, isDarkMode, toggleTheme } = useTheme();
@@ -171,6 +196,8 @@ function MainNavigator() {
 
   return (
     <AppProvider>
+      <NotificationPermissionRequester />
+      <NotificationOverlay />
       <CountryProvider>
         <Stack.Navigator
           initialRouteName="Home"
@@ -406,9 +433,21 @@ function UsernameSetupNavigator() {
   );
 }
 
+// Onboarding Navigator - for users who completed username but need onboarding
+function OnboardingNavigator() {
+  const { theme } = useTheme();
+  const { completeOnboarding } = useAuth();
+
+  return (
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
+      <OnboardingScreen onComplete={completeOnboarding} />
+    </View>
+  );
+}
+
 // Root Navigator - handles auth state
 function RootNavigator() {
-  const { user, initializing, needsUsername, isGuest } = useAuth();
+  const { user, initializing, needsUsername, needsOnboarding, isGuest } = useAuth();
   const { theme, isDarkMode } = useTheme();
 
   // Initialize currency and ranking services on app start
@@ -433,6 +472,16 @@ function RootNavigator() {
       <>
         <StatusBar style={isDarkMode ? "light" : "dark"} />
         <UsernameSetupNavigator />
+      </>
+    );
+  }
+
+  // If user is logged in but needs onboarding, show onboarding
+  if (user && needsOnboarding) {
+    return (
+      <>
+        <StatusBar style={isDarkMode ? "light" : "dark"} />
+        <OnboardingNavigator />
       </>
     );
   }

@@ -14,6 +14,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../lib/supabase';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { uploadImage, isLocalUri, deleteImage } from '../utils/imageUpload';
+import { useTranslation } from 'react-i18next';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
@@ -21,6 +22,7 @@ export default function EditProfileScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { profile, updateProfile, completedTrips, visitedCities, trips } = useAppContext();
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { checkAuth, showAuthModal, setShowAuthModal, featureMessage } = useAuthGuard();
   const [isUploading, setIsUploading] = useState(false);
@@ -156,17 +158,17 @@ export default function EditProfileScreen({ navigation }) {
     // Validate username if changed
     if (username !== originalUsername) {
       if (username.length < 3) {
-        Alert.alert('Invalid Username', 'Username must be at least 3 characters.');
+        Alert.alert(t('editProfile.invalidUsername'), t('editProfile.usernameMinLength'));
         return;
       }
       if (usernameAvailable === false) {
-        Alert.alert('Username Taken', 'Please choose a different username.');
+        Alert.alert(t('editProfile.usernameTaken'), t('editProfile.chooseDifferentUsername'));
         return;
       }
     }
 
     if (!user?.id) {
-      Alert.alert('Error', 'Please sign in to save your profile.');
+      Alert.alert(t('common.error'), t('editProfile.signInToSave'));
       return;
     }
 
@@ -185,7 +187,7 @@ export default function EditProfileScreen({ navigation }) {
         const { url, error } = await uploadImage(avatar, user.id, 'avatar');
         // Only show error if upload actually failed (no URL returned)
         if (!url) {
-          Alert.alert('Upload Error', 'Failed to upload profile photo. Please try again.');
+          Alert.alert(t('editProfile.uploadError'), t('editProfile.failedToUpload'));
           setIsUploading(false);
           return;
         }
@@ -251,7 +253,7 @@ export default function EditProfileScreen({ navigation }) {
       navigation.navigate('Profile');
     } catch (err) {
       console.error('Save profile error:', err);
-      Alert.alert('Error', 'Failed to save profile. Please try again.');
+      Alert.alert(t('common.error'), t('editProfile.saveError'));
     } finally {
       setIsUploading(false);
     }
@@ -260,7 +262,7 @@ export default function EditProfileScreen({ navigation }) {
   const pickImageFromGallery = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'We need camera roll permissions to select a photo.');
+      Alert.alert(t('editProfile.permissionDenied'), t('editProfile.cameraRollPermission'));
       return;
     }
 
@@ -292,13 +294,13 @@ export default function EditProfileScreen({ navigation }) {
 
   const pickTravelPhoto = async () => {
     if (travelPhotos.length >= 5) {
-      Alert.alert('Maximum Reached', 'You can only add up to 5 travel photos.');
+      Alert.alert(t('editProfile.maximumReached'), t('editProfile.maxPhotosReached'));
       return;
     }
 
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'We need camera roll permissions to select a photo.');
+      Alert.alert(t('editProfile.permissionDenied'), t('editProfile.cameraRollPermission'));
       return;
     }
 
@@ -361,7 +363,7 @@ export default function EditProfileScreen({ navigation }) {
               <Ionicons name="search" size={20} color={theme.textSecondary} />
               <TextInput
                 style={[styles.searchInput, { color: theme.text }]}
-                placeholder="Type to search..."
+                placeholder={t('editProfile.typeToSearch')}
                 placeholderTextColor={theme.textSecondary}
                 value={searchText}
                 onChangeText={setSearchText}
@@ -382,7 +384,7 @@ export default function EditProfileScreen({ navigation }) {
                   setSearchText('');
                 }}
               >
-                <Text style={[styles.pickerItemText, { color: theme.textSecondary }]}>Clear selection</Text>
+                <Text style={[styles.pickerItemText, { color: theme.textSecondary }]}>{t('editProfile.clearSelection')}</Text>
               </TouchableOpacity>
               {filteredCountries.map((country, index) => (
                 <TouchableOpacity
@@ -399,7 +401,7 @@ export default function EditProfileScreen({ navigation }) {
               ))}
               {filteredCountries.length === 0 && (
                 <View style={styles.noResultsContainer}>
-                  <Text style={[styles.noResultsText, { color: theme.textSecondary }]}>No countries found</Text>
+                  <Text style={[styles.noResultsText, { color: theme.textSecondary }]}>{t('editProfile.noCountriesFound')}</Text>
                 </View>
               )}
             </ScrollView>
@@ -426,7 +428,7 @@ export default function EditProfileScreen({ navigation }) {
           onPress={() => setShowAvatarPicker(!showAvatarPicker)}
         >
           <Ionicons name="camera" size={16} color={theme.background} />
-          <Text style={[styles.changeAvatarText, { color: theme.background }]}>Change Photo</Text>
+          <Text style={[styles.changeAvatarText, { color: theme.background }]}>{t('editProfile.changePhoto')}</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.text }]}>
           {name || 'Traveler'}
@@ -442,7 +444,7 @@ export default function EditProfileScreen({ navigation }) {
       {/* Avatar Picker Section */}
       {showAvatarPicker && (
         <View style={[styles.avatarPickerSection, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
-          <Text style={[styles.avatarPickerTitle, { color: theme.text }]}>Choose Profile Picture</Text>
+          <Text style={[styles.avatarPickerTitle, { color: theme.text }]}>{t('editProfile.chooseProfilePicture')}</Text>
 
           {/* Camera Roll Option */}
           <TouchableOpacity
@@ -450,11 +452,11 @@ export default function EditProfileScreen({ navigation }) {
             onPress={pickImageFromGallery}
           >
             <Ionicons name="images" size={24} color={theme.primary} />
-            <Text style={[styles.avatarOptionText, { color: theme.text }]}>Choose from Camera Roll</Text>
+            <Text style={[styles.avatarOptionText, { color: theme.text }]}>{t('editProfile.chooseFromCameraRoll')}</Text>
           </TouchableOpacity>
 
           {/* Preset Avatars Grid */}
-          <Text style={[styles.presetAvatarsLabel, { color: theme.textSecondary }]}>Or choose a preset avatar:</Text>
+          <Text style={[styles.presetAvatarsLabel, { color: theme.textSecondary }]}>{t('editProfile.orChoosePreset')}</Text>
           <View style={styles.presetAvatarsGrid}>
             {presetAvatars.map((preset) => (
               <TouchableOpacity
@@ -478,7 +480,7 @@ export default function EditProfileScreen({ navigation }) {
               onPress={clearAvatar}
             >
               <Ionicons name="close-circle" size={20} color={theme.error} />
-              <Text style={[styles.clearAvatarText, { color: theme.error }]}>Clear Avatar</Text>
+              <Text style={[styles.clearAvatarText, { color: theme.error }]}>{t('editProfile.clearAvatar')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -486,11 +488,11 @@ export default function EditProfileScreen({ navigation }) {
 
       {/* Basic Info Section */}
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Basic Information</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('editProfile.basicInformation')}</Text>
 
         {/* Username Field */}
         <View style={styles.inputGroup}>
-          <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Username</Text>
+          <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>{t('common.username')}</Text>
           <View style={[styles.usernameInputContainer, {
             backgroundColor: theme.inputBackground,
             borderColor: usernameError ? theme.error : usernameAvailable === true ? theme.primary : theme.inputBorder
@@ -498,7 +500,7 @@ export default function EditProfileScreen({ navigation }) {
             <Text style={[styles.atSymbol, { color: theme.primary }]}>@</Text>
             <TextInput
               style={[styles.usernameInput, { color: theme.text }]}
-              placeholder="username"
+              placeholder={t('editProfile.usernamePlaceholder')}
               placeholderTextColor={theme.textSecondary}
               value={username}
               onChangeText={handleUsernameChange}
@@ -521,15 +523,15 @@ export default function EditProfileScreen({ navigation }) {
           {usernameError ? (
             <Text style={[styles.usernameErrorText, { color: theme.error }]}>{usernameError}</Text>
           ) : username !== originalUsername && usernameAvailable === true ? (
-            <Text style={[styles.usernameSuccessText, { color: theme.primary }]}>Username available!</Text>
+            <Text style={[styles.usernameSuccessText, { color: theme.primary }]}>{t('editProfile.usernameAvailable')}</Text>
           ) : null}
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Display Name</Text>
+          <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>{t('editProfile.displayName')}</Text>
           <TextInput
             style={[styles.input, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
-            placeholder="Enter your name"
+            placeholder={t('editProfile.displayNamePlaceholder')}
             placeholderTextColor={theme.textSecondary}
             value={name}
             onChangeText={setName}
@@ -537,10 +539,10 @@ export default function EditProfileScreen({ navigation }) {
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Location</Text>
+          <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>{t('editProfile.location')}</Text>
           <TextInput
             style={[styles.input, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
-            placeholder="Where are you from?"
+            placeholder={t('editProfile.locationPlaceholder')}
             placeholderTextColor={theme.textSecondary}
             value={location}
             onChangeText={setLocation}
@@ -551,7 +553,7 @@ export default function EditProfileScreen({ navigation }) {
           <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Bio</Text>
           <TextInput
             style={[styles.textArea, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
-            placeholder="Tell us about yourself..."
+            placeholder={t('editProfile.bioPlaceholder')}
             placeholderTextColor={theme.textSecondary}
             value={bio}
             onChangeText={setBio}
@@ -563,16 +565,16 @@ export default function EditProfileScreen({ navigation }) {
 
       {/* Social Media Section */}
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Social Media</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('editProfile.socialMedia')}</Text>
 
         <View style={styles.inputGroup}>
           <View style={styles.socialInputHeader}>
             <Ionicons name="logo-instagram" size={20} color="#E4405F" />
-            <Text style={[styles.inputLabel, { color: theme.textSecondary, marginLeft: 8 }]}>Instagram</Text>
+            <Text style={[styles.inputLabel, { color: theme.textSecondary, marginLeft: 8 }]}>{t('editProfile.instagram')}</Text>
           </View>
           <TextInput
             style={[styles.input, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
-            placeholder="@username"
+            placeholder={t('editProfile.socialPlaceholder')}
             placeholderTextColor={theme.textSecondary}
             value={instagram}
             onChangeText={setInstagram}
@@ -582,11 +584,11 @@ export default function EditProfileScreen({ navigation }) {
         <View style={styles.inputGroup}>
           <View style={styles.socialInputHeader}>
             <Ionicons name="logo-twitter" size={20} color="#000000" />
-            <Text style={[styles.inputLabel, { color: theme.textSecondary, marginLeft: 8 }]}>X (Twitter)</Text>
+            <Text style={[styles.inputLabel, { color: theme.textSecondary, marginLeft: 8 }]}>{t('editProfile.xTwitter')}</Text>
           </View>
           <TextInput
             style={[styles.input, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
-            placeholder="@username"
+            placeholder={t('editProfile.socialPlaceholder')}
             placeholderTextColor={theme.textSecondary}
             value={x}
             onChangeText={setX}
@@ -596,11 +598,11 @@ export default function EditProfileScreen({ navigation }) {
         <View style={styles.inputGroup}>
           <View style={styles.socialInputHeader}>
             <Ionicons name="logo-facebook" size={20} color="#4267B2" />
-            <Text style={[styles.inputLabel, { color: theme.textSecondary, marginLeft: 8 }]}>Facebook</Text>
+            <Text style={[styles.inputLabel, { color: theme.textSecondary, marginLeft: 8 }]}>{t('editProfile.facebook')}</Text>
           </View>
           <TextInput
             style={[styles.input, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
-            placeholder="@username"
+            placeholder={t('editProfile.socialPlaceholder')}
             placeholderTextColor={theme.textSecondary}
             value={facebook}
             onChangeText={setFacebook}
@@ -610,11 +612,11 @@ export default function EditProfileScreen({ navigation }) {
         <View style={styles.inputGroup}>
           <View style={styles.socialInputHeader}>
             <Ionicons name="logo-youtube" size={20} color="#FF0000" />
-            <Text style={[styles.inputLabel, { color: theme.textSecondary, marginLeft: 8 }]}>YouTube</Text>
+            <Text style={[styles.inputLabel, { color: theme.textSecondary, marginLeft: 8 }]}>{t('editProfile.youtube')}</Text>
           </View>
           <TextInput
             style={[styles.input, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
-            placeholder="@username"
+            placeholder={t('editProfile.socialPlaceholder')}
             placeholderTextColor={theme.textSecondary}
             value={youtube}
             onChangeText={setYoutube}
@@ -624,7 +626,7 @@ export default function EditProfileScreen({ navigation }) {
 
       {/* Top 3 Favorites Section */}
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>My Top 3 Favorite Countries</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('editProfile.top3Favorites')}</Text>
 
         {renderCountryPicker(top1, setTop1, showTop1Picker, setShowTop1Picker, '1st Favorite', searchTop1, setSearchTop1)}
         {renderCountryPicker(top2, setTop2, showTop2Picker, setShowTop2Picker, '2nd Favorite', searchTop2, setSearchTop2)}
@@ -656,7 +658,7 @@ export default function EditProfileScreen({ navigation }) {
 
       {/* Next Destinations Section */}
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Next 3 Places I Want to Visit</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('editProfile.next3Places')}</Text>
 
         {renderCountryPicker(next1, setNext1, showNext1Picker, setShowNext1Picker, '1st Destination', searchNext1, setSearchNext1)}
         {renderCountryPicker(next2, setNext2, showNext2Picker, setShowNext2Picker, '2nd Destination', searchNext2, setSearchNext2)}
@@ -688,40 +690,40 @@ export default function EditProfileScreen({ navigation }) {
 
       {/* Travel Stats Section */}
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Travel Stats</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('editProfile.travelStats')}</Text>
 
         <View style={styles.statsContainer}>
           <View style={[styles.statBox, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
             <Ionicons name="flag" size={32} color={theme.primary} />
             <Text style={[styles.statValue, { color: theme.text }]}>{totalCountriesVisited}</Text>
-            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Countries</Text>
+            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{t('editProfile.countriesLabel')}</Text>
           </View>
 
           <View style={[styles.statBox, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
             <Ionicons name="business" size={32} color={theme.secondary} />
             <Text style={[styles.statValue, { color: theme.text }]}>{totalCitiesVisited}</Text>
-            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Cities</Text>
+            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{t('editProfile.citiesLabel')}</Text>
           </View>
 
           <View style={[styles.statBox, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
             <Ionicons name="calendar" size={32} color={theme.orange} />
             <Text style={[styles.statValue, { color: theme.text }]}>{totalPlannedTrips}</Text>
-            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Planned</Text>
+            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{t('editProfile.planned')}</Text>
           </View>
 
           <View style={[styles.statBox, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
             <Ionicons name="earth" size={32} color={theme.primary} />
             <Text style={[styles.statValue, { color: theme.text }]}>{worldCoverage}%</Text>
-            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>World</Text>
+            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{t('editProfile.world')}</Text>
           </View>
         </View>
       </View>
 
       {/* Travel Photos Section */}
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Travel Photos (Max 5)</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('editProfile.travelPhotos')}</Text>
         <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
-          Share your favorite travel moments on your profile
+          {t('editProfile.travelPhotosDesc')}
         </Text>
 
         <View style={styles.photosManageGrid}>
@@ -743,7 +745,7 @@ export default function EditProfileScreen({ navigation }) {
               onPress={pickTravelPhoto}
             >
               <Ionicons name="add-circle" size={40} color={theme.primary} />
-              <Text style={[styles.addPhotoText, { color: theme.textSecondary }]}>Add Photo</Text>
+              <Text style={[styles.addPhotoText, { color: theme.textSecondary }]}>{t('editProfile.addPhoto')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -751,9 +753,9 @@ export default function EditProfileScreen({ navigation }) {
 
       {/* Shared Trips Section */}
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Share Trips on Profile</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('editProfile.shareTripsOnProfile')}</Text>
         <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
-          Select which trips to display on your profile
+          {t('editProfile.shareTripsDesc')}
         </Text>
 
         <TouchableOpacity
@@ -777,12 +779,12 @@ export default function EditProfileScreen({ navigation }) {
           {isUploading ? (
             <>
               <ActivityIndicator size="small" color={theme.background} />
-              <Text style={[styles.saveButtonText, { color: theme.background }]}>Uploading Photos...</Text>
+              <Text style={[styles.saveButtonText, { color: theme.background }]}>{t('editProfile.uploadingPhotos')}</Text>
             </>
           ) : (
             <>
               <Ionicons name="save" size={24} color={theme.background} />
-              <Text style={[styles.saveButtonText, { color: theme.background }]}>Save Profile</Text>
+              <Text style={[styles.saveButtonText, { color: theme.background }]}>{t('editProfile.saveProfile')}</Text>
             </>
           )}
         </TouchableOpacity>
@@ -792,7 +794,7 @@ export default function EditProfileScreen({ navigation }) {
       <View style={styles.globeSection}>
         <View style={styles.globeHeader}>
           <Ionicons name="earth" size={24} color={theme.primary} />
-          <Text style={[styles.globeTitle, { color: theme.text }]}>Your Travel Journey</Text>
+          <Text style={[styles.globeTitle, { color: theme.text }]}>{t('editProfile.yourTravelJourney')}</Text>
         </View>
         <Text style={[styles.globeSubtitle, { color: theme.textSecondary }]}>
           {completedTrips.length + visitedCities.length > 0

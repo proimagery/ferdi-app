@@ -10,10 +10,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 
 const AuthPromptModal = ({ visible, onClose, feature = 'this feature' }) => {
   const { theme } = useTheme();
   const { exitGuestMode } = useAuth();
+  const { t } = useTranslation();
   const navigation = useNavigation();
 
   const handleSignUp = () => {
@@ -44,7 +46,7 @@ const AuthPromptModal = ({ visible, onClose, feature = 'this feature' }) => {
           </View>
 
           <Text style={[styles.title, { color: theme.text }]}>
-            Sign Up Required
+            {t('authPrompt.title')}
           </Text>
 
           <Text style={[styles.message, { color: theme.textSecondary }]}>
@@ -55,7 +57,7 @@ const AuthPromptModal = ({ visible, onClose, feature = 'this feature' }) => {
             style={[styles.primaryButton, { backgroundColor: theme.primary }]}
             onPress={handleSignUp}
           >
-            <Text style={styles.primaryButtonText}>Create Account</Text>
+            <Text style={styles.primaryButtonText}>{t('authPrompt.createAccount')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -63,13 +65,13 @@ const AuthPromptModal = ({ visible, onClose, feature = 'this feature' }) => {
             onPress={handleSignIn}
           >
             <Text style={[styles.secondaryButtonText, { color: theme.primary }]}>
-              Sign In
+              {t('authPrompt.signIn')}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity onPress={onClose}>
             <Text style={[styles.continueText, { color: theme.textSecondary }]}>
-              Continue Browsing
+              {t('authPrompt.continueBrowsing')}
             </Text>
           </TouchableOpacity>
         </View>

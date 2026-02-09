@@ -18,11 +18,13 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuthGuard } from '../hooks/useAuthGuard';
 import AuthPromptModal from '../components/AuthPromptModal';
 import ThemedAlert from '../components/ThemedAlert';
+import { useTranslation } from 'react-i18next';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function CreateTripScreen({ navigation, route }) {
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { trips, addTrip, updateTrip, addBudget } = useAppContext();
   const { checkAuth, showAuthModal, setShowAuthModal, featureMessage } = useAuthGuard();
@@ -151,13 +153,13 @@ export default function CreateTripScreen({ navigation, route }) {
     if (step === 1) {
       const hasEmptyCountry = countries.some(c => !c.name.trim());
       if (hasEmptyCountry) {
-        showAlert('Oops!', 'You forgot to add a country!');
+        showAlert(t('common.oops'), t('createTrip.missingCountry'));
         return;
       }
     }
     if (step === 2) {
       if (!budget.trim() || isNaN(budget)) {
-        showAlert('Oops!', 'Please enter a valid budget amount.');
+        showAlert(t('common.oops'), t('createTrip.invalidBudget'));
         return;
       }
     }
@@ -177,7 +179,7 @@ export default function CreateTripScreen({ navigation, route }) {
     if (checkAuth('save your trip')) return;
 
     if (!tripName.trim()) {
-      showAlert('Oops!', 'Don\'t forget to name your trip!');
+      showAlert(t('common.oops'), t('createTrip.missingName'));
       return;
     }
 
@@ -300,7 +302,7 @@ export default function CreateTripScreen({ navigation, route }) {
                   <View style={[styles.dropdownContainer, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder }]}>
                     <TextInput
                       style={[styles.searchInput, { backgroundColor: theme.inputBackground, borderBottomColor: theme.inputBorder, color: theme.text }]}
-                      placeholder="Search countries..."
+                      placeholder={t('createTrip.searchCountriesPlaceholder')}
                       placeholderTextColor={theme.textSecondary}
                       value={searchQuery[index] || ''}
                       onChangeText={(text) => setSearchQuery({ ...searchQuery, [index]: text })}
@@ -350,7 +352,7 @@ export default function CreateTripScreen({ navigation, route }) {
             ))}
             <TouchableOpacity style={styles.addButton} onPress={addCountry}>
               <Ionicons name="add-circle" size={24} color={theme.primary} />
-              <Text style={[styles.addButtonText, { color: theme.primary }]}>Add Another Country</Text>
+              <Text style={[styles.addButtonText, { color: theme.primary }]}>{t('createTrip.addAnotherCountry')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -363,7 +365,7 @@ export default function CreateTripScreen({ navigation, route }) {
             </Text>
             <TextInput
               style={[styles.input, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
-              placeholder="Enter budget amount"
+              placeholder={t('createTrip.budgetAmountPlaceholder')}
               placeholderTextColor={theme.textSecondary}
               keyboardType="numeric"
               value={budget}
@@ -380,7 +382,7 @@ export default function CreateTripScreen({ navigation, route }) {
             </Text>
             <TextInput
               style={[styles.input, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
-              placeholder="Enter trip name"
+              placeholder={t('createTrip.tripNamePlaceholder')}
               placeholderTextColor={theme.textSecondary}
               value={tripName}
               onChangeText={setTripName}
@@ -413,7 +415,7 @@ export default function CreateTripScreen({ navigation, route }) {
       <View style={[styles.buttonContainer, { paddingBottom: Math.max(insets.bottom, 20) + 10 }]}>
         {step > 1 && (
           <TouchableOpacity style={[styles.backButton, { backgroundColor: theme.border }]} onPress={handleBack}>
-            <Text style={[styles.backButtonText, { color: theme.text }]}>Back</Text>
+            <Text style={[styles.backButtonText, { color: theme.text }]}>{t('common.back')}</Text>
           </TouchableOpacity>
         )}
         <TouchableOpacity

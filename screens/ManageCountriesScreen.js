@@ -18,12 +18,14 @@ import { useTheme } from '../context/ThemeContext';
 import { countryCoordinates, officialCountryNames } from '../utils/coordinates';
 import { useAuthGuard } from '../hooks/useAuthGuard';
 import AuthPromptModal from '../components/AuthPromptModal';
+import { useTranslation } from 'react-i18next';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function ManageCountriesScreen({ navigation, route }) {
   const { completedTrips, addCompletedTrip, deleteCompletedTrip } = useAppContext();
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { checkAuth, showAuthModal, setShowAuthModal, featureMessage } = useAuthGuard();
   const [newCountry, setNewCountry] = useState('');
@@ -67,7 +69,7 @@ export default function ManageCountriesScreen({ navigation, route }) {
     if (checkAuth('add your travel history')) return;
 
     if (!newCountry.trim()) {
-      Alert.alert('Error', 'Please select a country');
+      Alert.alert(t('common.error'), t('manageCountries.selectCountry'));
       return;
     }
 
@@ -95,13 +97,13 @@ export default function ManageCountriesScreen({ navigation, route }) {
     setNewYear('');
     setNewMonth('');
 
-    Alert.alert('Success', `${newTrip.country} added to your visited countries!`);
+    Alert.alert(t('common.success'), `${newTrip.country} ${t('manageCountries.countryAdded')}`);
   };
 
   const deleteCountry = (index) => {
     Alert.alert(
-      'Delete Country',
-      'Are you sure you want to remove this country?',
+      t('manageCountries.deleteCountry'),
+      t('manageCountries.deleteConfirm'),
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -124,11 +126,11 @@ export default function ManageCountriesScreen({ navigation, route }) {
       <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
         <View style={styles.header}>
           <Text style={[styles.headerTitle, { color: theme.text }]}>Manage Countries</Text>
-          <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>Add countries you've visited in the past</Text>
+          <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>{t('manageCountries.description')}</Text>
         </View>
 
       <View style={styles.addSection}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Add New Country</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('manageCountries.addNewCountry')}</Text>
 
         <TouchableOpacity
           style={[styles.dropdownButton, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder }]}
@@ -170,7 +172,7 @@ export default function ManageCountriesScreen({ navigation, route }) {
 
         <TextInput
           style={[styles.input, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
-          placeholder="Year visited (optional)"
+          placeholder={t('manageCountries.yearVisited')}
           placeholderTextColor={theme.textSecondary}
           keyboardType="numeric"
           value={newYear}
@@ -209,7 +211,7 @@ export default function ManageCountriesScreen({ navigation, route }) {
 
         <TouchableOpacity style={[styles.addButton, { backgroundColor: theme.primary }]} onPress={addCountry}>
           <Ionicons name="add-circle" size={24} color={theme.background} />
-          <Text style={[styles.addButtonText, { color: theme.background }]}>Add Country</Text>
+          <Text style={[styles.addButtonText, { color: theme.background }]}>{t('manageCountries.addCountry')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -220,7 +222,7 @@ export default function ManageCountriesScreen({ navigation, route }) {
         {completedTrips.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="map-outline" size={60} color={theme.textSecondary} />
-            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>No countries added yet</Text>
+            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>{t('manageCountries.noCountries')}</Text>
           </View>
         ) : (
           completedTrips.map((trip, index) => (

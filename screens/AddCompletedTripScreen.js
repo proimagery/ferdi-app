@@ -21,12 +21,14 @@ import ThemedAlert from '../components/ThemedAlert';
 import { officialCountryNames } from '../utils/coordinates';
 import { getCountryFlag } from '../utils/countryFlags';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function AddCompletedTripScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const { completedTrips, addCompletedTrip, deleteCompletedTrip } = useAppContext();
   const { checkAuth, showAuthModal, setShowAuthModal, featureMessage } = useAuthGuard();
 
@@ -177,7 +179,7 @@ export default function AddCompletedTripScreen({ navigation }) {
         <View style={styles.header}>
           <View style={styles.headerTitleContainer}>
             <Ionicons name="earth" size={28} color={theme.primary} />
-            <Text style={[styles.headerTitle, { color: theme.text }]}>Your Countries</Text>
+            <Text style={[styles.headerTitle, { color: theme.text }]}>{t('addCompletedTrip.title')}</Text>
           </View>
         <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>
           {visitedCountryNames.length} {visitedCountryNames.length === 1 ? 'country' : 'countries'} visited
@@ -190,10 +192,10 @@ export default function AddCompletedTripScreen({ navigation }) {
           <View style={styles.emptyState}>
             <Ionicons name="airplane-outline" size={60} color={theme.textSecondary} />
             <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-              No countries added yet
+              {t('addCompletedTrip.noCountries')}
             </Text>
             <Text style={[styles.emptySubtext, { color: theme.textSecondary }]}>
-              Tap the + button to add a country
+              {t('addCompletedTrip.tapToAdd')}
             </Text>
           </View>
         ) : (
@@ -261,7 +263,7 @@ export default function AddCompletedTripScreen({ navigation }) {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: theme.cardBackground }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: theme.text }]}>Add Country</Text>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>{t('addCompletedTrip.addCountry')}</Text>
               <TouchableOpacity onPress={() => {
                 setShowCountryPicker(false);
                 setSearchText('');
@@ -275,7 +277,7 @@ export default function AddCompletedTripScreen({ navigation }) {
               <Ionicons name="search" size={20} color={theme.textSecondary} />
               <TextInput
                 style={[styles.searchInput, { color: theme.text }]}
-                placeholder="Type to search countries..."
+                placeholder={t('addCompletedTrip.searchPlaceholder')}
                 placeholderTextColor={theme.textSecondary}
                 value={searchText}
                 onChangeText={setSearchText}
@@ -334,7 +336,7 @@ export default function AddCompletedTripScreen({ navigation }) {
               </TouchableOpacity>
             </View>
 
-            <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>All Visits</Text>
+            <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>{t('addCompletedTrip.allVisits')}</Text>
 
             {/* Visits List */}
             <ScrollView style={styles.visitsList} showsVerticalScrollIndicator={false}>
@@ -358,7 +360,7 @@ export default function AddCompletedTripScreen({ navigation }) {
 
             {/* Add Visit Section */}
             <View style={styles.addVisitSection}>
-              <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>Add Another Visit</Text>
+              <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>{t('addCompletedTrip.addAnotherVisit')}</Text>
               <View style={styles.addVisitRow}>
                 <TextInput
                   style={[styles.yearInput, {
@@ -366,7 +368,7 @@ export default function AddCompletedTripScreen({ navigation }) {
                     borderColor: theme.border,
                     color: theme.text
                   }]}
-                  placeholder="Year (e.g., 2023)"
+                  placeholder={t('addCompletedTrip.yearPlaceholder')}
                   placeholderTextColor={theme.textSecondary}
                   value={newVisitYear}
                   onChangeText={setNewVisitYear}
