@@ -600,7 +600,10 @@
     "appVersion": "Ferdi v{{version}}",
     "copyright": "© 2024 Ferdi. Alle Rechte vorbehalten.",
     "selectLanguage": "Sprache Wählen",
-    "selectCurrency": "Währung Wählen"
+    "selectCurrency": "Währung Wählen",
+    "replayTour": "Dashboard-Tour wiederholen",
+    "tourReset": "Tour zurückgesetzt",
+    "tourResetDesc": "Die Dashboard-Tour wird bei Ihrem nächsten Besuch erneut angezeigt."
   },
   "authPrompt": {
     "title": "Registrierung Erforderlich",
@@ -650,5 +653,24 @@
   "notifications": {
     "newBuddyRequest": "Neue Freundschaftsanfrage!",
     "wantsToBeBuddy": "{{name}} möchte dein Reisefreund werden"
+  },
+  "walkthrough": {
+    "welcomeTitle": "Willkommen auf deinem Dashboard",
+    "welcomeDesc": "Dies ist deine Reisezentrale. Plane Reisen, verfolge Statistiken und verbinde dich mit Reisenden. Lass uns dir alles zeigen!",
+    "themeTitle": "Hell- und Dunkelmodus",
+    "themeDesc": "Tippe auf das Sonnen-/Mondsymbol oben rechts, um zwischen hellem und dunklem Design zu wechseln.",
+    "searchTitle": "Reisefreunde finden",
+    "searchDesc": "Tippe auf das Suchsymbol in der Kopfzeile, um andere Reisende zu entdecken und Freundschaftsanfragen zu senden.",
+    "profileTitle": "Dein Profil",
+    "profileDesc": "Tippe auf deinen Avatar oben rechts, um dein Profil anzuzeigen, Informationen zu bearbeiten und Einstellungen zu verwalten.",
+    "toolsTitle": "Deine Reise-Werkzeuge",
+    "toolsDesc": "Nutze diese Karten, um Reisen zu planen, Budgets zu verwalten, deine Reisen zu kartieren, Statistiken anzusehen, Rankings zu erkunden und dich mit Freunden zu verbinden.",
+    "globeTitle": "Deine Reise und dein Rang",
+    "globeDesc": "Scrolle nach unten, um deinen Globus und Reiserang zu sehen. Besuche mehr Länder, um aufzusteigen!",
+    "skip": "Überspringen",
+    "next": "Weiter",
+    "back": "Zurück",
+    "done": "Los geht's!",
+    "stepOf": "{{current}} von {{total}}"
   }
 }

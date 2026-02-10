@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
@@ -85,6 +86,15 @@ export default function SettingsScreen({ navigation }) {
 
   const handleCreateAccount = () => {
     exitGuestMode();
+  };
+
+  const handleReplayTour = async () => {
+    try {
+      await AsyncStorage.removeItem('@ferdi_walkthrough_complete');
+      Alert.alert(t('settings.tourReset'), t('settings.tourResetDesc'));
+    } catch (err) {
+      // Silently ignore
+    }
   };
   const [selectedLanguage, setSelectedLanguage] = useState(i18n.language || 'en');
   const [selectedCurrency, setSelectedCurrency] = useState('USD');
@@ -348,6 +358,11 @@ export default function SettingsScreen({ navigation }) {
             value={isDarkMode ? t('settings.on') : t('settings.off')}
             onPress={toggleTheme}
             showArrow={false}
+          />
+          <SettingItem
+            icon="map-outline"
+            title={t('settings.replayTour')}
+            onPress={handleReplayTour}
           />
         </View>
       </View>

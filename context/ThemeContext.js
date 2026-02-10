@@ -1,6 +1,8 @@
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ThemeContext = createContext();
+const THEME_KEY = '@ferdi_dark_mode';
 
 export const lightTheme = {
   background: '#ffffff',
@@ -41,10 +43,20 @@ export const darkTheme = {
 };
 
 export const ThemeProvider = ({ children }) => {
-  const [isDarkMode, setIsDarkMode] = useState(true); // Default to dark mode
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useEffect(() => {
+    AsyncStorage.getItem(THEME_KEY).then(value => {
+      if (value !== null) {
+        setIsDarkMode(value === 'true');
+      }
+    });
+  }, []);
 
   const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
+    const newValue = !isDarkMode;
+    setIsDarkMode(newValue);
+    AsyncStorage.setItem(THEME_KEY, String(newValue));
   };
 
   const theme = isDarkMode ? darkTheme : lightTheme;

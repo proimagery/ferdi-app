@@ -600,7 +600,10 @@
     "appVersion": "Ferdi v{{version}}",
     "copyright": "Ac 2024 Ferdi. All rights reserved.",
     "selectLanguage": "언어 선택",
-    "selectCurrency": "통화 선택"
+    "selectCurrency": "통화 선택",
+    "replayTour": "대시보드 투어 다시 보기",
+    "tourReset": "투어 초기화",
+    "tourResetDesc": "다음 방문 시 대시보드 투어가 다시 표시됩니다."
   },
   "authPrompt": {
     "title": "회원가입 필요",
@@ -650,5 +653,24 @@
   "notifications": {
     "newBuddyRequest": "새 친구 요청!",
     "wantsToBeBuddy": "{{name}}님이 여행 친구가 되고 싶어합니다"
+  },
+  "walkthrough": {
+    "welcomeTitle": "대시보드에 오신 것을 환영합니다",
+    "welcomeDesc": "여기는 당신의 여행 관제센터입니다. 여행을 계획하고, 통계를 추적하고, 여행자들과 연결하세요. 사용법을 안내해 드리겠습니다!",
+    "themeTitle": "라이트 & 다크 모드",
+    "themeDesc": "오른쪽 상단의 해/달 아이콘을 탭하여 라이트 테마와 다크 테마를 전환하세요.",
+    "searchTitle": "여행 친구 찾기",
+    "searchDesc": "헤더의 검색 아이콘을 탭하여 다른 여행자를 찾고 친구 요청을 보내세요.",
+    "profileTitle": "내 프로필",
+    "profileDesc": "오른쪽 상단의 아바타를 탭하여 프로필 보기, 정보 편집, 설정 관리를 할 수 있습니다.",
+    "toolsTitle": "여행 도구 모음",
+    "toolsDesc": "이 카드들을 사용하여 여행 계획, 예산 관리, 여행 지도, 통계 확인, 랭킹 탐색, 친구 연결을 할 수 있습니다.",
+    "globeTitle": "나의 여행과 등급",
+    "globeDesc": "아래로 스크롤하여 지구본과 여행자 등급을 확인하세요. 더 많은 나라를 방문하여 등급을 올리세요!",
+    "skip": "건너뛰기",
+    "next": "다음",
+    "back": "이전",
+    "done": "시작하기!",
+    "stepOf": "{{current}} / {{total}}"
   }
 }

@@ -600,7 +600,10 @@
     "appVersion": "Ferdi v{{version}}",
     "copyright": "© 2024 Ferdi. Todos los derechos reservados.",
     "selectLanguage": "Seleccionar Idioma",
-    "selectCurrency": "Seleccionar Moneda"
+    "selectCurrency": "Seleccionar Moneda",
+    "replayTour": "Repetir el Tour del Panel",
+    "tourReset": "Tour Reiniciado",
+    "tourResetDesc": "El tour del panel se mostrará de nuevo en tu próxima visita."
   },
   "authPrompt": {
     "title": "Registro Requerido",
@@ -650,5 +653,24 @@
   "notifications": {
     "newBuddyRequest": "¡Nueva Solicitud de Compañero!",
     "wantsToBeBuddy": "{{name}} quiere ser tu compañero de viaje"
+  },
+  "walkthrough": {
+    "welcomeTitle": "Bienvenido a tu Panel",
+    "welcomeDesc": "Este es tu centro de mando de viajes. Planifica viajes, rastrea estadísticas y conecta con viajeros. ¡Te mostramos cómo funciona!",
+    "themeTitle": "Modo Claro y Oscuro",
+    "themeDesc": "Toca el icono de sol/luna en la esquina superior derecha para cambiar entre temas claro y oscuro.",
+    "searchTitle": "Encuentra Compañeros de Viaje",
+    "searchDesc": "Toca el icono de búsqueda en la barra superior para descubrir otros viajeros y enviar solicitudes de amistad.",
+    "profileTitle": "Tu Perfil",
+    "profileDesc": "Toca tu avatar en la esquina superior derecha para ver tu perfil, editar información y gestionar ajustes.",
+    "toolsTitle": "Tu Kit de Herramientas de Viaje",
+    "toolsDesc": "Usa estas tarjetas para planificar viajes, gestionar presupuestos, mapear tus viajes, ver estadísticas, explorar rankings y conectar con amigos.",
+    "globeTitle": "Tu Viaje y Rango",
+    "globeDesc": "Desplázate hacia abajo para ver tu globo y rango de viajero. ¡Visita más países para subir de rango!",
+    "skip": "Omitir",
+    "next": "Siguiente",
+    "back": "Atrás",
+    "done": "¡Vamos!",
+    "stepOf": "{{current}} de {{total}}"
   }
 }

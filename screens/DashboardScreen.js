@@ -6,12 +6,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { captureRef } from 'react-native-view-shot';
 import * as MediaLibrary from 'expo-media-library';
 import * as Sharing from 'expo-sharing';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppContext } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import SpinningGlobe from '../components/SpinningGlobe';
 import ShareableStatsCard from '../components/ShareableStatsCard';
+import DashboardWalkthrough from '../components/DashboardWalkthrough';
 import { getTravelerRank, allRanks } from '../utils/rankingSystem';
 import { useTranslation } from 'react-i18next';
+import { getVisitedSubregions } from '../utils/subregionMap';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
@@ -27,7 +30,32 @@ export default function DashboardScreen({ navigation }) {
   const [isSaving, setIsSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [globeKey, setGlobeKey] = useState(0);
+  const [showWalkthrough, setShowWalkthrough] = useState(false);
   const shareCardRef = useRef(null);
+
+  // Check if walkthrough should be shown (first visit)
+  useEffect(() => {
+    const checkWalkthrough = async () => {
+      try {
+        const completed = await AsyncStorage.getItem('@ferdi_walkthrough_complete');
+        if (!completed) {
+          setTimeout(() => setShowWalkthrough(true), 500);
+        }
+      } catch (err) {
+        // Silently ignore
+      }
+    };
+    checkWalkthrough();
+  }, []);
+
+  const handleWalkthroughComplete = async () => {
+    setShowWalkthrough(false);
+    try {
+      await AsyncStorage.setItem('@ferdi_walkthrough_complete', 'true');
+    } catch (err) {
+      // Silently ignore
+    }
+  };
 
   // Force globe to remount when screen gains focus to fix loading issues
   useFocusEffect(
@@ -55,6 +83,7 @@ export default function DashboardScreen({ navigation }) {
   // Rank is based only on manually added countries (completedTrips)
   const totalCountriesVisited = completedTrips.length;
   const travelerRank = getTravelerRank(totalCountriesVisited);
+  const visitedSubregions = getVisitedSubregions(completedTrips);
 
   // Handle download/share stats image
   const handleDownloadStats = () => {
@@ -221,9 +250,9 @@ export default function DashboardScreen({ navigation }) {
         </View>
 
         <Text style={[styles.globeSubtitle, { color: theme.textSecondary }]}>
-          {completedTrips.length + visitedCities.length > 0
-            ? `${completedTrips.length} ${completedTrips.length === 1 ? 'country' : 'countries'} • ${visitedCities.length} ${visitedCities.length === 1 ? 'city' : 'cities'}`
-            : 'Add countries and cities to see them on your globe'}
+          {completedTrips.length > 0
+            ? `${completedTrips.length} ${completedTrips.length === 1 ? 'country' : 'countries'} • ${visitedSubregions.length} ${visitedSubregions.length === 1 ? 'subregion' : 'subregions'}`
+            : 'Add countries to see them on your globe'}
         </Text>
         <SpinningGlobe
           key={`globe-dashboard-${globeKey}`}
@@ -504,6 +533,12 @@ export default function DashboardScreen({ navigation }) {
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
         <Image source={ferdiLogo} style={styles.footerLogo} resizeMode="contain" />
       </View>
+
+      {/* Dashboard Walkthrough for new users */}
+      <DashboardWalkthrough
+        visible={showWalkthrough}
+        onComplete={handleWalkthroughComplete}
+      />
     </ScrollView>
   );
 }

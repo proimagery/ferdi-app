@@ -600,7 +600,10 @@
     "appVersion": "Ferdi v{{version}}",
     "copyright": "© 2024 Ferdi. Tutti i diritti riservati.",
     "selectLanguage": "Seleziona Lingua",
-    "selectCurrency": "Seleziona Valuta"
+    "selectCurrency": "Seleziona Valuta",
+    "replayTour": "Ripeti il Tour della Dashboard",
+    "tourReset": "Tour Ripristinato",
+    "tourResetDesc": "Il tour della dashboard verrà mostrato di nuovo alla tua prossima visita."
   },
   "authPrompt": {
     "title": "Registrazione Richiesta",
@@ -650,5 +653,24 @@
   "notifications": {
     "newBuddyRequest": "Nuova Richiesta di Compagno!",
     "wantsToBeBuddy": "{{name}} vuole essere il tuo compagno di viaggio"
+  },
+  "walkthrough": {
+    "welcomeTitle": "Benvenuto nella tua Dashboard",
+    "welcomeDesc": "Questo è il tuo centro di comando per i viaggi. Pianifica viaggi, monitora le statistiche e connettiti con altri viaggiatori. Ti facciamo vedere come funziona!",
+    "themeTitle": "Modalità Chiara e Scura",
+    "themeDesc": "Tocca l'icona sole/luna in alto a destra per passare dal tema chiaro a quello scuro.",
+    "searchTitle": "Trova Compagni di Viaggio",
+    "searchDesc": "Tocca l'icona di ricerca nell'intestazione per scoprire altri viaggiatori e inviare richieste di amicizia.",
+    "profileTitle": "Il Tuo Profilo",
+    "profileDesc": "Tocca il tuo avatar in alto a destra per visualizzare il profilo, modificare le informazioni e gestire le impostazioni.",
+    "toolsTitle": "I Tuoi Strumenti di Viaggio",
+    "toolsDesc": "Usa queste schede per pianificare viaggi, gestire budget, mappare i tuoi viaggi, vedere statistiche, esplorare classifiche e connetterti con amici.",
+    "globeTitle": "Il Tuo Viaggio e Grado",
+    "globeDesc": "Scorri verso il basso per vedere il tuo globo e il grado di viaggiatore. Visita più paesi per salire di grado!",
+    "skip": "Salta",
+    "next": "Avanti",
+    "back": "Indietro",
+    "done": "Andiamo!",
+    "stepOf": "{{current}} di {{total}}"
   }
 }

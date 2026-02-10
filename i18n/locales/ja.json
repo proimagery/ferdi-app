@@ -600,7 +600,10 @@
     "appVersion": "Ferdi v{{version}}",
     "copyright": "© 2024 Ferdi. All rights reserved.",
     "selectLanguage": "言語を選択",
-    "selectCurrency": "通貨を選択"
+    "selectCurrency": "通貨を選択",
+    "replayTour": "ダッシュボードツアーを再生",
+    "tourReset": "ツアーをリセット",
+    "tourResetDesc": "次回のアクセス時にダッシュボードツアーが再表示されます。"
   },
   "authPrompt": {
     "title": "登録が必要です",
@@ -650,5 +653,24 @@
   "notifications": {
     "newBuddyRequest": "新しい仲間リクエスト！",
     "wantsToBeBuddy": "{{name}}があなたの旅仲間になりたいです"
+  },
+  "walkthrough": {
+    "welcomeTitle": "ダッシュボードへようこそ",
+    "welcomeDesc": "ここはあなたの旅行コマンドセンターです。旅行を計画し、統計を追跡し、旅行者とつながりましょう。使い方をご案内します！",
+    "themeTitle": "ライト＆ダークモード",
+    "themeDesc": "右上のヘッダーにある太陽/月のアイコンをタップして、ライトテーマとダークテーマを切り替えます。",
+    "searchTitle": "旅行仲間を見つける",
+    "searchDesc": "ヘッダーの検索アイコンをタップして、他の旅行者を見つけてフレンドリクエストを送りましょう。",
+    "profileTitle": "あなたのプロフィール",
+    "profileDesc": "右上のアバターをタップして、プロフィールの表示、情報の編集、設定の管理ができます。",
+    "toolsTitle": "旅行ツールキット",
+    "toolsDesc": "これらのカードを使って、旅行の計画、予算管理、旅行マッピング、統計の確認、ランキングの閲覧、仲間とのつながりができます。",
+    "globeTitle": "あなたの旅とランク",
+    "globeDesc": "下にスクロールして、あなたの地球儀と旅行者ランクを確認しましょう。より多くの国を訪れてランクアップ！",
+    "skip": "スキップ",
+    "next": "次へ",
+    "back": "戻る",
+    "done": "始めよう！",
+    "stepOf": "{{current}} / {{total}}"
   }
 }
