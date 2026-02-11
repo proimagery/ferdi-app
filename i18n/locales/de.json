@@ -699,5 +699,25 @@
     "activeTripBanner": "Active Trip",
     "tapToView": "Tap to view your journey",
     "cannotEditDates": "Sie können die Daten einer aktiven Reise nicht bearbeiten"
+  },
+  "localMaps": {
+    "title": "Lokale Karten",
+    "subtitle": "Orte für Ihre Reise markieren",
+    "addSpot": "Ort Hinzufügen",
+    "spotName": "Ortsname",
+    "spotAddress": "Adresse oder Ortsname",
+    "spotNamePlaceholder": "z.B. Eiffelturm, Grand Hyatt...",
+    "spotAddressPlaceholder": "Ort oder Adresse suchen...",
+    "isAccommodation": "Hotel / Unterkunft",
+    "notes": "Notizen (optional)",
+    "noSpotsYet": "Noch keine gespeicherten Orte",
+    "addFirstSpot": "Tippen Sie auf + um Ihren ersten Ort hinzuzufügen",
+    "fromHotel": "vom Hotel",
+    "spots": "Orte",
+    "hotel": "Hotel",
+    "deleteSpot": "Ort Löschen",
+    "deleteSpotConfirm": "Diesen Ort entfernen?",
+    "geocodeError": "Dieser Ort konnte nicht gefunden werden. Versuchen Sie eine genauere Adresse.",
+    "accommodationSet": "Unterkunft"
   }
 }

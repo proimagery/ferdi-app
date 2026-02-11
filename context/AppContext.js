@@ -36,6 +36,9 @@ export const AppProvider = ({ children }) => {
     travelPhotos: [],
   });
 
+  // Saved spots state
+  const [savedSpots, setSavedSpots] = useState([]);
+
   // Social features state
   const [travelBuddies, setTravelBuddies] = useState([]); // User IDs of accepted buddies
   const [travelBuddyProfiles, setTravelBuddyProfiles] = useState([]); // Full profile data of buddies
@@ -83,6 +86,7 @@ export const AppProvider = ({ children }) => {
       sharedTripMaps: [],
       travelPhotos: [],
     });
+    setSavedSpots([]);
     setTravelBuddies([]);
     setTravelBuddyProfiles([]);
     setHighlightedBuddies([]);
@@ -147,6 +151,7 @@ export const AppProvider = ({ children }) => {
         loadVisitedCities(),
         loadBudgets(),
         loadTravelBuddies(),
+        loadSavedSpots(),
       ]);
     } catch (error) {
       console.error('Error loading user data:', error);
@@ -694,6 +699,125 @@ export const AppProvider = ({ children }) => {
   };
 
   // ============================================
+  // SAVED SPOTS FUNCTIONS
+  // ============================================
+  const loadSavedSpots = async () => {
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('trip_saved_spots')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('order_index', { ascending: true });
+
+    if (error) {
+      if (error.code !== '42P01') {
+        console.error('Error loading saved spots:', error);
+      }
+      return;
+    }
+
+    const formattedSpots = data.map(spot => ({
+      id: spot.id,
+      tripId: spot.trip_id,
+      countryName: spot.country_name,
+      name: spot.name,
+      address: spot.address,
+      formattedAddress: spot.formatted_address,
+      latitude: spot.latitude,
+      longitude: spot.longitude,
+      isAccommodation: spot.is_accommodation,
+      notes: spot.notes,
+      orderIndex: spot.order_index,
+    }));
+
+    setSavedSpots(formattedSpots);
+  };
+
+  const addSavedSpot = async (spot) => {
+    const tempId = Date.now().toString();
+    const newSpot = { ...spot, id: tempId };
+    setSavedSpots(prev => [...prev, newSpot]);
+
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('trip_saved_spots')
+      .insert({
+        user_id: user.id,
+        trip_id: spot.tripId,
+        country_name: spot.countryName,
+        name: spot.name,
+        address: spot.address,
+        formatted_address: spot.formattedAddress,
+        latitude: spot.latitude,
+        longitude: spot.longitude,
+        is_accommodation: spot.isAccommodation || false,
+        notes: spot.notes || null,
+        order_index: spot.orderIndex || 0,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error adding saved spot:', error);
+      setSavedSpots(prev => prev.filter(s => s.id !== tempId));
+      return null;
+    }
+
+    setSavedSpots(prev => prev.map(s =>
+      s.id === tempId ? { ...s, id: data.id } : s
+    ));
+    return data.id;
+  };
+
+  const deleteSavedSpot = async (spotId) => {
+    const oldSpots = [...savedSpots];
+    setSavedSpots(prev => prev.filter(s => s.id !== spotId));
+
+    if (!user) return;
+
+    const { error } = await supabase
+      .from('trip_saved_spots')
+      .delete()
+      .eq('id', spotId);
+
+    if (error) {
+      console.error('Error deleting saved spot:', error);
+      setSavedSpots(oldSpots);
+    }
+  };
+
+  const updateSavedSpot = async (spotId, updates) => {
+    const oldSpots = [...savedSpots];
+    setSavedSpots(prev => prev.map(s =>
+      s.id === spotId ? { ...s, ...updates } : s
+    ));
+
+    if (!user) return;
+
+    const dbUpdates = {};
+    if (updates.isAccommodation !== undefined) dbUpdates.is_accommodation = updates.isAccommodation;
+    if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
+    if (updates.orderIndex !== undefined) dbUpdates.order_index = updates.orderIndex;
+
+    const { error } = await supabase
+      .from('trip_saved_spots')
+      .update(dbUpdates)
+      .eq('id', spotId);
+
+    if (error) {
+      console.error('Error updating saved spot:', error);
+      setSavedSpots(oldSpots);
+    }
+  };
+
+  const getSpotsForTripCountry = useCallback((tripId, countryName) => {
+    return savedSpots.filter(s => s.tripId === tripId && s.countryName === countryName);
+  }, [savedSpots]);
+
+  // ============================================
   // TRAVEL BUDDIES FUNCTIONS
   // ============================================
   const addBuddyLoading = useCallback((id) => {
@@ -989,6 +1113,12 @@ export const AppProvider = ({ children }) => {
         deleteBudget,
         profile,
         updateProfile,
+        // Saved spots
+        savedSpots,
+        addSavedSpot,
+        deleteSavedSpot,
+        updateSavedSpot,
+        getSpotsForTripCountry,
         // Social features
         travelBuddies,
         travelBuddyProfiles,

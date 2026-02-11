@@ -699,5 +699,25 @@
     "activeTripBanner": "Active Trip",
     "tapToView": "Tap to view your journey",
     "cannotEditDates": "Vous ne pouvez pas modifier les dates d'un voyage actif"
+  },
+  "localMaps": {
+    "title": "Cartes Locales",
+    "subtitle": "Épinglez des lieux pour votre voyage",
+    "addSpot": "Ajouter un Lieu",
+    "spotName": "Nom du Lieu",
+    "spotAddress": "Adresse ou Nom du Lieu",
+    "spotNamePlaceholder": "ex. Tour Eiffel, Grand Hyatt...",
+    "spotAddressPlaceholder": "Rechercher un lieu ou une adresse...",
+    "isAccommodation": "Hôtel / Hébergement",
+    "notes": "Notes (facultatif)",
+    "noSpotsYet": "Aucun lieu enregistré",
+    "addFirstSpot": "Appuyez sur + pour ajouter votre premier lieu",
+    "fromHotel": "de l'hôtel",
+    "spots": "lieux",
+    "hotel": "Hôtel",
+    "deleteSpot": "Supprimer le Lieu",
+    "deleteSpotConfirm": "Supprimer ce lieu ?",
+    "geocodeError": "Impossible de trouver cet emplacement. Essayez une adresse plus précise.",
+    "accommodationSet": "Hébergement"
   }
 }

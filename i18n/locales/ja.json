@@ -699,5 +699,25 @@
     "activeTripBanner": "Active Trip",
     "tapToView": "Tap to view your journey",
     "cannotEditDates": "アクティブな旅行の日程は編集できません"
+  },
+  "localMaps": {
+    "title": "ローカルマップ",
+    "subtitle": "旅のスポットをピン留め",
+    "addSpot": "スポットを追加",
+    "spotName": "スポット名",
+    "spotAddress": "住所または場所名",
+    "spotNamePlaceholder": "例: エッフェル塔、グランドハイアット...",
+    "spotAddressPlaceholder": "場所や住所を検索...",
+    "isAccommodation": "ホテル / 宿泊施設",
+    "notes": "メモ（任意）",
+    "noSpotsYet": "保存したスポットはまだありません",
+    "addFirstSpot": "+ をタップして最初のスポットを追加",
+    "fromHotel": "ホテルから",
+    "spots": "スポット",
+    "hotel": "ホテル",
+    "deleteSpot": "スポットを削除",
+    "deleteSpotConfirm": "このスポットを削除しますか？",
+    "geocodeError": "この場所が見つかりませんでした。より具体的な住所を試してください。",
+    "accommodationSet": "宿泊施設"
   }
 }

@@ -699,5 +699,25 @@
     "activeTripBanner": "Active Trip",
     "tapToView": "Tap to view your journey",
     "cannotEditDates": "진행 중인 여행의 날짜는 편집할 수 없습니다"
+  },
+  "localMaps": {
+    "title": "로컬 지도",
+    "subtitle": "여행 장소를 핀으로 표시",
+    "addSpot": "장소 추가",
+    "spotName": "장소 이름",
+    "spotAddress": "주소 또는 장소 이름",
+    "spotNamePlaceholder": "예: 에펠탑, 그랜드 하얏트...",
+    "spotAddressPlaceholder": "장소 또는 주소 검색...",
+    "isAccommodation": "호텔 / 숙소",
+    "notes": "메모 (선택사항)",
+    "noSpotsYet": "저장된 장소가 없습니다",
+    "addFirstSpot": "+를 눌러 첫 번째 장소를 추가하세요",
+    "fromHotel": "호텔에서",
+    "spots": "장소",
+    "hotel": "호텔",
+    "deleteSpot": "장소 삭제",
+    "deleteSpotConfirm": "이 장소를 삭제하시겠습니까?",
+    "geocodeError": "이 위치를 찾을 수 없습니다. 더 구체적인 주소를 입력해 주세요.",
+    "accommodationSet": "숙소"
   }
 }

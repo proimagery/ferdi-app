@@ -699,5 +699,25 @@
     "activeTripBanner": "Active Trip",
     "tapToView": "Tap to view your journey",
     "cannotEditDates": "You cannot edit dates on an active trip"
+  },
+  "localMaps": {
+    "title": "Local Maps",
+    "subtitle": "Pin spots for your trip",
+    "addSpot": "Add Spot",
+    "spotName": "Spot Name",
+    "spotAddress": "Address or Place Name",
+    "spotNamePlaceholder": "e.g. Eiffel Tower, Grand Hyatt...",
+    "spotAddressPlaceholder": "Search for a place or address...",
+    "isAccommodation": "Hotel / Accommodation",
+    "notes": "Notes (optional)",
+    "noSpotsYet": "No saved spots yet",
+    "addFirstSpot": "Tap + to add your first spot",
+    "fromHotel": "from hotel",
+    "spots": "spots",
+    "hotel": "Hotel",
+    "deleteSpot": "Delete Spot",
+    "deleteSpotConfirm": "Remove this spot?",
+    "geocodeError": "Could not find this location. Try a more specific address.",
+    "accommodationSet": "Accommodation"
   }
 }

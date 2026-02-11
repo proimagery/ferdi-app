@@ -6,11 +6,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { countryCoordinates, officialCountryNames } from '../utils/coordinates';
 import { useTranslation } from 'react-i18next';
+import { GOOGLE_MAPS_API_KEY } from '../utils/geocoding';
+import { calculateDistance } from '../utils/distanceHelper';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
-
-// Google Maps Geocoding API key (same as Maps API)
-const GOOGLE_MAPS_API_KEY = 'AIzaSyBtzMruCCMpiFfqfdhLtoHWfSk3TZ5UvJ8';
 
 // Country flag emoji mapping
 const countryFlags = {
@@ -179,21 +178,6 @@ export default function TravelMapperScreen({ navigation, route }) {
     }
 
     setIsSearching(false);
-  };
-
-  // Calculate distance between two points using Haversine formula
-  const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 3959; // Earth's radius in miles
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const miles = R * c;
-    const km = miles * 1.60934;
-    return { miles: Math.round(miles), km: Math.round(km) };
   };
 
   // Calculate travel time for different transportation modes

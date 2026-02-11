@@ -17,11 +17,12 @@ import { useTranslation } from 'react-i18next';
 import { getVisitedSubregions } from '../utils/subregionMap';
 import { getActiveTrips, getTripProgress, getCurrentCountry } from '../utils/activeTripHelpers';
 import { getCountryFlag } from '../utils/countryFlags';
+import LocalMapsSection from '../components/LocalMapsSection';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
 export default function DashboardScreen({ navigation }) {
-  const { completedTrips, visitedCities, trips, buddyRequestProfiles, profile, refreshData } = useAppContext();
+  const { completedTrips, visitedCities, trips, buddyRequestProfiles, profile, refreshData, savedSpots } = useAppContext();
   const { theme } = useTheme();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -262,6 +263,16 @@ export default function DashboardScreen({ navigation }) {
           </View>
           <Ionicons name="chevron-forward" size={20} color={theme.primary} />
         </TouchableOpacity>
+      )}
+
+      {/* Local Maps Section */}
+      {activeTrip && (
+        <LocalMapsSection
+          trip={activeTrip}
+          savedSpots={savedSpots}
+          navigation={navigation}
+          theme={theme}
+        />
       )}
 
       {/* Spinning Globe Section */}

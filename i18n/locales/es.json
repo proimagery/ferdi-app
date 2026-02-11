@@ -699,5 +699,25 @@
     "activeTripBanner": "Active Trip",
     "tapToView": "Tap to view your journey",
     "cannotEditDates": "No puedes editar las fechas de un viaje activo"
+  },
+  "localMaps": {
+    "title": "Mapas Locales",
+    "subtitle": "Fija puntos para tu viaje",
+    "addSpot": "Agregar Punto",
+    "spotName": "Nombre del Punto",
+    "spotAddress": "Dirección o Nombre del Lugar",
+    "spotNamePlaceholder": "ej. Torre Eiffel, Grand Hyatt...",
+    "spotAddressPlaceholder": "Buscar un lugar o dirección...",
+    "isAccommodation": "Hotel / Alojamiento",
+    "notes": "Notas (opcional)",
+    "noSpotsYet": "Aún no hay puntos guardados",
+    "addFirstSpot": "Toca + para agregar tu primer punto",
+    "fromHotel": "desde el hotel",
+    "spots": "puntos",
+    "hotel": "Hotel",
+    "deleteSpot": "Eliminar Punto",
+    "deleteSpotConfirm": "¿Eliminar este punto?",
+    "geocodeError": "No se pudo encontrar esta ubicación. Intenta con una dirección más específica.",
+    "accommodationSet": "Alojamiento"
   }
 }

@@ -415,6 +415,17 @@ export default function TripDetailScreen({ route, navigation }) {
               <Text style={[styles.buttonText, { color: theme.background }]}>{t('tripDetail.createBudget')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
+              style={[styles.createBudgetButton, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+              onPress={() => navigation.navigate('LocalMap', {
+                tripId: trip.id,
+                countryName: trip.countries[0]?.name,
+                countries: trip.countries,
+              })}
+            >
+              <Ionicons name="map-outline" size={24} color={theme.text} />
+              <Text style={[styles.buttonText, { color: theme.text }]}>{t('localMaps.title')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
               style={[styles.doneButton, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
               onPress={() => navigation.navigate('MyTrips')}
             >

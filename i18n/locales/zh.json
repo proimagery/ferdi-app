@@ -699,5 +699,25 @@
     "activeTripBanner": "Active Trip",
     "tapToView": "Tap to view your journey",
     "cannotEditDates": "无法编辑进行中旅行的日期"
+  },
+  "localMaps": {
+    "title": "本地地图",
+    "subtitle": "为你的旅行标记地点",
+    "addSpot": "添加地点",
+    "spotName": "地点名称",
+    "spotAddress": "地址或地点名称",
+    "spotNamePlaceholder": "例如：埃菲尔铁塔、君悦酒店...",
+    "spotAddressPlaceholder": "搜索地点或地址...",
+    "isAccommodation": "酒店 / 住宿",
+    "notes": "备注（可选）",
+    "noSpotsYet": "还没有保存的地点",
+    "addFirstSpot": "点击 + 添加你的第一个地点",
+    "fromHotel": "距酒店",
+    "spots": "个地点",
+    "hotel": "酒店",
+    "deleteSpot": "删除地点",
+    "deleteSpotConfirm": "确定删除此地点？",
+    "geocodeError": "无法找到此位置。请尝试更具体的地址。",
+    "accommodationSet": "住宿"
   }
 }

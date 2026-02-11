@@ -699,5 +699,25 @@
     "activeTripBanner": "Active Trip",
     "tapToView": "Tap to view your journey",
     "cannotEditDates": "لا يمكنك تعديل تواريخ رحلة نشطة"
+  },
+  "localMaps": {
+    "title": "خرائط محلية",
+    "subtitle": "ثبّت أماكن لرحلتك",
+    "addSpot": "إضافة مكان",
+    "spotName": "اسم المكان",
+    "spotAddress": "العنوان أو اسم المكان",
+    "spotNamePlaceholder": "مثال: برج إيفل، جراند حياة...",
+    "spotAddressPlaceholder": "ابحث عن مكان أو عنوان...",
+    "isAccommodation": "فندق / إقامة",
+    "notes": "ملاحظات (اختياري)",
+    "noSpotsYet": "لا توجد أماكن محفوظة بعد",
+    "addFirstSpot": "اضغط + لإضافة أول مكان",
+    "fromHotel": "من الفندق",
+    "spots": "أماكن",
+    "hotel": "فندق",
+    "deleteSpot": "حذف المكان",
+    "deleteSpotConfirm": "هل تريد إزالة هذا المكان؟",
+    "geocodeError": "تعذر العثور على هذا الموقع. حاول بعنوان أكثر تحديداً.",
+    "accommodationSet": "إقامة"
   }
 }

@@ -51,6 +51,7 @@ import LeaderboardScreen from './screens/LeaderboardScreen';
 import TravelBuddiesScreen from './screens/TravelBuddiesScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import ActiveTripScreen from './screens/ActiveTripScreen';
+import LocalMapScreen from './screens/LocalMapScreen';
 
 // Auth screens
 import LoginScreen from './screens/LoginScreen';
@@ -268,6 +269,11 @@ function MainNavigator() {
             title: 'Active Trip',
             ...getHeaderButtons(navigation),
           })}
+        />
+        <Stack.Screen
+          name="LocalMap"
+          component={LocalMapScreen}
+          options={{ headerShown: false }}
         />
         <Stack.Screen
           name="BudgetMaker"
