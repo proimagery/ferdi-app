@@ -30,7 +30,10 @@ const MAP_HEIGHT = screenHeight * 0.38;
 
 // Spot card with place photo (hook must be at component level)
 function SpotPhotoCard({ spot, isHotel, distance, theme, t, onEdit, onDelete }) {
-  const { photoUrl, loading: fetchingPhoto } = usePlacePhoto(spot.name, 300);
+  const photoQuery = spot.formattedAddress
+    ? `${spot.name} ${spot.formattedAddress.split(',').slice(0, 2).join(',')}`
+    : spot.name;
+  const { photoUrl, loading: fetchingPhoto } = usePlacePhoto(photoQuery, 300);
   const [imgLoading, setImgLoading] = useState(true);
   const [imgError, setImgError] = useState(false);
 
@@ -136,20 +139,21 @@ export default function LocalMapScreen({ navigation, route }) {
     return getSpotsForTripCountry(tripId, selectedCountry);
   }, [getSpotsForTripCountry, tripId, selectedCountry]);
 
-  // Separate accommodation and regular spots
-  const accommodation = useMemo(() => countrySpots.find(s => s.isAccommodation), [countrySpots]);
+  // Separate accommodations and regular spots
+  const accommodations = useMemo(() => countrySpots.filter(s => s.isAccommodation), [countrySpots]);
+  const primaryAccommodation = accommodations.length > 0 ? accommodations[0] : null;
   const regularSpots = useMemo(() => {
     const spots = countrySpots.filter(s => !s.isAccommodation);
-    if (!accommodation) return spots;
-    // Sort by distance from accommodation
+    if (!primaryAccommodation) return spots;
+    // Sort by distance from first accommodation
     return spots.map(spot => ({
       ...spot,
       _distance: calculateDistance(
-        accommodation.latitude, accommodation.longitude,
+        primaryAccommodation.latitude, primaryAccommodation.longitude,
         spot.latitude, spot.longitude
       ),
     })).sort((a, b) => a._distance.miles - b._distance.miles);
-  }, [countrySpots, accommodation]);
+  }, [countrySpots, primaryAccommodation]);
 
   // All coordinates for map fitting
   const allCoords = useMemo(() => {
@@ -233,11 +237,6 @@ export default function LocalMapScreen({ navigation, route }) {
       return;
     }
 
-    // If marking as accommodation, unmark previous one
-    if (isAccommodation && accommodation) {
-      await updateSavedSpot(accommodation.id, { isAccommodation: false });
-    }
-
     await addSavedSpot({
       tripId,
       countryName: selectedCountry,
@@ -284,9 +283,6 @@ export default function LocalMapScreen({ navigation, route }) {
 
     // Handle accommodation toggle change
     if (isAccommodation !== editingSpot.isAccommodation) {
-      if (isAccommodation && accommodation && accommodation.id !== editingSpot.id) {
-        await updateSavedSpot(accommodation.id, { isAccommodation: false });
-      }
       updates.isAccommodation = isAccommodation;
     }
 
@@ -392,18 +388,19 @@ export default function LocalMapScreen({ navigation, route }) {
           showsUserLocation={false}
           showsMyLocationButton={false}
         >
-          {/* Accommodation marker */}
-          {accommodation && (
+          {/* Accommodation markers */}
+          {accommodations.map((acc) => (
             <Marker
-              coordinate={{ latitude: accommodation.latitude, longitude: accommodation.longitude }}
-              title={accommodation.name}
+              key={acc.id}
+              coordinate={{ latitude: acc.latitude, longitude: acc.longitude }}
+              title={acc.name}
               description={t('localMaps.hotel')}
             >
               <View style={styles.accommodationMarker}>
                 <Ionicons name="bed" size={16} color="#fff" />
               </View>
             </Marker>
-          )}
+          ))}
 
           {/* Regular spot markers */}
           {regularSpots.map((spot) => (
@@ -445,27 +442,27 @@ export default function LocalMapScreen({ navigation, route }) {
             </View>
           )}
 
-          {accommodation ? (
+          {accommodations.map((acc) => (
             <SpotPhotoCard
-              spot={accommodation}
+              key={acc.id}
+              spot={acc}
               isHotel={true}
               theme={theme}
               t={t}
               onEdit={handleEditSpot}
               onDelete={handleDeleteSpot}
             />
-          ) : (
-            <TouchableOpacity
-              style={[styles.addHotelBtn, { borderColor: theme.border, backgroundColor: theme.background }]}
-              onPress={openHotelModal}
-            >
-              <View style={styles.addHotelIcon}>
-                <Ionicons name="bed-outline" size={22} color="#fb923c" />
-              </View>
-              <Text style={[styles.addHotelText, { color: theme.textSecondary }]}>{t('localMaps.addHotel')}</Text>
-              <Ionicons name="add-circle-outline" size={20} color={theme.textSecondary} />
-            </TouchableOpacity>
-          )}
+          ))}
+          <TouchableOpacity
+            style={[styles.addHotelBtn, { borderColor: theme.border, backgroundColor: theme.background }]}
+            onPress={openHotelModal}
+          >
+            <View style={styles.addHotelIcon}>
+              <Ionicons name="bed-outline" size={22} color="#fb923c" />
+            </View>
+            <Text style={[styles.addHotelText, { color: theme.textSecondary }]}>{t('localMaps.addHotel')}</Text>
+            <Ionicons name="add-circle-outline" size={20} color={theme.textSecondary} />
+          </TouchableOpacity>
         </View>
 
         {/* ===== SPOTS SECTION ===== */}
@@ -475,7 +472,7 @@ export default function LocalMapScreen({ navigation, route }) {
           </Text>
         </View>
 
-        {regularSpots.length === 0 && !accommodation ? (
+        {regularSpots.length === 0 && accommodations.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="map-outline" size={60} color={theme.textSecondary + '40'} />
             <Text style={[styles.emptyTitle, { color: theme.textSecondary }]}>{t('localMaps.noSpotsYet')}</Text>
