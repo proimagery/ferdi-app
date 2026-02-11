@@ -46,7 +46,7 @@ export default function BudgetMakerScreen({ navigation, route }) {
   };
 
   // Budget name
-  const [budgetName, setBudgetName] = useState(budgetToEdit?.budgetName || '');
+  const [budgetName, setBudgetName] = useState(budgetToEdit?.budgetName || (route?.params?.fromTrip && route?.params?.tripData?.tripName) || '');
 
   // Edit mode detection
   const editMode = route?.params?.editMode;

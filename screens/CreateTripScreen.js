@@ -19,6 +19,7 @@ import { useAuthGuard } from '../hooks/useAuthGuard';
 import AuthPromptModal from '../components/AuthPromptModal';
 import ThemedAlert from '../components/ThemedAlert';
 import { useTranslation } from 'react-i18next';
+import { getActiveTrips } from '../utils/activeTripHelpers';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
@@ -31,6 +32,7 @@ export default function CreateTripScreen({ navigation, route }) {
   const editMode = route.params?.editMode || false;
   const editIndex = route.params?.editIndex;
   const editTrip = editMode && editIndex !== undefined ? trips[editIndex] : null;
+  const isActiveTripEdit = editMode && editTrip && getActiveTrips([editTrip]).length > 0;
   const prefilledCountries = route.params?.prefilledCountries || null;
 
   const [step, setStep] = useState(1);
@@ -50,6 +52,14 @@ export default function CreateTripScreen({ navigation, route }) {
   const showAlert = (title, message) => {
     setAlertConfig({ title, message });
     setAlertVisible(true);
+  };
+
+  const handleDatePress = (index, type) => {
+    if (isActiveTripEdit) {
+      showAlert(t('common.oops'), t('activeTrip.cannotEditDates') || 'You cannot edit dates on an active trip');
+      return;
+    }
+    setShowDatePicker({ index, type });
   };
 
   // List of all countries
@@ -326,7 +336,7 @@ export default function CreateTripScreen({ navigation, route }) {
                 <View style={styles.dateRow}>
                   <TouchableOpacity
                     style={[styles.input, styles.dateInput, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder }]}
-                    onPress={() => setShowDatePicker({ index, type: 'startDate' })}
+                    onPress={() => handleDatePress(index, 'startDate')}
                   >
                     <View style={styles.datePickerContent}>
                       <Ionicons name="calendar-outline" size={20} color={theme.primary} />
@@ -338,7 +348,7 @@ export default function CreateTripScreen({ navigation, route }) {
 
                   <TouchableOpacity
                     style={[styles.input, styles.dateInput, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder }]}
-                    onPress={() => setShowDatePicker({ index, type: 'endDate' })}
+                    onPress={() => handleDatePress(index, 'endDate')}
                   >
                     <View style={styles.datePickerContent}>
                       <Ionicons name="calendar-outline" size={20} color={theme.primary} />
@@ -397,19 +407,21 @@ export default function CreateTripScreen({ navigation, route }) {
       </ScrollView>
 
       {/* Date Picker Modal */}
-      {showDatePicker.index !== null && (
-        <DateTimePicker
-          value={
-            countries[showDatePicker.index][showDatePicker.type] ||
-            (showDatePicker.type === 'endDate' && countries[showDatePicker.index].startDate) ||
-            new Date()
-          }
-          mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={onDateChange}
-          themeVariant="dark"
-        />
-      )}
+      {showDatePicker.index !== null && (() => {
+        const raw = countries[showDatePicker.index][showDatePicker.type]
+          || (showDatePicker.type === 'endDate' && countries[showDatePicker.index].startDate)
+          || null;
+        const pickerValue = raw instanceof Date ? raw : raw ? new Date(raw) : new Date();
+        return (
+          <DateTimePicker
+            value={pickerValue}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={onDateChange}
+            themeVariant="dark"
+          />
+        );
+      })()}
 
       {/* Navigation Buttons */}
       <View style={[styles.buttonContainer, { paddingBottom: Math.max(insets.bottom, 20) + 10 }]}>

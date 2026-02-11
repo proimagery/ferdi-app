@@ -26,6 +26,8 @@
     "saved": "¡Guardado!",
     "share": "Compartir",
     "saveToPhotos": "Guardar en Fotos",
+    "deleteTrip": "Eliminar viaje",
+    "deleteTripConfirm": "¿Estás seguro de que quieres eliminar \"{{name}}\"? Esto no se puede deshacer.",
     "you": "Tú",
     "username": "Nombre de usuario"
   },
@@ -672,5 +674,30 @@
     "back": "Atrás",
     "done": "¡Vamos!",
     "stepOf": "{{current}} de {{total}}"
+  },
+  "activeTrip": {
+    "title": "Active Trip",
+    "dayOf": "Day {{current}} of {{total}}",
+    "tripProgress": "Trip Progress",
+    "youAreHere": "You are here",
+    "completed": "Completed",
+    "upcoming": "Upcoming",
+    "current": "Current",
+    "todaysBudget": "Today's Budget",
+    "dailyTotal": "Daily Total",
+    "accommodation": "Accommodation",
+    "perDay": "per day",
+    "noBudget": "No budget set for this trip",
+    "createBudget": "Create Budget",
+    "tripComplete": "Trip Complete!",
+    "congratulations": "Congratulations on completing your journey!",
+    "shareJourney": "Share Your Journey",
+    "countries": "Countries",
+    "totalDays": "Total Days",
+    "stops": "Stops",
+    "close": "Close",
+    "activeTripBanner": "Active Trip",
+    "tapToView": "Tap to view your journey",
+    "cannotEditDates": "No puedes editar las fechas de un viaje activo"
   }
 }

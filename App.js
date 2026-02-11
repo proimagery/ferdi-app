@@ -50,6 +50,7 @@ import SearchScreen from './screens/SearchScreen';
 import LeaderboardScreen from './screens/LeaderboardScreen';
 import TravelBuddiesScreen from './screens/TravelBuddiesScreen';
 import SettingsScreen from './screens/SettingsScreen';
+import ActiveTripScreen from './screens/ActiveTripScreen';
 
 // Auth screens
 import LoginScreen from './screens/LoginScreen';
@@ -257,6 +258,14 @@ function MainNavigator() {
           component={TripDetailScreen}
           options={({ navigation }) => ({
             title: 'Trip Details',
+            ...getHeaderButtons(navigation),
+          })}
+        />
+        <Stack.Screen
+          name="ActiveTrip"
+          component={ActiveTripScreen}
+          options={({ navigation }) => ({
+            title: 'Active Trip',
             ...getHeaderButtons(navigation),
           })}
         />

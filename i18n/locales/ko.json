@@ -26,6 +26,8 @@
     "saved": "저장됨!",
     "share": "공유",
     "saveToPhotos": "사진에 저장",
+    "deleteTrip": "여행 삭제",
+    "deleteTripConfirm": "\"{{name}}\"을(를) 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.",
     "you": "나",
     "username": "사용자 이름"
   },
@@ -672,5 +674,30 @@
     "back": "이전",
     "done": "시작하기!",
     "stepOf": "{{current}} / {{total}}"
+  },
+  "activeTrip": {
+    "title": "Active Trip",
+    "dayOf": "Day {{current}} of {{total}}",
+    "tripProgress": "Trip Progress",
+    "youAreHere": "You are here",
+    "completed": "Completed",
+    "upcoming": "Upcoming",
+    "current": "Current",
+    "todaysBudget": "Today's Budget",
+    "dailyTotal": "Daily Total",
+    "accommodation": "Accommodation",
+    "perDay": "per day",
+    "noBudget": "No budget set for this trip",
+    "createBudget": "Create Budget",
+    "tripComplete": "Trip Complete!",
+    "congratulations": "Congratulations on completing your journey!",
+    "shareJourney": "Share Your Journey",
+    "countries": "Countries",
+    "totalDays": "Total Days",
+    "stops": "Stops",
+    "close": "Close",
+    "activeTripBanner": "Active Trip",
+    "tapToView": "Tap to view your journey",
+    "cannotEditDates": "진행 중인 여행의 날짜는 편집할 수 없습니다"
   }
 }

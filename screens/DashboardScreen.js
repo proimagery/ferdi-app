@@ -15,6 +15,8 @@ import DashboardWalkthrough from '../components/DashboardWalkthrough';
 import { getTravelerRank, allRanks } from '../utils/rankingSystem';
 import { useTranslation } from 'react-i18next';
 import { getVisitedSubregions } from '../utils/subregionMap';
+import { getActiveTrips, getTripProgress, getCurrentCountry } from '../utils/activeTripHelpers';
+import { getCountryFlag } from '../utils/countryFlags';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
@@ -79,6 +81,12 @@ export default function DashboardScreen({ navigation }) {
       setRefreshing(false);
     }
   }, [refreshData]);
+
+  // Active trips
+  const activeTrips = getActiveTrips(trips);
+  const activeTrip = activeTrips.length > 0 ? activeTrips[0] : null;
+  const activeTripProgress = activeTrip ? getTripProgress(activeTrip) : null;
+  const activeTripCurrentCountry = activeTrip ? getCurrentCountry(activeTrip) : null;
 
   // Rank is based only on manually added countries (completedTrips)
   const totalCountriesVisited = completedTrips.length;
@@ -234,6 +242,28 @@ export default function DashboardScreen({ navigation }) {
         />
       }
     >
+      {/* Active Trip Banner */}
+      {activeTrip && (
+        <TouchableOpacity
+          style={[styles.activeTripBanner, { backgroundColor: theme.primary + '15', borderColor: theme.primary + '30' }]}
+          onPress={() => navigation.navigate('ActiveTrip', { trip: activeTrip })}
+        >
+          <View style={[styles.activeTripIconCircle, { backgroundColor: theme.primary }]}>
+            <Ionicons name="airplane" size={22} color="#fff" />
+          </View>
+          <View style={styles.activeTripBannerInfo}>
+            <Text style={[styles.activeTripBannerTitle, { color: theme.text }]} numberOfLines={1}>
+              {activeTrip.name}
+            </Text>
+            <Text style={[styles.activeTripBannerSub, { color: theme.textSecondary }]}>
+              {activeTripProgress && t('activeTrip.dayOf', { current: activeTripProgress.daysElapsed, total: activeTripProgress.totalDays })}
+              {activeTripCurrentCountry && ` · ${getCountryFlag(activeTripCurrentCountry.country_name || activeTripCurrentCountry.name)}`}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={theme.primary} />
+        </TouchableOpacity>
+      )}
+
       {/* Spinning Globe Section */}
       <View style={styles.globeSection}>
         <View style={styles.globeHeaderRow}>
@@ -681,6 +711,34 @@ const styles = StyleSheet.create({
   },
   rankItemCountries: {
     fontSize: 12,
+  },
+  activeTripBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    margin: 16,
+    marginBottom: 8,
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 12,
+  },
+  activeTripIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  activeTripBannerInfo: {
+    flex: 1,
+  },
+  activeTripBannerTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  activeTripBannerSub: {
+    fontSize: 13,
+    marginTop: 2,
   },
   globeSection: {
     padding: 20,

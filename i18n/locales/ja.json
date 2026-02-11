@@ -26,6 +26,8 @@
     "saved": "保存しました！",
     "share": "共有",
     "saveToPhotos": "写真に保存",
+    "deleteTrip": "旅行を削除",
+    "deleteTripConfirm": "「{{name}}」を削除してもよろしいですか？この操作は取り消せません。",
     "you": "あなた",
     "username": "ユーザー名"
   },
@@ -672,5 +674,30 @@
     "back": "戻る",
     "done": "始めよう！",
     "stepOf": "{{current}} / {{total}}"
+  },
+  "activeTrip": {
+    "title": "Active Trip",
+    "dayOf": "Day {{current}} of {{total}}",
+    "tripProgress": "Trip Progress",
+    "youAreHere": "You are here",
+    "completed": "Completed",
+    "upcoming": "Upcoming",
+    "current": "Current",
+    "todaysBudget": "Today's Budget",
+    "dailyTotal": "Daily Total",
+    "accommodation": "Accommodation",
+    "perDay": "per day",
+    "noBudget": "No budget set for this trip",
+    "createBudget": "Create Budget",
+    "tripComplete": "Trip Complete!",
+    "congratulations": "Congratulations on completing your journey!",
+    "shareJourney": "Share Your Journey",
+    "countries": "Countries",
+    "totalDays": "Total Days",
+    "stops": "Stops",
+    "close": "Close",
+    "activeTripBanner": "Active Trip",
+    "tapToView": "Tap to view your journey",
+    "cannotEditDates": "アクティブな旅行の日程は編集できません"
   }
 }

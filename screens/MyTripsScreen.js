@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, RefreshControl, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppContext } from '../context/AppContext';
@@ -31,8 +31,19 @@ export default function MyTripsScreen({ navigation, route }) {
     }
   }, [refreshData]);
 
-  const handleDeleteTrip = (index) => {
-    deleteTrip(index);
+  const handleDeleteTrip = (index, tripName) => {
+    Alert.alert(
+      t('common.deleteTrip') || 'Delete Trip',
+      t('common.deleteTripConfirm', { name: tripName }) || `Are you sure you want to delete "${tripName}"?`,
+      [
+        { text: t('common.cancel') || 'Cancel', style: 'cancel' },
+        {
+          text: t('common.delete') || 'Delete',
+          style: 'destructive',
+          onPress: () => deleteTrip(index),
+        },
+      ]
+    );
   };
 
   const toggleTripSelection = (tripIndex) => {
@@ -242,7 +253,7 @@ export default function MyTripsScreen({ navigation, route }) {
                     />
                   )}
                   {!sharingMode && (
-                    <TouchableOpacity onPress={() => handleDeleteTrip(tripIndex)}>
+                    <TouchableOpacity onPress={() => handleDeleteTrip(tripIndex, trip.name)}>
                       <Ionicons name="trash-outline" size={20} color={theme.danger} />
                     </TouchableOpacity>
                   )}
