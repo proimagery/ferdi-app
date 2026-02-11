@@ -212,3 +212,25 @@ export const countryFlags = {
 export const getCountryFlag = (countryName) => {
   return countryFlags[countryName] || '🏳️';
 };
+
+// Extract ISO 3166-1 alpha-2 country code from flag emoji or special cases
+export const getCountryCode = (countryName) => {
+  const special = {
+    'England': 'GB', 'Scotland': 'GB', 'Wales': 'GB',
+    'Northern Ireland': 'GB', 'United Kingdom': 'GB',
+    'USA': 'US', 'Kosovo': 'XK',
+    'North Macedonia': 'MK', 'Macedonia': 'MK',
+    'Democratic Republic of Congo': 'CD', 'Congo': 'CG',
+    'Ivory Coast': 'CI', 'East Timor': 'TL', 'Timor-Leste': 'TL',
+    'Eswatini': 'SZ', 'Swaziland': 'SZ',
+  };
+  if (special[countryName]) return special[countryName];
+  const flag = countryFlags[countryName];
+  if (!flag) return null;
+  const cp1 = flag.codePointAt(0);
+  const cp2 = flag.codePointAt(2);
+  if (cp1 >= 0x1F1E6 && cp1 <= 0x1F1FF && cp2 >= 0x1F1E6 && cp2 <= 0x1F1FF) {
+    return String.fromCharCode(cp1 - 0x1F1E6 + 65) + String.fromCharCode(cp2 - 0x1F1E6 + 65);
+  }
+  return null;
+};

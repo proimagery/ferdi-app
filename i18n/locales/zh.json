@@ -701,9 +701,10 @@
     "cannotEditDates": "无法编辑进行中旅行的日期"
   },
   "localMaps": {
-    "title": "本地地图",
+    "title": "我的地点",
     "subtitle": "为你的旅行标记地点",
     "addSpot": "添加地点",
+    "editSpot": "编辑地点",
     "spotName": "地点名称",
     "spotAddress": "地址或地点名称",
     "spotNamePlaceholder": "例如：埃菲尔铁塔、君悦酒店...",
@@ -718,6 +719,11 @@
     "deleteSpot": "删除地点",
     "deleteSpotConfirm": "确定删除此地点？",
     "geocodeError": "无法找到此位置。请尝试更具体的地址。",
-    "accommodationSet": "住宿"
+    "accommodationSet": "住宿",
+    "seeWhileHere": "添加你想在旅途中每一站看到的地方",
+    "viewAllSpots": "查看和管理地点",
+    "yourAccommodation": "您的住宿",
+    "addHotel": "添加酒店",
+    "seeHowFar": "看看你有多远！"
   }
 }

@@ -243,36 +243,46 @@ export default function DashboardScreen({ navigation }) {
         />
       }
     >
-      {/* Active Trip Banner */}
+      {/* Active Trip Container */}
       {activeTrip && (
-        <TouchableOpacity
-          style={[styles.activeTripBanner, { backgroundColor: theme.primary + '15', borderColor: theme.primary + '30' }]}
-          onPress={() => navigation.navigate('ActiveTrip', { trip: activeTrip })}
-        >
-          <View style={[styles.activeTripIconCircle, { backgroundColor: theme.primary }]}>
-            <Ionicons name="airplane" size={22} color="#fff" />
+        <View style={[styles.activeTripContainer, { backgroundColor: theme.primary + '12', borderColor: theme.primary + '35' }]}>
+          {/* Active Trip Label */}
+          <View style={[styles.activeTripLabel, { backgroundColor: theme.primary + '30' }]}>
+            <View style={[styles.activeTripDot, { backgroundColor: theme.primary }]} />
+            <Text style={[styles.activeTripLabelText, { color: theme.primary }]}>{t('activeTrip.title')}</Text>
           </View>
-          <View style={styles.activeTripBannerInfo}>
-            <Text style={[styles.activeTripBannerTitle, { color: theme.text }]} numberOfLines={1}>
-              {activeTrip.name}
-            </Text>
-            <Text style={[styles.activeTripBannerSub, { color: theme.textSecondary }]}>
-              {activeTripProgress && t('activeTrip.dayOf', { current: activeTripProgress.daysElapsed, total: activeTripProgress.totalDays })}
-              {activeTripCurrentCountry && ` · ${getCountryFlag(activeTripCurrentCountry.country_name || activeTripCurrentCountry.name)}`}
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={theme.primary} />
-        </TouchableOpacity>
-      )}
 
-      {/* Local Maps Section */}
-      {activeTrip && (
-        <LocalMapsSection
-          trip={activeTrip}
-          savedSpots={savedSpots}
-          navigation={navigation}
-          theme={theme}
-        />
+          {/* Active Trip Banner */}
+          <TouchableOpacity
+            style={[styles.activeTripBanner, { backgroundColor: 'transparent' }]}
+            onPress={() => navigation.navigate('ActiveTrip', { trip: activeTrip })}
+          >
+            <View style={[styles.activeTripIconCircle, { backgroundColor: theme.primary }]}>
+              <Ionicons name="airplane" size={22} color="#fff" />
+            </View>
+            <View style={styles.activeTripBannerInfo}>
+              <Text style={[styles.activeTripBannerTitle, { color: theme.text }]} numberOfLines={1}>
+                {activeTrip.name}
+              </Text>
+              <Text style={[styles.activeTripBannerSub, { color: theme.textSecondary }]}>
+                {activeTripProgress && t('activeTrip.dayOf', { current: activeTripProgress.daysElapsed, total: activeTripProgress.totalDays })}
+                {activeTripCurrentCountry && ` · ${getCountryFlag(activeTripCurrentCountry.country_name || activeTripCurrentCountry.name)}`}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={theme.primary} />
+          </TouchableOpacity>
+
+          {/* Divider */}
+          <View style={[styles.activeTripDivider, { backgroundColor: theme.primary + '20' }]} />
+
+          {/* Local Maps Section */}
+          <LocalMapsSection
+            trip={activeTrip}
+            savedSpots={savedSpots}
+            navigation={navigation}
+            theme={theme}
+          />
+        </View>
       )}
 
       {/* Spinning Globe Section */}
@@ -723,14 +733,39 @@ const styles = StyleSheet.create({
   rankItemCountries: {
     fontSize: 12,
   },
+  activeTripContainer: {
+    margin: 16,
+    marginBottom: 8,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    overflow: 'hidden',
+  },
+  activeTripLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    gap: 6,
+  },
+  activeTripDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  activeTripLabelText: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  activeTripDivider: {
+    height: 1,
+    marginHorizontal: 16,
+  },
   activeTripBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    margin: 16,
-    marginBottom: 8,
     padding: 14,
-    borderRadius: 16,
-    borderWidth: 1,
     gap: 12,
   },
   activeTripIconCircle: {

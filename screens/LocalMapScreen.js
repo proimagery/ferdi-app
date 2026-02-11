@@ -11,7 +11,7 @@ import {
   Platform,
   ActivityIndicator,
   Dimensions,
-  Switch,
+  Image,
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,13 +19,92 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../context/AppContext';
-import { geocodeAddress } from '../utils/geocoding';
+import { geocodeAddress, searchPlaces, getPlaceDetails } from '../utils/geocoding';
 import { calculateDistance } from '../utils/distanceHelper';
-import { getCountryFlag } from '../utils/countryFlags';
+import { getCountryFlag, getCountryCode } from '../utils/countryFlags';
 import ThemedAlert from '../components/ThemedAlert';
+import usePlacePhoto from '../hooks/usePlacePhoto';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const MAP_HEIGHT = screenHeight * 0.38;
+
+// Spot card with place photo (hook must be at component level)
+function SpotPhotoCard({ spot, isHotel, distance, theme, t, onEdit, onDelete }) {
+  const { photoUrl, loading: fetchingPhoto } = usePlacePhoto(spot.name, 300);
+  const [imgLoading, setImgLoading] = useState(true);
+  const [imgError, setImgError] = useState(false);
+
+  const renderPhoto = () => {
+    if (fetchingPhoto) {
+      return (
+        <View style={[styles.spotPhotoFallback, { backgroundColor: theme.background }]}>
+          <ActivityIndicator size="small" color={theme.primary} />
+        </View>
+      );
+    }
+    if (photoUrl && !imgError) {
+      return (
+        <>
+          <Image
+            source={{ uri: photoUrl }}
+            style={styles.spotPhotoImg}
+            resizeMode="cover"
+            onLoadStart={() => setImgLoading(true)}
+            onLoadEnd={() => setImgLoading(false)}
+            onError={() => { setImgError(true); setImgLoading(false); }}
+          />
+          {imgLoading && (
+            <View style={[styles.spotPhotoFallback, { backgroundColor: theme.background, position: 'absolute' }]}>
+              <ActivityIndicator size="small" color={theme.primary} />
+            </View>
+          )}
+        </>
+      );
+    }
+    return (
+      <View style={[styles.spotPhotoFallback, { backgroundColor: isHotel ? '#fb923c' : theme.primary }]}>
+        <Ionicons name={isHotel ? 'bed' : 'location'} size={22} color="#fff" />
+      </View>
+    );
+  };
+
+  return (
+    <TouchableOpacity
+      style={[styles.spotCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+      onPress={() => onEdit(spot)}
+      activeOpacity={0.7}
+    >
+      <View style={styles.spotPhotoWrap}>
+        {renderPhoto()}
+      </View>
+      <View style={styles.spotInfo}>
+        <Text style={[styles.spotName, { color: theme.text }]} numberOfLines={1}>{spot.name}</Text>
+        <Text style={[styles.spotAddress, { color: theme.textSecondary }]} numberOfLines={1}>
+          {spot.formattedAddress || spot.address}
+        </Text>
+        {isHotel && (
+          <Text style={[styles.spotLabel, { color: '#fb923c' }]}>{t('localMaps.accommodationSet')}</Text>
+        )}
+        {!isHotel && distance && (
+          <Text style={[styles.spotDistance, { color: theme.primary }]}>
+            {distance.miles} mi · {distance.km} km {t('localMaps.fromHotel')}
+          </Text>
+        )}
+        {spot.notes && (
+          <Text style={[styles.spotNotes, { color: theme.textSecondary }]} numberOfLines={1}>{spot.notes}</Text>
+        )}
+      </View>
+      <View style={styles.spotActions}>
+        <TouchableOpacity style={styles.actionBtn} onPress={() => onEdit(spot)}>
+          <Ionicons name="create-outline" size={18} color={theme.primary} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.actionBtn} onPress={() => onDelete(spot.id)}>
+          <Ionicons name="trash-outline" size={18} color={theme.danger} />
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
+  );
+}
 
 export default function LocalMapScreen({ navigation, route }) {
   const { tripId, countryName, countries = [] } = route.params || {};
@@ -46,6 +125,11 @@ export default function LocalMapScreen({ navigation, route }) {
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertConfig, setAlertConfig] = useState({ title: '', message: '', type: 'error' });
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [suggestions, setSuggestions] = useState([]);
+  const [searchingPlaces, setSearchingPlaces] = useState(false);
+  const searchTimeout = useRef(null);
+  const [editingSpot, setEditingSpot] = useState(null);
+  const [showInfoTooltip, setShowInfoTooltip] = useState(false);
 
   // Get spots for the selected country
   const countrySpots = useMemo(() => {
@@ -97,6 +181,33 @@ export default function LocalMapScreen({ navigation, route }) {
     longitudeDelta: 80,
   };
 
+  // Debounced place search
+  const handleAddressChange = (text) => {
+    setSpotAddress(text);
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    if (text.trim().length < 2) {
+      setSuggestions([]);
+      return;
+    }
+    setSearchingPlaces(true);
+    searchTimeout.current = setTimeout(async () => {
+      const code = getCountryCode(selectedCountry);
+      const results = await searchPlaces(text.trim(), code);
+      setSuggestions(results);
+      setSearchingPlaces(false);
+    }, 400);
+  };
+
+  const handleSelectSuggestion = async (suggestion) => {
+    setSuggestions([]);
+    setSpotAddress(suggestion.description);
+    // Pre-fill name if empty
+    const details = await getPlaceDetails(suggestion.placeId);
+    if (details && !spotName.trim()) {
+      setSpotName(details.name || '');
+    }
+  };
+
   const showAlertMessage = (title, message, type = 'error') => {
     setAlertConfig({ title, message, type });
     setAlertVisible(true);
@@ -145,7 +256,71 @@ export default function LocalMapScreen({ navigation, route }) {
     setSpotAddress('');
     setIsAccommodation(false);
     setSpotNotes('');
+    setSuggestions([]);
     setShowAddModal(false);
+  };
+
+  // ===== EDIT SPOT =====
+  const handleEditSpot = (spot) => {
+    setEditingSpot(spot);
+    setSpotName(spot.name);
+    setSpotAddress(spot.formattedAddress || spot.address || '');
+    setIsAccommodation(spot.isAccommodation || false);
+    setSpotNotes(spot.notes || '');
+    setSuggestions([]);
+    setShowAddModal(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!spotName.trim()) {
+      showAlertMessage(t('common.oops'), t('localMaps.spotName') + ' is required');
+      return;
+    }
+
+    const updates = {
+      name: spotName.trim(),
+      notes: spotNotes.trim() || null,
+    };
+
+    // Handle accommodation toggle change
+    if (isAccommodation !== editingSpot.isAccommodation) {
+      if (isAccommodation && accommodation && accommodation.id !== editingSpot.id) {
+        await updateSavedSpot(accommodation.id, { isAccommodation: false });
+      }
+      updates.isAccommodation = isAccommodation;
+    }
+
+    await updateSavedSpot(editingSpot.id, updates);
+
+    // Reset modal
+    setEditingSpot(null);
+    setSpotName('');
+    setSpotAddress('');
+    setIsAccommodation(false);
+    setSpotNotes('');
+    setSuggestions([]);
+    setShowAddModal(false);
+  };
+
+  const closeModal = () => {
+    setEditingSpot(null);
+    setSpotName('');
+    setSpotAddress('');
+    setIsAccommodation(false);
+    setSpotNotes('');
+    setSuggestions([]);
+    setShowAddModal(false);
+  };
+
+  // ===== OPEN HOTEL MODAL =====
+  const openHotelModal = () => {
+    setSpotName('');
+    setSpotAddress('');
+    setIsAccommodation(true);
+    setSpotNotes('');
+    setSuggestions([]);
+    setEditingSpot(null);
+    setShowAddModal(true);
   };
 
   // ===== DELETE SPOT =====
@@ -248,67 +423,77 @@ export default function LocalMapScreen({ navigation, route }) {
 
       {/* Spots List */}
       <ScrollView style={styles.listContainer} contentContainerStyle={styles.listContent}>
-        {/* Summary */}
+        {/* ===== HOTEL / ACCOMMODATION SECTION ===== */}
+        <View style={[styles.hotelSection, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+          <View style={styles.hotelSectionHeader}>
+            <View style={styles.hotelSectionLeft}>
+              <Ionicons name="bed" size={18} color="#fb923c" />
+              <Text style={[styles.hotelSectionTitle, { color: theme.text }]}>{t('localMaps.yourAccommodation')}</Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => setShowInfoTooltip(!showInfoTooltip)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="information-circle-outline" size={20} color={theme.textSecondary} />
+            </TouchableOpacity>
+          </View>
+
+          {showInfoTooltip && (
+            <View style={[styles.infoTooltip, { backgroundColor: theme.primary + '15', borderColor: theme.primary + '30' }]}>
+              <Ionicons name="navigate-outline" size={14} color={theme.primary} />
+              <Text style={[styles.infoTooltipText, { color: theme.primary }]}>{t('localMaps.seeHowFar')}</Text>
+            </View>
+          )}
+
+          {accommodation ? (
+            <SpotPhotoCard
+              spot={accommodation}
+              isHotel={true}
+              theme={theme}
+              t={t}
+              onEdit={handleEditSpot}
+              onDelete={handleDeleteSpot}
+            />
+          ) : (
+            <TouchableOpacity
+              style={[styles.addHotelBtn, { borderColor: theme.border, backgroundColor: theme.background }]}
+              onPress={openHotelModal}
+            >
+              <View style={styles.addHotelIcon}>
+                <Ionicons name="bed-outline" size={22} color="#fb923c" />
+              </View>
+              <Text style={[styles.addHotelText, { color: theme.textSecondary }]}>{t('localMaps.addHotel')}</Text>
+              <Ionicons name="add-circle-outline" size={20} color={theme.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* ===== SPOTS SECTION ===== */}
         <View style={styles.summaryRow}>
           <Text style={[styles.summaryText, { color: theme.textSecondary }]}>
-            {countrySpots.length} {t('localMaps.spots')}
-            {accommodation ? ` · 1 ${t('localMaps.hotel').toLowerCase()}` : ''}
+            {regularSpots.length} {t('localMaps.spots')}
           </Text>
         </View>
 
-        {countrySpots.length === 0 ? (
+        {regularSpots.length === 0 && !accommodation ? (
           <View style={styles.emptyState}>
             <Ionicons name="map-outline" size={60} color={theme.textSecondary + '40'} />
             <Text style={[styles.emptyTitle, { color: theme.textSecondary }]}>{t('localMaps.noSpotsYet')}</Text>
             <Text style={[styles.emptySubtitle, { color: theme.textSecondary + '80' }]}>{t('localMaps.addFirstSpot')}</Text>
           </View>
         ) : (
-          <>
-            {/* Accommodation first */}
-            {accommodation && (
-              <View style={[styles.spotCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
-                <View style={[styles.spotIconBg, { backgroundColor: '#fb923c20' }]}>
-                  <Ionicons name="bed" size={20} color="#fb923c" />
-                </View>
-                <View style={styles.spotInfo}>
-                  <Text style={[styles.spotName, { color: theme.text }]} numberOfLines={1}>{accommodation.name}</Text>
-                  <Text style={[styles.spotAddress, { color: theme.textSecondary }]} numberOfLines={1}>
-                    {accommodation.formattedAddress || accommodation.address}
-                  </Text>
-                  <Text style={[styles.spotLabel, { color: '#fb923c' }]}>{t('localMaps.accommodationSet')}</Text>
-                </View>
-                <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDeleteSpot(accommodation.id)}>
-                  <Ionicons name="trash-outline" size={18} color={theme.danger} />
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* Regular spots sorted by distance */}
-            {regularSpots.map((spot) => (
-              <View key={spot.id} style={[styles.spotCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
-                <View style={[styles.spotIconBg, { backgroundColor: theme.primary + '20' }]}>
-                  <Ionicons name="location" size={20} color={theme.primary} />
-                </View>
-                <View style={styles.spotInfo}>
-                  <Text style={[styles.spotName, { color: theme.text }]} numberOfLines={1}>{spot.name}</Text>
-                  <Text style={[styles.spotAddress, { color: theme.textSecondary }]} numberOfLines={1}>
-                    {spot.formattedAddress || spot.address}
-                  </Text>
-                  {spot._distance && accommodation && (
-                    <Text style={[styles.spotDistance, { color: theme.primary }]}>
-                      {spot._distance.miles} mi · {spot._distance.km} km {t('localMaps.fromHotel')}
-                    </Text>
-                  )}
-                  {spot.notes && (
-                    <Text style={[styles.spotNotes, { color: theme.textSecondary }]} numberOfLines={1}>{spot.notes}</Text>
-                  )}
-                </View>
-                <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDeleteSpot(spot.id)}>
-                  <Ionicons name="trash-outline" size={18} color={theme.danger} />
-                </TouchableOpacity>
-              </View>
-            ))}
-          </>
+          regularSpots.map((spot) => (
+            <SpotPhotoCard
+              key={spot.id}
+              spot={spot}
+              isHotel={false}
+              distance={spot._distance}
+              theme={theme}
+              t={t}
+              onEdit={handleEditSpot}
+              onDelete={handleDeleteSpot}
+            />
+          ))
         )}
         <View style={{ height: 100 }} />
       </ScrollView>
@@ -316,7 +501,10 @@ export default function LocalMapScreen({ navigation, route }) {
       {/* FAB */}
       <TouchableOpacity
         style={[styles.fab, { backgroundColor: theme.primary }]}
-        onPress={() => setShowAddModal(true)}
+        onPress={() => {
+          setIsAccommodation(false);
+          setShowAddModal(true);
+        }}
       >
         <Ionicons name="add" size={30} color="#fff" />
       </TouchableOpacity>
@@ -326,7 +514,7 @@ export default function LocalMapScreen({ navigation, route }) {
         visible={showAddModal}
         transparent={true}
         animationType="slide"
-        onRequestClose={() => setShowAddModal(false)}
+        onRequestClose={closeModal}
       >
         <View style={styles.modalOverlay}>
           <KeyboardAvoidingView
@@ -336,8 +524,10 @@ export default function LocalMapScreen({ navigation, route }) {
             <View style={[styles.modalContent, { backgroundColor: theme.cardBackground }]}>
               {/* Modal Header */}
               <View style={styles.modalHeader}>
-                <Text style={[styles.modalTitle, { color: theme.text }]}>{t('localMaps.addSpot')}</Text>
-                <TouchableOpacity onPress={() => setShowAddModal(false)}>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>
+                  {editingSpot ? t('localMaps.editSpot') : isAccommodation ? t('localMaps.addHotel') : t('localMaps.addSpot')}
+                </Text>
+                <TouchableOpacity onPress={closeModal}>
                   <Ionicons name="close" size={24} color={theme.text} />
                 </TouchableOpacity>
               </View>
@@ -353,29 +543,43 @@ export default function LocalMapScreen({ navigation, route }) {
                   onChangeText={setSpotName}
                 />
 
-                {/* Address */}
-                <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>{t('localMaps.spotAddress')}</Text>
-                <TextInput
-                  style={[styles.input, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
-                  placeholder={t('localMaps.spotAddressPlaceholder')}
-                  placeholderTextColor={theme.textSecondary}
-                  value={spotAddress}
-                  onChangeText={setSpotAddress}
-                />
-
-                {/* Accommodation Toggle */}
-                <View style={[styles.toggleRow, { borderColor: theme.border }]}>
-                  <View style={styles.toggleInfo}>
-                    <Ionicons name="bed-outline" size={20} color={theme.text} />
-                    <Text style={[styles.toggleText, { color: theme.text }]}>{t('localMaps.isAccommodation')}</Text>
-                  </View>
-                  <Switch
-                    value={isAccommodation}
-                    onValueChange={setIsAccommodation}
-                    trackColor={{ false: theme.border, true: theme.primary + '60' }}
-                    thumbColor={isAccommodation ? theme.primary : '#f4f3f4'}
-                  />
-                </View>
+                {/* Address with Autocomplete (only for new spots) */}
+                {!editingSpot && (
+                  <>
+                    <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>{t('localMaps.spotAddress')}</Text>
+                    <TextInput
+                      style={[styles.input, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
+                      placeholder={t('localMaps.spotAddressPlaceholder')}
+                      placeholderTextColor={theme.textSecondary}
+                      value={spotAddress}
+                      onChangeText={handleAddressChange}
+                    />
+                    {suggestions.length > 0 && (
+                      <View style={[styles.suggestionsContainer, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+                        {suggestions.map((suggestion, idx) => (
+                          <TouchableOpacity
+                            key={suggestion.placeId}
+                            style={[
+                              styles.suggestionRow,
+                              idx < suggestions.length - 1 && { borderBottomWidth: 1, borderBottomColor: theme.border },
+                            ]}
+                            onPress={() => handleSelectSuggestion(suggestion)}
+                          >
+                            <Ionicons name="location-outline" size={16} color={theme.textSecondary} />
+                            <Text style={[styles.suggestionText, { color: theme.text }]} numberOfLines={2}>
+                              {suggestion.description}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                  </>
+                )}
+                {editingSpot && (
+                  <Text style={[styles.editAddressHint, { color: theme.textSecondary }]}>
+                    {editingSpot.formattedAddress || editingSpot.address}
+                  </Text>
+                )}
 
                 {/* Notes */}
                 <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>{t('localMaps.notes')}</Text>
@@ -392,15 +596,17 @@ export default function LocalMapScreen({ navigation, route }) {
                 {/* Submit Button */}
                 <TouchableOpacity
                   style={[styles.submitButton, { backgroundColor: theme.primary, opacity: geocoding ? 0.7 : 1 }]}
-                  onPress={handleAddSpot}
+                  onPress={editingSpot ? handleSaveEdit : handleAddSpot}
                   disabled={geocoding}
                 >
                   {geocoding ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
                     <>
-                      <Ionicons name="location" size={20} color="#fff" />
-                      <Text style={styles.submitText}>{t('localMaps.addSpot')}</Text>
+                      <Ionicons name={editingSpot ? "checkmark" : "location"} size={20} color="#fff" />
+                      <Text style={styles.submitText}>
+                        {editingSpot ? t('common.save') : t('localMaps.addSpot')}
+                      </Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -567,6 +773,64 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 12,
   },
+  // Hotel section
+  hotelSection: {
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 14,
+    marginBottom: 16,
+  },
+  hotelSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  hotelSectionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  hotelSectionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  infoTooltip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  infoTooltipText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  addHotelBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    gap: 10,
+  },
+  addHotelIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: '#fb923c' + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addHotelText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+  },
   summaryRow: {
     marginBottom: 12,
   },
@@ -599,10 +863,19 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     gap: 12,
   },
-  spotIconBg: {
-    width: 40,
-    height: 40,
+  spotPhotoWrap: {
+    width: 56,
+    height: 56,
     borderRadius: 12,
+    overflow: 'hidden',
+  },
+  spotPhotoImg: {
+    width: '100%',
+    height: '100%',
+  },
+  spotPhotoFallback: {
+    width: '100%',
+    height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -632,8 +905,17 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     marginTop: 2,
   },
-  deleteBtn: {
-    padding: 8,
+  spotActions: {
+    flexDirection: 'column',
+    gap: 4,
+  },
+  actionBtn: {
+    padding: 6,
+  },
+  editAddressHint: {
+    fontSize: 13,
+    marginTop: 8,
+    fontStyle: 'italic',
   },
   // FAB
   fab: {
@@ -689,23 +971,23 @@ const styles = StyleSheet.create({
     minHeight: 70,
     textAlignVertical: 'top',
   },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 14,
-    marginTop: 12,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
+  suggestionsContainer: {
+    borderWidth: 1,
+    borderRadius: 12,
+    marginTop: 4,
+    maxHeight: 200,
+    overflow: 'hidden',
   },
-  toggleInfo: {
+  suggestionRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     gap: 10,
   },
-  toggleText: {
-    fontSize: 15,
-    fontWeight: '500',
+  suggestionText: {
+    flex: 1,
+    fontSize: 14,
   },
   submitButton: {
     flexDirection: 'row',

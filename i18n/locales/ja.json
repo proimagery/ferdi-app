@@ -701,9 +701,10 @@
     "cannotEditDates": "アクティブな旅行の日程は編集できません"
   },
   "localMaps": {
-    "title": "ローカルマップ",
+    "title": "マイプレイス",
     "subtitle": "旅のスポットをピン留め",
     "addSpot": "スポットを追加",
+    "editSpot": "スポットを編集",
     "spotName": "スポット名",
     "spotAddress": "住所または場所名",
     "spotNamePlaceholder": "例: エッフェル塔、グランドハイアット...",
@@ -718,6 +719,11 @@
     "deleteSpot": "スポットを削除",
     "deleteSpotConfirm": "このスポットを削除しますか？",
     "geocodeError": "この場所が見つかりませんでした。より具体的な住所を試してください。",
-    "accommodationSet": "宿泊施設"
+    "accommodationSet": "宿泊施設",
+    "seeWhileHere": "旅の各立ち寄り先で見たい場所を追加しよう",
+    "viewAllSpots": "スポットを表示・管理",
+    "yourAccommodation": "宿泊先",
+    "addHotel": "ホテルを追加",
+    "seeHowFar": "距離を確認しよう！"
   }
 }

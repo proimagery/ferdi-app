@@ -701,9 +701,10 @@
     "cannotEditDates": "You cannot edit dates on an active trip"
   },
   "localMaps": {
-    "title": "Local Maps",
+    "title": "My Places",
     "subtitle": "Pin spots for your trip",
     "addSpot": "Add Spot",
+    "editSpot": "Edit Spot",
     "spotName": "Spot Name",
     "spotAddress": "Address or Place Name",
     "spotNamePlaceholder": "e.g. Eiffel Tower, Grand Hyatt...",
@@ -718,6 +719,11 @@
     "deleteSpot": "Delete Spot",
     "deleteSpotConfirm": "Remove this spot?",
     "geocodeError": "Could not find this location. Try a more specific address.",
-    "accommodationSet": "Accommodation"
+    "accommodationSet": "Accommodation",
+    "seeWhileHere": "Add the places you want to see in each stop on your journey",
+    "viewAllSpots": "View & Manage Spots",
+    "yourAccommodation": "Your Accommodation",
+    "addHotel": "Add Hotel",
+    "seeHowFar": "See how far you are!"
   }
 }

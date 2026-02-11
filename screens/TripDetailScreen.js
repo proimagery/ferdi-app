@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Alert, Image, LayoutAnimation, UIManager, Platform } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,19 +7,26 @@ import { useAppContext } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { useCountries } from '../context/CountryContext';
 import { countryCoordinates } from '../utils/coordinates';
+import { getCountryFlag } from '../utils/countryFlags';
 import { useTranslation } from 'react-i18next';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
+
+// Enable LayoutAnimation on Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 export default function TripDetailScreen({ route, navigation }) {
   const { theme } = useTheme();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { trips } = useAppContext();
+  const { trips, savedSpots } = useAppContext();
   const { findCountryByName } = useCountries();
   const { tripIndex, isNewTrip = true } = route.params;
   const trip = trips[tripIndex];
   const [isSaved, setIsSaved] = useState(!isNewTrip);
+  const [expandedCountry, setExpandedCountry] = useState(null);
 
   if (!trip) {
     return (
@@ -151,14 +158,18 @@ export default function TripDetailScreen({ route, navigation }) {
 
     const centerLat = (minLat + maxLat) / 2;
     const centerLng = (minLng + maxLng) / 2;
-    const latDelta = (maxLat - minLat) * 1.5 || 30;
-    const lngDelta = (maxLng - minLng) * 1.5 || 30;
+    const latSpan = maxLat - minLat;
+    const lngSpan = maxLng - minLng;
+
+    // For single country (span is 0), use a tight zoom; for multiple, add padding
+    const latDelta = latSpan === 0 ? 8 : latSpan * 1.8;
+    const lngDelta = lngSpan === 0 ? 8 : lngSpan * 1.8;
 
     initialRegion = {
       latitude: centerLat,
       longitude: centerLng,
-      latitudeDelta: Math.max(latDelta, 10),
-      longitudeDelta: Math.max(lngDelta, 10),
+      latitudeDelta: Math.max(latDelta, 5),
+      longitudeDelta: Math.max(lngDelta, 5),
     };
   }
 
@@ -391,6 +402,101 @@ export default function TripDetailScreen({ route, navigation }) {
         })}
       </View>
 
+      {/* Per-Country Local Maps */}
+      <View style={styles.localMapSection}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+          <Ionicons name="pin" size={18} color={theme.primary} />
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('localMaps.title')}</Text>
+        </View>
+        <Text style={[styles.localMapSubtitle, { color: theme.textSecondary }]}>
+          {t('localMaps.seeWhileHere')}
+        </Text>
+
+        <View style={[styles.localMapCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+          {trip.countries.map((country, index) => {
+            const coords = countryCoordinates[country.name];
+            if (!coords) return null;
+            const spotCount = savedSpots.filter(s => s.tripId === trip.id && s.countryName === country.name).length;
+            const isExpanded = expandedCountry === country.name;
+
+            return (
+              <View key={`localmap-${index}`}>
+                {index > 0 && <View style={[styles.accordionDivider, { backgroundColor: theme.border }]} />}
+
+                <TouchableOpacity
+                  style={styles.accordionHeader}
+                  onPress={() => {
+                    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                    setExpandedCountry(isExpanded ? null : country.name);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.accordionFlag}>{getCountryFlag(country.name)}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.accordionName, { color: theme.text }]}>{country.name}</Text>
+                    {spotCount > 0 && (
+                      <Text style={[styles.accordionCount, { color: theme.textSecondary }]}>
+                        {spotCount} {t('localMaps.spots')}
+                      </Text>
+                    )}
+                  </View>
+                  {spotCount > 0 && (
+                    <View style={[styles.accordionBadge, { backgroundColor: theme.primary }]}>
+                      <Text style={styles.accordionBadgeText}>{spotCount}</Text>
+                    </View>
+                  )}
+                  <Ionicons
+                    name={isExpanded ? 'chevron-down' : 'chevron-forward'}
+                    size={20}
+                    color={theme.textSecondary}
+                  />
+                </TouchableOpacity>
+
+                {isExpanded && (
+                  <View style={styles.accordionBody}>
+                    <View style={[styles.accordionMapWrap, { borderColor: theme.border }]}>
+                      <MapView
+                        style={styles.localMap}
+                        initialRegion={{
+                          latitude: coords.latitude,
+                          longitude: coords.longitude,
+                          latitudeDelta: 6,
+                          longitudeDelta: 6,
+                        }}
+                        scrollEnabled={false}
+                        zoomEnabled={false}
+                        pitchEnabled={false}
+                        rotateEnabled={false}
+                      >
+                        <Marker coordinate={{ latitude: coords.latitude, longitude: coords.longitude }}>
+                          <View style={[styles.localMapMarker, { backgroundColor: theme.primary }]}>
+                            <Ionicons name="location" size={14} color="#fff" />
+                          </View>
+                        </Marker>
+                      </MapView>
+                    </View>
+
+                    <TouchableOpacity
+                      style={[styles.addPlacesButton, { backgroundColor: theme.primary }]}
+                      onPress={() => navigation.navigate('LocalMap', {
+                        tripId: trip.id,
+                        countryName: country.name,
+                        countries: trip.countries,
+                      })}
+                    >
+                      <Ionicons name={spotCount > 0 ? 'map' : 'add-circle-outline'} size={18} color="#fff" />
+                      <Text style={styles.addPlacesText}>
+                        {spotCount > 0 ? t('localMaps.viewAllSpots') : t('localMaps.addSpot')}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            );
+          })}
+        </View>
+      </View>
+
       {/* Action Buttons */}
       <View style={styles.buttonContainer}>
         {isSaved ? (
@@ -413,17 +519,6 @@ export default function TripDetailScreen({ route, navigation }) {
             >
               <Ionicons name="wallet-outline" size={24} color={theme.background} />
               <Text style={[styles.buttonText, { color: theme.background }]}>{t('tripDetail.createBudget')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.createBudgetButton, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
-              onPress={() => navigation.navigate('LocalMap', {
-                tripId: trip.id,
-                countryName: trip.countries[0]?.name,
-                countries: trip.countries,
-              })}
-            >
-              <Ionicons name="map-outline" size={24} color={theme.text} />
-              <Text style={[styles.buttonText, { color: theme.text }]}>{t('localMaps.title')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.doneButton, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
@@ -697,6 +792,91 @@ const styles = StyleSheet.create({
     width: 50,
   },
   modeTime: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  // Local Maps per-country
+  localMapSection: {
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  localMapSubtitle: {
+    fontSize: 13,
+    marginBottom: 12,
+  },
+  localMapCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  accordionDivider: {
+    height: 1,
+    marginHorizontal: 16,
+  },
+  accordionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  accordionFlag: {
+    fontSize: 24,
+  },
+  accordionName: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  accordionCount: {
+    fontSize: 12,
+    marginTop: 1,
+  },
+  accordionBadge: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  accordionBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  accordionBody: {
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+  },
+  accordionMapWrap: {
+    borderRadius: 12,
+    borderWidth: 1,
+    overflow: 'hidden',
+    marginBottom: 10,
+  },
+  localMap: {
+    width: '100%',
+    height: 150,
+  },
+  localMapMarker: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  addPlacesButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 8,
+  },
+  addPlacesText: {
+    color: '#fff',
     fontSize: 14,
     fontWeight: '600',
   },

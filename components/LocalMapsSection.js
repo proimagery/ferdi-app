@@ -31,7 +31,7 @@ export default function LocalMapsSection({ trip, savedSpots, navigation, theme }
         onPress={() => handleCountryPress(countries[0].name)}
       >
         <View style={styles.headerLeft}>
-          <Ionicons name="map" size={18} color={theme.primary} />
+          <Ionicons name="pin" size={18} color={theme.primary} />
           <Text style={[styles.title, { color: theme.text }]}>{t('localMaps.title')}</Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
@@ -69,13 +69,13 @@ export default function LocalMapsSection({ trip, savedSpots, navigation, theme }
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 10,
+    paddingVertical: 10,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     marginBottom: 10,
   },
   headerLeft: {
@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   chipsRow: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     gap: 8,
   },
   chip: {

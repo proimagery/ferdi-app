@@ -33,17 +33,17 @@ import {
   isLastDay,
 } from '../utils/activeTripHelpers';
 import ShareableTripCard from '../components/ShareableTripCard';
-
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function ActiveTripScreen({ route, navigation }) {
   const { theme } = useTheme();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { trips, budgets } = useAppContext();
+  const { trips, budgets, savedSpots } = useAppContext();
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const confettiRef = useRef(null);
   const shareCardRef = useRef(null);
+  const tripMapRef = useRef(null);
   const lastDayAnim = useRef(new Animated.Value(0)).current;
 
   const [selectedTripIndex, setSelectedTripIndex] = useState(0);
@@ -165,13 +165,26 @@ export default function ActiveTripScreen({ route, navigation }) {
     const maxLat = Math.max(...lats);
     const minLng = Math.min(...lngs);
     const maxLng = Math.max(...lngs);
+    const latSpan = maxLat - minLat;
+    const lngSpan = maxLng - minLng;
     initialRegion = {
       latitude: (minLat + maxLat) / 2,
       longitude: (minLng + maxLng) / 2,
-      latitudeDelta: Math.max((maxLat - minLat) * 1.5, 10),
-      longitudeDelta: Math.max((maxLng - minLng) * 1.5, 10),
+      latitudeDelta: latSpan === 0 ? 8 : latSpan * 2.0,
+      longitudeDelta: lngSpan === 0 ? 8 : lngSpan * 2.0,
     };
   }
+
+  const handleMapReady = () => {
+    if (allCoords.length > 1 && tripMapRef.current) {
+      setTimeout(() => {
+        tripMapRef.current?.fitToCoordinates(allCoords, {
+          edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+          animated: false,
+        });
+      }, 200);
+    }
+  };
 
   // Budget calculations for current country
   const getBudgetData = () => {
@@ -352,8 +365,10 @@ export default function ActiveTripScreen({ route, navigation }) {
           {/* Map */}
           {allCoords.length > 0 && (
             <MapView
+              ref={tripMapRef}
               style={[styles.map, { borderColor: theme.border }]}
               initialRegion={initialRegion}
+              onMapReady={handleMapReady}
               showsUserLocation={false}
               showsMyLocationButton={false}
             >
@@ -572,6 +587,62 @@ export default function ActiveTripScreen({ route, navigation }) {
             </View>
           )}
         </View>
+
+        {/* ===== SECTION 3: MY PLACES PER COUNTRY ===== */}
+        {trip.countries && trip.countries.length > 0 && (
+          <View style={[styles.myPlacesContainer, { backgroundColor: theme.primary + '18', borderColor: theme.primary + '40' }]}>
+            <View style={styles.myPlacesHeader}>
+              <View style={[styles.myPlacesIconCircle, { backgroundColor: theme.primary }]}>
+                <Ionicons name="pin" size={18} color="#fff" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.myPlacesTitle, { color: theme.text }]}>{t('localMaps.title')}</Text>
+                <Text style={[styles.myPlacesSubtitle, { color: theme.textSecondary }]}>
+                  {t('localMaps.seeWhileHere')}
+                </Text>
+              </View>
+            </View>
+
+            <View style={[styles.myPlacesCard, { backgroundColor: theme.cardBackground + 'CC', borderColor: theme.primary + '30' }]}>
+              {trip.countries.map((country, index) => {
+                const cName = country.name || country;
+                const countrySpots = savedSpots.filter(s => s.tripId === trip.id && s.countryName === cName);
+                const spotCount = countrySpots.length;
+
+                return (
+                  <View key={`localmap-${index}`}>
+                    {index > 0 && <View style={[styles.myPlacesDivider, { backgroundColor: theme.primary + '20' }]} />}
+                    <TouchableOpacity
+                      style={styles.myPlacesRow}
+                      onPress={() => navigation.navigate('LocalMap', {
+                        tripId: trip.id,
+                        countryName: cName,
+                        countries: trip.countries,
+                      })}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.myPlacesFlag}>{getCountryFlag(cName)}</Text>
+                      <View style={styles.myPlacesTitleArea}>
+                        <Text style={[styles.myPlacesName, { color: theme.text }]}>{cName}</Text>
+                        {spotCount > 0 && (
+                          <Text style={[styles.myPlacesCount, { color: theme.textSecondary }]}>
+                            {spotCount} {t('localMaps.spots')}
+                          </Text>
+                        )}
+                      </View>
+                      {spotCount > 0 && (
+                        <View style={[styles.myPlacesBadge, { backgroundColor: theme.primary }]}>
+                          <Text style={styles.myPlacesBadgeText}>{spotCount}</Text>
+                        </View>
+                      )}
+                      <Ionicons name="chevron-forward" size={20} color={theme.primary} />
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        )}
 
         <View style={{ height: Math.max(insets.bottom, 20) + 20 }} />
       </ScrollView>
@@ -1017,6 +1088,79 @@ const styles = StyleSheet.create({
   budgetRowLocal: {
     fontSize: 12,
     marginTop: 1,
+  },
+
+  // My Places
+  myPlacesContainer: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    padding: 16,
+  },
+  myPlacesHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 14,
+  },
+  myPlacesIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  myPlacesTitle: {
+    fontSize: 17,
+    fontWeight: 'bold',
+  },
+  myPlacesSubtitle: {
+    fontSize: 12,
+    marginTop: 1,
+  },
+  myPlacesCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  myPlacesDivider: {
+    height: 1,
+    marginHorizontal: 16,
+  },
+  myPlacesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  myPlacesFlag: {
+    fontSize: 24,
+  },
+  myPlacesTitleArea: {
+    flex: 1,
+  },
+  myPlacesName: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  myPlacesCount: {
+    fontSize: 12,
+    marginTop: 1,
+  },
+  myPlacesBadge: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  myPlacesBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: 'bold',
   },
 
   // No budget

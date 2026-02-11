@@ -701,9 +701,10 @@
     "cannotEditDates": "Sie können die Daten einer aktiven Reise nicht bearbeiten"
   },
   "localMaps": {
-    "title": "Lokale Karten",
+    "title": "Meine Orte",
     "subtitle": "Orte für Ihre Reise markieren",
     "addSpot": "Ort Hinzufügen",
+    "editSpot": "Ort Bearbeiten",
     "spotName": "Ortsname",
     "spotAddress": "Adresse oder Ortsname",
     "spotNamePlaceholder": "z.B. Eiffelturm, Grand Hyatt...",
@@ -718,6 +719,11 @@
     "deleteSpot": "Ort Löschen",
     "deleteSpotConfirm": "Diesen Ort entfernen?",
     "geocodeError": "Dieser Ort konnte nicht gefunden werden. Versuchen Sie eine genauere Adresse.",
-    "accommodationSet": "Unterkunft"
+    "accommodationSet": "Unterkunft",
+    "seeWhileHere": "Fügen Sie die Orte hinzu, die Sie an jedem Stopp Ihrer Reise sehen möchten",
+    "viewAllSpots": "Orte Anzeigen & Verwalten",
+    "yourAccommodation": "Ihre Unterkunft",
+    "addHotel": "Hotel Hinzufügen",
+    "seeHowFar": "Sehen Sie, wie weit Sie sind!"
   }
 }

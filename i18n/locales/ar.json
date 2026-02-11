@@ -701,9 +701,10 @@
     "cannotEditDates": "لا يمكنك تعديل تواريخ رحلة نشطة"
   },
   "localMaps": {
-    "title": "خرائط محلية",
+    "title": "أماكني",
     "subtitle": "ثبّت أماكن لرحلتك",
     "addSpot": "إضافة مكان",
+    "editSpot": "تعديل المكان",
     "spotName": "اسم المكان",
     "spotAddress": "العنوان أو اسم المكان",
     "spotNamePlaceholder": "مثال: برج إيفل، جراند حياة...",
@@ -718,6 +719,11 @@
     "deleteSpot": "حذف المكان",
     "deleteSpotConfirm": "هل تريد إزالة هذا المكان؟",
     "geocodeError": "تعذر العثور على هذا الموقع. حاول بعنوان أكثر تحديداً.",
-    "accommodationSet": "إقامة"
+    "accommodationSet": "إقامة",
+    "seeWhileHere": "أضف الأماكن التي تريد زيارتها في كل محطة من رحلتك",
+    "viewAllSpots": "عرض وإدارة الأماكن",
+    "yourAccommodation": "مكان إقامتك",
+    "addHotel": "إضافة فندق",
+    "seeHowFar": "اكتشف كم تبعد!"
   }
 }

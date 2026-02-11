@@ -701,9 +701,10 @@
     "cannotEditDates": "No puedes editar las fechas de un viaje activo"
   },
   "localMaps": {
-    "title": "Mapas Locales",
+    "title": "Mis Lugares",
     "subtitle": "Fija puntos para tu viaje",
     "addSpot": "Agregar Punto",
+    "editSpot": "Editar Punto",
     "spotName": "Nombre del Punto",
     "spotAddress": "Dirección o Nombre del Lugar",
     "spotNamePlaceholder": "ej. Torre Eiffel, Grand Hyatt...",
@@ -718,6 +719,11 @@
     "deleteSpot": "Eliminar Punto",
     "deleteSpotConfirm": "¿Eliminar este punto?",
     "geocodeError": "No se pudo encontrar esta ubicación. Intenta con una dirección más específica.",
-    "accommodationSet": "Alojamiento"
+    "accommodationSet": "Alojamiento",
+    "seeWhileHere": "Agrega los lugares que quieras ver en cada parada de tu viaje",
+    "viewAllSpots": "Ver y Gestionar Lugares",
+    "yourAccommodation": "Tu Alojamiento",
+    "addHotel": "Agregar Hotel",
+    "seeHowFar": "¡Mira qué tan lejos estás!"
   }
 }
