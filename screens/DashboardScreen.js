@@ -167,7 +167,6 @@ export default function DashboardScreen({ navigation }) {
 
   // Cross-tab navigation: some feature cards target screens in other tabs
   const crossTabTargets = {
-    'TravelMapper': 'TravelMapperTab',
     'Profile': 'ProfileTab',
   };
 

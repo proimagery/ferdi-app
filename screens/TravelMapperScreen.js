@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, TextInput, KeyboardAvoidingView, Platform, Image, ActivityIndicator, Alert, useWindowDimensions } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, TextInput, KeyboardAvoidingView, Platform, Image, ActivityIndicator, Alert, useWindowDimensions, Animated, PanResponder } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -92,6 +92,52 @@ export default function TravelMapperScreen({ navigation, route }) {
 
   // Legacy support
   const [selectedCountries, setSelectedCountries] = useState([]);
+
+  // Draggable bottom panel
+  const minPanelRatio = 0.20;  // Panel collapsed - map takes 80%
+  const defaultPanelRatio = 0.40; // Default - map takes 60%
+  const maxPanelRatio = 0.65;  // Panel expanded - map takes 35%
+  const panelHeight = useRef(new Animated.Value(screenHeight * defaultPanelRatio)).current;
+  const lastPanelHeight = useRef(screenHeight * defaultPanelRatio);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => Math.abs(gestureState.dy) > 5,
+      onPanResponderGrant: () => {
+        panelHeight.stopAnimation((val) => {
+          lastPanelHeight.current = val;
+        });
+      },
+      onPanResponderMove: (_, gestureState) => {
+        const newHeight = lastPanelHeight.current - gestureState.dy;
+        const clamped = Math.min(
+          screenHeight * maxPanelRatio,
+          Math.max(screenHeight * minPanelRatio, newHeight)
+        );
+        panelHeight.setValue(clamped);
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        const currentHeight = lastPanelHeight.current - gestureState.dy;
+        // Snap to nearest position
+        const positions = [
+          screenHeight * minPanelRatio,
+          screenHeight * defaultPanelRatio,
+          screenHeight * maxPanelRatio,
+        ];
+        const closest = positions.reduce((prev, curr) =>
+          Math.abs(curr - currentHeight) < Math.abs(prev - currentHeight) ? curr : prev
+        );
+        lastPanelHeight.current = closest;
+        Animated.spring(panelHeight, {
+          toValue: closest,
+          useNativeDriver: false,
+          tension: 60,
+          friction: 12,
+        }).start();
+      },
+    })
+  ).current;
 
   const countries = officialCountryNames;
 
@@ -374,7 +420,7 @@ export default function TravelMapperScreen({ navigation, route }) {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <MapView
-        style={[styles.map, { width: screenWidth, height: screenHeight * 0.5 }]}
+        style={[styles.map, { width: screenWidth, flex: 1 }]}
         region={getMapRegion()}
       >
         {polylineCoords.length > 1 && (
@@ -443,7 +489,11 @@ export default function TravelMapperScreen({ navigation, route }) {
       )}
 
       {/* Location List Panel */}
-      <View style={[styles.bottomPanel, { backgroundColor: theme.cardBackground, borderTopColor: theme.border, height: screenHeight * 0.5 }]}>
+      <Animated.View style={[styles.bottomPanel, { backgroundColor: theme.cardBackground, borderTopColor: theme.border, height: panelHeight }]}>
+        {/* Drag Handle */}
+        <View {...panResponder.panHandlers} style={styles.dragHandleArea}>
+          <View style={[styles.dragHandle, { backgroundColor: theme.textSecondary + '60' }]} />
+        </View>
         <View style={styles.panelHeader}>
           <Text style={[styles.panelTitle, { color: theme.text }]}>{t('travelMapper.journeyRoute')}</Text>
           {selectedLocations.length >= 2 && (
@@ -563,11 +613,11 @@ export default function TravelMapperScreen({ navigation, route }) {
             <Image source={ferdiLogo} style={styles.footerLogo} resizeMode="contain" />
           </View>
         </ScrollView>
-      </View>
+      </Animated.View>
 
       {/* Add Location FAB */}
       <TouchableOpacity
-        style={[styles.fab, { backgroundColor: theme.primary, bottom: screenHeight * 0.5 + 20 }]}
+        style={[styles.fab, { backgroundColor: theme.primary, bottom: screenHeight * defaultPanelRatio + 20 }]}
         onPress={() => setShowLocationPicker(true)}
       >
         <Ionicons name="add" size={30} color={theme.background} />
@@ -882,11 +932,19 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    // Height set dynamically via inline styles for responsive sizing
     borderTopWidth: 2,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    paddingTop: 15,
+  },
+  dragHandleArea: {
+    alignItems: 'center',
+    paddingTop: 10,
+    paddingBottom: 8,
+  },
+  dragHandle: {
+    width: 40,
+    height: 5,
+    borderRadius: 3,
   },
   panelHeader: {
     flexDirection: 'row',

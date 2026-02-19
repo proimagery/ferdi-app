@@ -278,7 +278,7 @@ export default function MyTripsScreen({ navigation, route }) {
 
       <TouchableOpacity
         style={[styles.fab, { backgroundColor: theme.primary }]}
-        onPress={() => navigation.navigate('CreateTrip')}
+        onPress={() => navigation.navigate('TravelMapper')}
       >
         <Ionicons name="add" size={30} color={theme.background} />
       </TouchableOpacity>

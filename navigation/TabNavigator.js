@@ -35,7 +35,7 @@ import LocalMapScreen from '../screens/LocalMapScreen';
 const Tab = createBottomTabNavigator();
 const DashboardStack = createNativeStackNavigator();
 const WorldInfoStack = createNativeStackNavigator();
-const TravelMapperStack = createNativeStackNavigator();
+const StatsStack = createNativeStackNavigator();
 const ProfileStack = createNativeStackNavigator();
 
 // Shared screen options for all stacks
@@ -90,6 +90,7 @@ function DashboardStackScreen() {
       <DashboardStack.Screen name="CountryDetail" component={CountryDetailScreen} options={{ title: 'Country Details' }} />
       <DashboardStack.Screen name="ManageCountries" component={ManageCountriesScreen} options={{ title: 'Manage Countries' }} />
       <DashboardStack.Screen name="ManageCities" component={ManageCitiesScreen} options={{ title: 'Manage Cities' }} />
+      <DashboardStack.Screen name="TravelMapper" component={TravelMapperScreen} options={{ title: 'Travel Mapper' }} />
     </DashboardStack.Navigator>
   );
 }
@@ -109,15 +110,19 @@ function WorldInfoStackScreen() {
   );
 }
 
-// ===== TRAVEL MAPPER TAB STACK =====
-function TravelMapperStackScreen() {
+// ===== STATS TAB STACK =====
+function StatsStackScreen() {
   const { theme } = useTheme();
 
   return (
-    <TravelMapperStack.Navigator screenOptions={getCommonScreenOptions(theme)}>
-      <TravelMapperStack.Screen name="TravelMapper" component={TravelMapperScreen} options={{ title: 'Travel Mapper', headerLeft: () => null }} />
-      <TravelMapperStack.Screen name="CreateTrip" component={CreateTripScreen} options={{ title: 'Create Trip' }} />
-    </TravelMapperStack.Navigator>
+    <StatsStack.Navigator screenOptions={getCommonScreenOptions(theme)}>
+      <StatsStack.Screen name="YourStats" component={YourStatsScreen} options={{ title: 'Travel Stats', headerLeft: () => null }} />
+      <StatsStack.Screen name="AddCompletedTrip" component={AddCompletedTripScreen} options={{ title: 'Add Completed Trip' }} />
+      <StatsStack.Screen name="CompletedTrips" component={CompletedTripsScreen} options={{ title: 'Completed Trips' }} />
+      <StatsStack.Screen name="CountryDetail" component={CountryDetailScreen} options={{ title: 'Country Details' }} />
+      <StatsStack.Screen name="ManageCountries" component={ManageCountriesScreen} options={{ title: 'Manage Countries' }} />
+      <StatsStack.Screen name="ManageCities" component={ManageCitiesScreen} options={{ title: 'Manage Cities' }} />
+    </StatsStack.Navigator>
   );
 }
 
@@ -253,17 +258,17 @@ export default function TabNavigator() {
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             e.preventDefault();
-            navigation.navigate('DashboardTab', { screen: 'CreateTrip' });
+            navigation.navigate('DashboardTab', { screen: 'TravelMapper' });
           },
         })}
       />
       <Tab.Screen
-        name="TravelMapperTab"
-        component={TravelMapperStackScreen}
+        name="StatsTab"
+        component={StatsStackScreen}
         options={{
-          tabBarLabel: 'Mapper',
+          tabBarLabel: 'Stats',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="map" size={size} color={color} />
+            <Ionicons name="stats-chart" size={size} color={color} />
           ),
         }}
         listeners={({ navigation, route }) => ({
@@ -272,7 +277,7 @@ export default function TabNavigator() {
             const tabRoute = state.routes.find(r => r.name === route.name);
             if (tabRoute?.state?.index > 0) {
               e.preventDefault();
-              navigation.navigate(route.name, { screen: 'TravelMapper' });
+              navigation.navigate(route.name, { screen: 'YourStats' });
             }
           },
         })}
