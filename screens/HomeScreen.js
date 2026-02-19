@@ -29,7 +29,7 @@ export default function HomeScreen({ navigation }) {
 
         <TouchableOpacity
           style={[styles.button, { backgroundColor: theme.primary }]}
-          onPress={() => navigation.navigate('Dashboard')}
+          onPress={() => navigation.navigate('MainTabs')}
         >
           <Text style={[styles.buttonText, { color: theme.background }]}>{t('home.welcome')}</Text>
           <Ionicons name="arrow-forward" size={20} color={theme.background} />

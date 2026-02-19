@@ -165,6 +165,20 @@ export default function DashboardScreen({ navigation }) {
     }
   };
 
+  // Cross-tab navigation: some feature cards target screens in other tabs
+  const crossTabTargets = {
+    'TravelMapper': 'TravelMapperTab',
+    'Profile': 'ProfileTab',
+  };
+
+  const handleFeaturePress = (screen) => {
+    if (crossTabTargets[screen]) {
+      navigation.getParent()?.navigate(crossTabTargets[screen]);
+    } else {
+      navigation.navigate(screen);
+    }
+  };
+
   const features = [
     {
       title: 'Travel Stats',
@@ -314,43 +328,7 @@ export default function DashboardScreen({ navigation }) {
         />
       </View>
 
-      {/* Travel Stats Wide Button */}
-      <View style={styles.travelStatsSection}>
-        <TouchableOpacity
-          style={[styles.travelStatsButton, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
-          onPress={() => navigation.navigate('YourStats')}
-        >
-          <View style={[styles.travelStatsIconContainer, { backgroundColor: '#a78bfa20' }]}>
-            <Ionicons name="stats-chart" size={28} color="#a78bfa" />
-          </View>
-          <View style={styles.travelStatsTextContainer}>
-            <Text style={[styles.travelStatsTitle, { color: theme.text }]}>{t('dashboard.myTravelStats')}</Text>
-            <Text style={[styles.travelStatsDescription, { color: theme.textSecondary }]}>
-              {t('dashboard.myTravelStatsDesc')}
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={24} color={theme.textSecondary} />
-        </TouchableOpacity>
-      </View>
 
-      {/* World Info Wide Button */}
-      <View style={styles.travelStatsSection}>
-        <TouchableOpacity
-          style={[styles.travelStatsButton, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
-          onPress={() => navigation.navigate('WorldRank')}
-        >
-          <View style={[styles.travelStatsIconContainer, { backgroundColor: '#34d39920' }]}>
-            <Ionicons name="globe" size={28} color="#34d399" />
-          </View>
-          <View style={styles.travelStatsTextContainer}>
-            <Text style={[styles.travelStatsTitle, { color: theme.text }]}>{t('dashboard.worldInfo')}</Text>
-            <Text style={[styles.travelStatsDescription, { color: theme.textSecondary }]}>
-              {t('dashboard.worldInfoDesc')}
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={24} color={theme.textSecondary} />
-        </TouchableOpacity>
-      </View>
 
       {/* Globe Info Modal Overlay */}
       <Modal
@@ -431,15 +409,15 @@ export default function DashboardScreen({ navigation }) {
         )}
       </View>
 
-      {/* Quick Access Row - My Profile, Travel Buddies, Leaderboard */}
+      {/* Quick Access Row - Travel Stats, Travel Buddies, Leaderboard */}
       <View style={styles.quickAccessRow}>
-        {features.filter(f => ['Profile', 'TravelBuddies', 'Leaderboard'].includes(f.screen)).map((feature, index) => {
+        {features.filter(f => ['YourStats', 'TravelBuddies', 'Leaderboard'].includes(f.screen)).map((feature, index) => {
           const hasBadge = feature.screen === 'TravelBuddies' && buddyRequestProfiles.length > 0;
           return (
             <TouchableOpacity
               key={index}
               style={[styles.quickAccessCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
-              onPress={() => navigation.navigate(feature.screen)}
+              onPress={() => handleFeaturePress(feature.screen)}
             >
               <View style={[styles.quickAccessIconContainer, { backgroundColor: feature.color + '20' }]}>
                 <Ionicons name={feature.icon} size={24} color={feature.color} />
@@ -469,7 +447,7 @@ export default function DashboardScreen({ navigation }) {
             <TouchableOpacity
               key={index}
               style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
-              onPress={() => navigation.navigate(feature.screen)}
+              onPress={() => handleFeaturePress(feature.screen)}
             >
               <View style={[styles.iconContainer, { backgroundColor: feature.color + '20' }]}>
                 <Ionicons name={feature.icon} size={32} color={feature.color} />
