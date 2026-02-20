@@ -14,13 +14,13 @@ export default function HotelOfferCard({ hotel, theme }) {
             {hotel.name}
           </Text>
         </View>
-        {bestOffer?.price?.total && (
+        {(bestOffer?.price?.perNight || bestOffer?.price?.total) && (
           <View style={styles.priceContainer}>
             <Text style={[styles.price, { color: theme.primary }]}>
-              ${bestOffer.price.total}
+              ${bestOffer.price.perNight || bestOffer.price.total}
             </Text>
             <Text style={[styles.priceLabel, { color: theme.textSecondary }]}>
-              total
+              {bestOffer.price.perNight ? '/night' : 'total'}
             </Text>
           </View>
         )}
@@ -44,11 +44,11 @@ export default function HotelOfferCard({ hotel, theme }) {
               </Text>
             </View>
           )}
-          {bestOffer.price?.perNight && (
+          {bestOffer.price?.total && bestOffer.price?.perNight && (
             <View style={styles.detailItem}>
               <Ionicons name="moon-outline" size={14} color={theme.textSecondary} />
               <Text style={[styles.detailText, { color: theme.textSecondary }]}>
-                ${bestOffer.price.perNight}/night
+                ${bestOffer.price.total} for {bestOffer.nights || 3} nights
               </Text>
             </View>
           )}

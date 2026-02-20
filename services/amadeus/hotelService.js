@@ -79,6 +79,11 @@ export async function searchHotelsByLocation(latitude, longitude, radius = 5) {
 export async function getHotelOffers(hotelIds, checkInDate, checkOutDate, adults = 1) {
   if (!hotelIds?.length || !checkInDate || !checkOutDate) return [];
 
+  // Calculate number of nights for per-night fallback
+  const nights = Math.max(1, Math.round(
+    (new Date(checkOutDate) - new Date(checkInDate)) / (1000 * 60 * 60 * 24)
+  ));
+
   const result = await amadeusGet(
     '/v3/shopping/hotel-offers',
     {
@@ -99,20 +104,27 @@ export async function getHotelOffers(hotelIds, checkInDate, checkOutDate, adults
     cityCode: hotel.hotel?.cityCode,
     latitude: hotel.hotel?.latitude,
     longitude: hotel.hotel?.longitude,
-    offers: hotel.offers?.map(offer => ({
-      id: offer.id,
-      checkIn: offer.checkInDate,
-      checkOut: offer.checkOutDate,
-      roomType: offer.room?.typeEstimated?.category,
-      bedType: offer.room?.typeEstimated?.bedType,
-      description: offer.room?.description?.text,
-      price: {
-        total: offer.price?.total,
-        currency: offer.price?.currency || 'USD',
-        perNight: offer.price?.variations?.average?.total,
-      },
-      cancellation: offer.policies?.cancellations?.[0]?.description?.text,
-    })) || [],
+    offers: hotel.offers?.map(offer => {
+      const total = parseFloat(offer.price?.total) || 0;
+      const apiPerNight = parseFloat(offer.price?.variations?.average?.total) || 0;
+      const perNight = apiPerNight > 0 ? apiPerNight : (total > 0 ? (total / nights).toFixed(2) : null);
+
+      return {
+        id: offer.id,
+        checkIn: offer.checkInDate,
+        checkOut: offer.checkOutDate,
+        nights,
+        roomType: offer.room?.typeEstimated?.category,
+        bedType: offer.room?.typeEstimated?.bedType,
+        description: offer.room?.description?.text,
+        price: {
+          total: offer.price?.total,
+          currency: offer.price?.currency || 'USD',
+          perNight: perNight ? String(perNight) : null,
+        },
+        cancellation: offer.policies?.cancellations?.[0]?.description?.text,
+      };
+    }) || [],
   }));
 }
 
