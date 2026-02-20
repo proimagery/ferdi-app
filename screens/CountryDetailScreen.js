@@ -1,17 +1,25 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import CountryHeaderImage from '../components/CountryHeaderImage';
 import AttractionCard from '../components/AttractionCard';
-import HotelCard from '../components/HotelCard';
 import CityCard from '../components/CityCard';
+import FlightOfferCard from '../components/FlightOfferCard';
+import HotelOfferCard from '../components/HotelOfferCard';
+import ActivityCard from '../components/ActivityCard';
 import { getCountryFlag } from '../utils/countryFlags';
 import countryCities from '../data/countryCities';
 import { useTranslation } from 'react-i18next';
+import { searchAirports, searchFlights } from '../services/amadeus/flightService';
+import { searchHotelsByCity, getHotelOffers } from '../services/amadeus/hotelService';
+import { getActivities } from '../services/amadeus/activityService';
+import { getBusiestPeriod } from '../services/amadeus/marketInsightsService';
+import { clearAmadeusCache } from '../services/amadeus/amadeusApi';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
+
 
 export default function CountryDetailScreen({ route }) {
   const { theme } = useTheme();
@@ -19,11 +27,39 @@ export default function CountryDetailScreen({ route }) {
   const insets = useSafeAreaInsets();
   const { country } = route.params;
 
+  // Amadeus data states
+  const [flightOffers, setFlightOffers] = useState([]);
+  const [flightsLoading, setFlightsLoading] = useState(false);
+  const [showFlights, setShowFlights] = useState(false);
+  const [departureInput, setDepartureInput] = useState('');
+  const [departureCode, setDepartureCode] = useState('');
+  const [airportSuggestions, setAirportSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const [hotelOffers, setHotelOffers] = useState([]);
+  const [hotelsLoading, setHotelsLoading] = useState(false);
+  const [showHotels, setShowHotels] = useState(false);
+  const [hotelCityInput, setHotelCityInput] = useState('');
+  const [hotelCityCode, setHotelCityCode] = useState('');
+  const [citySuggestions, setCitySuggestions] = useState([]);
+  const [showCitySuggestions, setShowCitySuggestions] = useState(false);
+
+  const [activities, setActivities] = useState([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(false);
+  const [showActivities, setShowActivities] = useState(false);
+  const [activityCityInput, setActivityCityInput] = useState('');
+  const [activityCityCoords, setActivityCityCoords] = useState(null);
+  const [activityCitySuggestions, setActivityCitySuggestions] = useState([]);
+  const [showActivityCitySuggestions, setShowActivityCitySuggestions] = useState(false);
+
+  const [busiestMonths, setBusiestMonths] = useState([]);
+  const [busiestLoading, setBusiestLoading] = useState(false);
+
   const getRatingColor = (rating) => {
-    if (rating >= 8) return '#4ade80'; // Green - Excellent
-    if (rating >= 6) return '#fbbf24'; // Yellow - Good
-    if (rating >= 4) return '#fb923c'; // Orange - Fair
-    return '#ef4444'; // Red - Poor
+    if (rating >= 8) return '#4ade80';
+    if (rating >= 6) return '#fbbf24';
+    if (rating >= 4) return '#fb923c';
+    return '#ef4444';
   };
 
   const getRatingLabel = (rating) => {
@@ -32,6 +68,289 @@ export default function CountryDetailScreen({ route }) {
     if (rating >= 5) return 'Good';
     if (rating >= 3) return 'Fair';
     return 'Poor';
+  };
+
+  const getMonthName = (period) => {
+    if (!period) return '';
+    const month = parseInt(period.split('-')[1], 10);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return months[month - 1] || '';
+  };
+
+  // Clear stale cache (from test env) and load busiest period on mount
+  useEffect(() => {
+    clearAmadeusCache().then(() => loadBusiestPeriod());
+  }, []);
+
+  const loadBusiestPeriod = async () => {
+    setBusiestLoading(true);
+    try {
+      // Look up city code from capital
+      const capital = country.capital;
+      if (!capital) return;
+      const airports = await searchAirports(capital);
+      const cityCode = airports.find(a => a.type === 'CITY')?.iataCode || airports[0]?.iataCode;
+      if (!cityCode) return;
+
+      const data = await getBusiestPeriod(cityCode, '2024');
+      setBusiestMonths(data.slice(0, 6));
+    } catch (error) {
+      console.warn('Busiest period error:', error);
+    } finally {
+      setBusiestLoading(false);
+    }
+  };
+
+  const handleDepartureSearch = async (text) => {
+    setDepartureInput(text);
+    setDepartureCode('');
+    setFlightOffers([]);
+    setShowFlights(false);
+
+    if (text.length < 2) {
+      setAirportSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    const results = await searchAirports(text);
+    setAirportSuggestions(results.slice(0, 5));
+    setShowSuggestions(results.length > 0);
+  };
+
+  const selectDepartureAirport = (airport) => {
+    setDepartureInput(`${airport.cityName} (${airport.iataCode})`);
+    setDepartureCode(airport.iataCode);
+    setAirportSuggestions([]);
+    setShowSuggestions(false);
+  };
+
+  const handleSearchFlights = async () => {
+    if (!departureCode) return;
+
+    if (flightOffers.length > 0) {
+      setShowFlights(!showFlights);
+      return;
+    }
+
+    setFlightsLoading(true);
+    setShowFlights(true);
+    try {
+      // Find airport for this country's capital
+      const capital = country.capital || country.name;
+      const airports = await searchAirports(capital);
+      const destCode = airports.find(a => a.type === 'AIRPORT')?.iataCode || airports[0]?.iataCode;
+
+      if (destCode) {
+        // Search flights from user's selected departure airport
+        const futureDate = new Date();
+        futureDate.setDate(futureDate.getDate() + 30);
+        const dateStr = futureDate.toISOString().split('T')[0];
+
+        const offers = await searchFlights(departureCode, destCode, dateStr, 1);
+        setFlightOffers(offers);
+      }
+    } catch (error) {
+      console.warn('Flight search error:', error);
+    } finally {
+      setFlightsLoading(false);
+    }
+  };
+
+  const handleHotelCitySearch = async (text) => {
+    setHotelCityInput(text);
+    setHotelCityCode('');
+    setHotelOffers([]);
+    setShowHotels(false);
+
+    if (text.length < 2) {
+      setCitySuggestions([]);
+      setShowCitySuggestions(false);
+      return;
+    }
+
+    const results = await searchAirports(text);
+    // Filter to cities/airports within this country (flexible match)
+    const countryLower = country.name?.toLowerCase() || '';
+    const filtered = results.filter(r => {
+      const rCountry = r.countryName?.toLowerCase() || '';
+      const inCountry = rCountry === countryLower || rCountry.includes(countryLower) || countryLower.includes(rCountry);
+      return inCountry;
+    });
+    // Deduplicate by cityName so we don't show the same city multiple times
+    const seen = new Set();
+    const unique = filtered.filter(r => {
+      const key = r.cityName?.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    setCitySuggestions(unique.slice(0, 5));
+    setShowCitySuggestions(unique.length > 0);
+  };
+
+  const selectHotelCity = (city) => {
+    setHotelCityInput(`${city.cityName} (${city.iataCode})`);
+    setHotelCityCode(city.iataCode);
+    setCitySuggestions([]);
+    setShowCitySuggestions(false);
+  };
+
+  const handleHotelCityFocus = async () => {
+    if (hotelCityInput.length > 0 || citySuggestions.length > 0) return;
+    // Search using capital and major city names from countryCities data
+    const cityNames = [
+      country.capital,
+      ...(countryCities[country.name] || []).slice(0, 4).map(c => c.name),
+    ].filter(Boolean);
+    const allResults = [];
+    const seen = new Set();
+    for (const cityName of cityNames) {
+      const results = await searchAirports(cityName);
+      const countryLower = country.name?.toLowerCase() || '';
+      for (const r of results) {
+        const rCountry = r.countryName?.toLowerCase() || '';
+        const inCountry = rCountry === countryLower || rCountry.includes(countryLower) || countryLower.includes(rCountry);
+        const key = r.cityName?.toLowerCase();
+        if (inCountry && !seen.has(key)) {
+          seen.add(key);
+          allResults.push(r);
+        }
+      }
+      if (allResults.length >= 5) break;
+    }
+    setCitySuggestions(allResults.slice(0, 5));
+    setShowCitySuggestions(allResults.length > 0);
+  };
+
+  const handleSearchHotels = async () => {
+    if (!hotelCityCode) return;
+
+    if (hotelOffers.length > 0) {
+      setShowHotels(!showHotels);
+      return;
+    }
+
+    setHotelsLoading(true);
+    setShowHotels(true);
+    try {
+      // Find hotels in the selected city
+      const hotels = await searchHotelsByCity(hotelCityCode);
+
+      if (hotels.length > 0) {
+        // Get pricing for first 10 hotels (more chances of available offers)
+        const hotelIds = hotels.slice(0, 10).map(h => h.hotelId);
+        const checkIn = new Date();
+        checkIn.setDate(checkIn.getDate() + 30);
+        const checkOut = new Date(checkIn);
+        checkOut.setDate(checkOut.getDate() + 3);
+
+        const offers = await getHotelOffers(
+          hotelIds,
+          checkIn.toISOString().split('T')[0],
+          checkOut.toISOString().split('T')[0]
+        );
+
+        // Merge hotel info with distance data
+        const merged = offers.map(offer => {
+          const hotelInfo = hotels.find(h => h.hotelId === offer.hotelId);
+          return { ...offer, distance: hotelInfo?.distance, distanceUnit: hotelInfo?.distanceUnit };
+        });
+
+        setHotelOffers(merged);
+      }
+    } catch (error) {
+      console.warn('Hotel search error:', error);
+    } finally {
+      setHotelsLoading(false);
+    }
+  };
+
+  const handleActivityCitySearch = async (text) => {
+    setActivityCityInput(text);
+    setActivityCityCoords(null);
+    setActivities([]);
+    setShowActivities(false);
+
+    if (text.length < 2) {
+      setActivityCitySuggestions([]);
+      setShowActivityCitySuggestions(false);
+      return;
+    }
+
+    const results = await searchAirports(text);
+    // Filter to cities/airports within this country that have coordinates
+    const countryLower = country.name?.toLowerCase() || '';
+    const filtered = results.filter(r => {
+      if (!r.lat || !r.lng) return false;
+      const rCountry = r.countryName?.toLowerCase() || '';
+      return rCountry === countryLower || rCountry.includes(countryLower) || countryLower.includes(rCountry);
+    });
+    // Deduplicate by cityName
+    const seen = new Set();
+    const unique = filtered.filter(r => {
+      const key = r.cityName?.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    setActivityCitySuggestions(unique.slice(0, 5));
+    setShowActivityCitySuggestions(unique.length > 0);
+  };
+
+  const selectActivityCity = (city) => {
+    setActivityCityInput(`${city.cityName} (${city.iataCode})`);
+    setActivityCityCoords({ lat: city.lat, lng: city.lng });
+    setActivityCitySuggestions([]);
+    setShowActivityCitySuggestions(false);
+  };
+
+  const handleActivityCityFocus = async () => {
+    if (activityCityInput.length > 0 || activityCitySuggestions.length > 0) return;
+    // Search using capital and major city names from countryCities data
+    const cityNames = [
+      country.capital,
+      ...(countryCities[country.name] || []).slice(0, 4).map(c => c.name),
+    ].filter(Boolean);
+    const allResults = [];
+    const seen = new Set();
+    for (const cityName of cityNames) {
+      const results = await searchAirports(cityName);
+      const countryLower = country.name?.toLowerCase() || '';
+      for (const r of results) {
+        if (!r.lat || !r.lng) continue;
+        const rCountry = r.countryName?.toLowerCase() || '';
+        const inCountry = rCountry === countryLower || rCountry.includes(countryLower) || countryLower.includes(rCountry);
+        const key = r.cityName?.toLowerCase();
+        if (inCountry && !seen.has(key)) {
+          seen.add(key);
+          allResults.push(r);
+        }
+      }
+      if (allResults.length >= 5) break;
+    }
+    setActivityCitySuggestions(allResults.slice(0, 5));
+    setShowActivityCitySuggestions(allResults.length > 0);
+  };
+
+  const handleSearchActivities = async () => {
+    if (!activityCityCoords) return;
+
+    if (activities.length > 0) {
+      setShowActivities(!showActivities);
+      return;
+    }
+
+    setActivitiesLoading(true);
+    setShowActivities(true);
+    try {
+      const data = await getActivities(activityCityCoords.lat, activityCityCoords.lng);
+      setActivities(data);
+    } catch (error) {
+      console.warn('Activities error:', error);
+    } finally {
+      setActivitiesLoading(false);
+    }
   };
 
   return (
@@ -239,6 +558,282 @@ export default function CountryDetailScreen({ route }) {
         </View>
       )}
 
+      {/* Amadeus Sections */}
+      <View style={[styles.amadeusContainer, {
+        backgroundColor: theme.cardBackground,
+        borderColor: theme.border,
+      }]}>
+
+        {/* Tours & Activities */}
+        <View style={styles.amadeusInnerSection}>
+        <View style={styles.subsectionHeader}>
+          <Ionicons name="ticket-outline" size={18} color="#a78bfa" />
+          <Text style={[styles.subsectionTitle, { color: theme.text }]}>Tours & Activities</Text>
+        </View>
+
+        <View style={styles.flightSearchRow}>
+          <View style={{ flex: 1 }}>
+            <TextInput
+              style={[styles.airportInput, {
+                backgroundColor: theme.cardBackground,
+                borderColor: theme.border,
+                color: theme.text,
+              }]}
+              placeholder={`City in ${country.name}...`}
+              placeholderTextColor={theme.textSecondary}
+              value={activityCityInput}
+              onChangeText={handleActivityCitySearch}
+              onFocus={handleActivityCityFocus}
+            />
+            {showActivityCitySuggestions && (
+              <View style={[styles.suggestionsDropdown, {
+                backgroundColor: theme.cardBackground,
+                borderColor: theme.border,
+              }]}>
+                {activityCitySuggestions.map((city, index) => (
+                  <TouchableOpacity
+                    key={city.iataCode + index}
+                    style={[styles.suggestionItem, {
+                      borderBottomColor: theme.border,
+                      borderBottomWidth: index < activityCitySuggestions.length - 1 ? 1 : 0,
+                    }]}
+                    onPress={() => selectActivityCity(city)}
+                  >
+                    <Ionicons name="business" size={16} color={theme.textSecondary} />
+                    <Text style={[styles.suggestionName, { color: theme.text }]}>
+                      {city.cityName} ({city.iataCode})
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+          <TouchableOpacity
+            onPress={handleSearchActivities}
+            disabled={!activityCityCoords || activitiesLoading}
+            style={[styles.searchFlightButton, {
+              backgroundColor: activityCityCoords ? '#a78bfa' : theme.border,
+            }]}
+          >
+            {activitiesLoading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Ionicons name="search" size={20} color="#fff" />
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {showActivities && (
+          <View style={styles.amadeusResults}>
+            {activities.length > 0 ? (
+              activities.slice(0, 5).map((activity, index) => (
+                <ActivityCard key={activity.id || index} activity={activity} theme={theme} />
+              ))
+            ) : !activitiesLoading ? (
+              <Text style={[styles.noResults, { color: theme.textSecondary }]}>
+                No activities found. Try a different city.
+              </Text>
+            ) : null}
+          </View>
+        )}
+        </View>
+
+        {/* Flight Prices */}
+        <View style={styles.amadeusInnerSection}>
+        <View style={styles.subsectionHeader}>
+          <Ionicons name="airplane" size={18} color={theme.primary} />
+          <Text style={[styles.subsectionTitle, { color: theme.text }]}>Flight Prices</Text>
+        </View>
+
+        <View style={styles.flightSearchRow}>
+          <View style={{ flex: 1 }}>
+            <TextInput
+              style={[styles.airportInput, {
+                backgroundColor: theme.cardBackground,
+                borderColor: theme.border,
+                color: theme.text,
+              }]}
+              placeholder="Departure city or airport..."
+              placeholderTextColor={theme.textSecondary}
+              value={departureInput}
+              onChangeText={handleDepartureSearch}
+            />
+            {showSuggestions && (
+              <View style={[styles.suggestionsDropdown, {
+                backgroundColor: theme.cardBackground,
+                borderColor: theme.border,
+              }]}>
+                {airportSuggestions.map((airport, index) => (
+                  <TouchableOpacity
+                    key={airport.iataCode + index}
+                    style={[styles.suggestionItem, {
+                      borderBottomColor: theme.border,
+                      borderBottomWidth: index < airportSuggestions.length - 1 ? 1 : 0,
+                    }]}
+                    onPress={() => selectDepartureAirport(airport)}
+                  >
+                    <Ionicons
+                      name={airport.type === 'AIRPORT' ? 'airplane' : 'business'}
+                      size={16}
+                      color={theme.textSecondary}
+                    />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.suggestionName, { color: theme.text }]}>
+                        {airport.cityName} ({airport.iataCode})
+                      </Text>
+                      {airport.countryName ? (
+                        <Text style={[styles.suggestionCountry, { color: theme.textSecondary }]}>
+                          {airport.name} · {airport.countryName}
+                        </Text>
+                      ) : null}
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+          <TouchableOpacity
+            onPress={handleSearchFlights}
+            disabled={!departureCode || flightsLoading}
+            style={[styles.searchFlightButton, {
+              backgroundColor: departureCode ? theme.primary : theme.border,
+            }]}
+          >
+            {flightsLoading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Ionicons name="search" size={20} color="#fff" />
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {showFlights && (
+          <View style={styles.amadeusResults}>
+            {flightOffers.length > 0 ? (
+              flightOffers.slice(0, 5).map((offer, index) => (
+                <FlightOfferCard key={offer.id || index} offer={offer} theme={theme} />
+              ))
+            ) : !flightsLoading ? (
+              <Text style={[styles.noResults, { color: theme.textSecondary }]}>
+                No flight offers found. Try a different airport.
+              </Text>
+            ) : null}
+          </View>
+        )}
+        </View>
+
+        {/* Hotel Prices */}
+        <View style={styles.amadeusInnerSection}>
+        <View style={styles.subsectionHeader}>
+          <Ionicons name="bed-outline" size={18} color="#34d399" />
+          <Text style={[styles.subsectionTitle, { color: theme.text }]}>Hotel Prices</Text>
+        </View>
+
+        <View style={styles.flightSearchRow}>
+          <View style={{ flex: 1 }}>
+            <TextInput
+              style={[styles.airportInput, {
+                backgroundColor: theme.cardBackground,
+                borderColor: theme.border,
+                color: theme.text,
+              }]}
+              placeholder={`City in ${country.name}...`}
+              placeholderTextColor={theme.textSecondary}
+              value={hotelCityInput}
+              onChangeText={handleHotelCitySearch}
+              onFocus={handleHotelCityFocus}
+            />
+            {showCitySuggestions && (
+              <View style={[styles.suggestionsDropdown, {
+                backgroundColor: theme.cardBackground,
+                borderColor: theme.border,
+              }]}>
+                {citySuggestions.map((city, index) => (
+                  <TouchableOpacity
+                    key={city.iataCode + index}
+                    style={[styles.suggestionItem, {
+                      borderBottomColor: theme.border,
+                      borderBottomWidth: index < citySuggestions.length - 1 ? 1 : 0,
+                    }]}
+                    onPress={() => selectHotelCity(city)}
+                  >
+                    <Ionicons name="business" size={16} color={theme.textSecondary} />
+                    <Text style={[styles.suggestionName, { color: theme.text }]}>
+                      {city.cityName} ({city.iataCode})
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+          <TouchableOpacity
+            onPress={handleSearchHotels}
+            disabled={!hotelCityCode || hotelsLoading}
+            style={[styles.searchFlightButton, {
+              backgroundColor: hotelCityCode ? '#34d399' : theme.border,
+            }]}
+          >
+            {hotelsLoading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Ionicons name="search" size={20} color="#fff" />
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {showHotels && (
+          <View style={styles.amadeusResults}>
+            {hotelOffers.length > 0 ? (
+              hotelOffers.map((hotel, index) => (
+                <HotelOfferCard key={hotel.hotelId || index} hotel={hotel} theme={theme} />
+              ))
+            ) : !hotelsLoading ? (
+              <Text style={[styles.noResults, { color: theme.textSecondary }]}>
+                No hotel offers found. Try a different city.
+              </Text>
+            ) : null}
+          </View>
+        )}
+        </View>
+
+        {/* Peak Travel Months */}
+        {(busiestMonths.length > 0 || busiestLoading) && (
+          <View style={styles.amadeusInnerSection}>
+            <View style={styles.subsectionHeader}>
+              <Ionicons name="calendar" size={18} color="#fb923c" />
+              <Text style={[styles.subsectionTitle, { color: theme.text }]}>Peak Travel Months</Text>
+            </View>
+          {busiestLoading ? (
+            <ActivityIndicator size="small" color={theme.primary} style={{ padding: 10 }} />
+          ) : (
+            <View style={{ marginTop: 8 }}>
+              <View style={styles.monthsGrid}>
+                {busiestMonths.map((month, index) => {
+                  const score = parseFloat(month.analytics?.travelers) || 0;
+                  const maxScore = parseFloat(busiestMonths[0]?.analytics?.travelers) || 1;
+                  const barWidth = Math.max((score / maxScore) * 100, 10);
+                  return (
+                    <View key={index} style={styles.monthRow}>
+                      <Text style={[styles.monthName, { color: theme.text }]}>{getMonthName(month.period)}</Text>
+                      <View style={[styles.monthBarBg, { backgroundColor: theme.border }]}>
+                        <View style={[styles.monthBarFill, {
+                          width: `${barWidth}%`,
+                          backgroundColor: index === 0 ? '#ef4444' : index < 3 ? '#fb923c' : '#4ade80'
+                        }]} />
+                      </View>
+                      <Text style={[styles.monthLabel, { color: theme.textSecondary }]}>
+                        {index === 0 ? 'Busiest' : index < 3 ? 'Busy' : 'Moderate'}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+          </View>
+        )}
+      </View>
+
       {/* Top Cities Section */}
       {countryCities[country.name] && countryCities[country.name].length > 0 && (
         <View style={styles.section}>
@@ -286,7 +881,7 @@ export default function CountryDetailScreen({ route }) {
                 <Text style={[styles.subsectionTitle, { color: theme.text }]}>{t('countryDetail.mainAirports')}</Text>
               </View>
               {country.mainAirports.map((airport, index) => (
-                <Text key={index} style={[styles.listItem, { color: theme.textSecondary }]}>• {airport}</Text>
+                <Text key={index} style={[styles.listItem, { color: theme.textSecondary }]}>{'\u2022'} {airport}</Text>
               ))}
               {country.avgFlightCost && (
                 <Text style={[styles.costInfo, { color: theme.primary }]}>Avg Flight Cost: {country.avgFlightCost}</Text>
@@ -305,32 +900,13 @@ export default function CountryDetailScreen({ route }) {
                 <Text style={[styles.subsectionTitle, { color: theme.text }]}>{t('countryDetail.mainTrainStations')}</Text>
               </View>
               {country.mainTrainStations.map((station, index) => (
-                <Text key={index} style={[styles.listItem, { color: theme.textSecondary }]}>• {station}</Text>
+                <Text key={index} style={[styles.listItem, { color: theme.textSecondary }]}>{'\u2022'} {station}</Text>
               ))}
               {country.avgTrainCost && (
                 <Text style={[styles.costInfo, { color: theme.primary }]}>Avg Train Cost: {country.avgTrainCost}</Text>
               )}
             </View>
           )}
-        </View>
-      )}
-
-      {/* Accommodations Section */}
-      {country.topHotels && country.topHotels.length > 0 && (
-        <View style={styles.section}>
-          <View style={styles.subsectionHeader}>
-            <Ionicons name="bed" size={18} color={theme.secondary} />
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('countryDetail.topHotels')}</Text>
-          </View>
-          {country.topHotels.map((hotel, index) => (
-            <HotelCard
-              key={index}
-              hotelName={hotel}
-              countryName={country.name}
-              theme={theme}
-              customImageUrl={country.hotelImages?.[hotel]}
-            />
-          ))}
         </View>
       )}
 
@@ -535,6 +1111,97 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 8,
     marginLeft: 26,
+  },
+  // Amadeus container
+  amadeusContainer: {
+    marginHorizontal: 20,
+    marginVertical: 15,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+  },
+  amadeusInnerSection: {
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(128,128,128,0.15)',
+    marginTop: 4,
+  },
+  amadeusResults: {
+    marginTop: 10,
+  },
+  noResults: {
+    textAlign: 'center',
+    padding: 20,
+    fontSize: 14,
+  },
+  flightSearchRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginTop: 10,
+  },
+  airportInput: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+  },
+  suggestionsDropdown: {
+    borderWidth: 1,
+    borderRadius: 10,
+    marginTop: 4,
+    overflow: 'hidden',
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    gap: 10,
+  },
+  suggestionName: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  suggestionCountry: {
+    fontSize: 12,
+    marginTop: 1,
+  },
+  searchFlightButton: {
+    width: 46,
+    height: 46,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // Busiest months styles
+  monthsGrid: {
+    gap: 8,
+  },
+  monthRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  monthName: {
+    width: 32,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  monthBarBg: {
+    flex: 1,
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  monthBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  monthLabel: {
+    width: 60,
+    fontSize: 11,
+    textAlign: 'right',
   },
   footer: {
     alignItems: 'center',

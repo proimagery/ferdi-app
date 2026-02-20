@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Image, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Image, TextInput, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -70,6 +70,8 @@ export default function WorldRankScreen({ navigation }) {
       beaches: 'Best beach destinations',
       mountains: 'Best mountain destinations',
       outdoors: 'Best for outdoor adventures',
+      mostBooked: 'Most booked flight destinations (Amadeus)',
+      mostTraveled: 'Most traveled air routes (Amadeus)',
     };
     return subtitles[selectedCategory] || '';
   };

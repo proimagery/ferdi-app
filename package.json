@@ -1,6 +1,6 @@
 {
   "name": "travel-planner-app",
-  "version": "1.0.0",
+  "version": "1.6.0",
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
     "start": "expo start",
@@ -20,9 +20,9 @@
     "@react-three/fiber": "^9.4.2",
     "@supabase/supabase-js": "^2.87.1",
     "base64-arraybuffer": "^1.0.2",
-    "expo": "~54.0.31",
+    "expo": "^54.0.33",
     "expo-file-system": "^19.0.21",
-    "expo-gl": "^16.0.8",
+    "expo-gl": "~16.0.10",
     "expo-image-picker": "^17.0.9",
     "expo-localization": "~17.0.8",
     "expo-media-library": "~18.2.1",

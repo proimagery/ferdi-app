@@ -36,6 +36,7 @@ export default function DashboardScreen({ navigation }) {
   const [showWalkthrough, setShowWalkthrough] = useState(false);
   const shareCardRef = useRef(null);
 
+
   // Check if walkthrough should be shown (first visit)
   useEffect(() => {
     const checkWalkthrough = async () => {
