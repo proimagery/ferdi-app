@@ -27,7 +27,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.proimagery.ferdi",
-      "buildNumber": "15",
+      "buildNumber": "16",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "This app uses your location to show your position on travel maps.",
         "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload travel photos.",
@@ -37,7 +37,7 @@
     },
     "android": {
       "package": "com.ferdi.app",
-      "versionCode": 15,
+      "versionCode": 16,
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyBtzMruCCMpiFfqfdhLtoHWfSk3TZ5UvJ8"
