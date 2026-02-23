@@ -4,9 +4,9 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import GOOGLE_PLACES_CONFIG from './google/googleConfig';
 
-// Replace with your Google Places API key
-const GOOGLE_PLACES_API_KEY = 'AIzaSyBtzMruCCMpiFfqfdhLtoHWfSk3TZ5UvJ8';
+const GOOGLE_PLACES_API_KEY = GOOGLE_PLACES_CONFIG.API_KEY;
 
 const CACHE_PREFIX = 'places_photo_';
 const CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days

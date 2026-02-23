@@ -6,6 +6,7 @@
 import { amadeusGet } from './amadeusApi';
 
 const ONE_HOUR = 60 * 60 * 1000;
+const SIX_HOURS = 6 * 60 * 60 * 1000;
 const ONE_DAY = 24 * 60 * 60 * 1000;
 
 /**
@@ -64,7 +65,7 @@ export async function searchFlights(origin, destination, departureDate, adults =
   if (returnDate) params.returnDate = returnDate;
   if (nonStop) params.nonStop = 'true';
 
-  const result = await amadeusGet('/v2/shopping/flight-offers', params, ONE_HOUR);
+  const result = await amadeusGet('/v2/shopping/flight-offers', params, SIX_HOURS);
 
   if (!result?.data) return [];
 

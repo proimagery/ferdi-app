@@ -22,24 +22,20 @@ export default function FlightOfferCard({ offer, theme }) {
 
   return (
     <View style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
-      <View style={styles.topRow}>
-        <View style={styles.routeInfo}>
-          <Text style={[styles.airport, { color: theme.text }]}>{firstSeg?.departure?.airport}</Text>
-          <View style={styles.flightLine}>
-            <View style={[styles.line, { backgroundColor: theme.border }]} />
-            <Ionicons name="airplane" size={16} color={theme.primary} />
-            <View style={[styles.line, { backgroundColor: theme.border }]} />
-          </View>
-          <Text style={[styles.airport, { color: theme.text }]}>{lastSeg?.arrival?.airport}</Text>
+      <View style={styles.routeRow}>
+        <Text style={[styles.airport, { color: theme.text }]}>{firstSeg?.departure?.airport}</Text>
+        <View style={styles.flightLine}>
+          <View style={[styles.line, { backgroundColor: theme.border }]} />
+          <Ionicons name="airplane" size={16} color={theme.primary} />
+          <View style={[styles.line, { backgroundColor: theme.border }]} />
         </View>
-        <View style={styles.priceContainer}>
-          <Text style={[styles.price, { color: theme.primary }]}>
-            ${offer.price?.total}
-          </Text>
-          <Text style={[styles.currency, { color: theme.textSecondary }]}>
-            {offer.price?.currency}
-          </Text>
-        </View>
+        <Text style={[styles.airport, { color: theme.text }]}>{lastSeg?.arrival?.airport}</Text>
+      </View>
+      <View style={styles.priceRow}>
+        <Text style={[styles.price, { color: theme.primary }]}>
+          ${offer.price?.total}
+        </Text>
+        <Text style={[styles.currency, { color: theme.textSecondary }]}> {offer.price?.currency}</Text>
       </View>
 
       <View style={styles.detailRow}>
@@ -83,20 +79,14 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 10,
   },
-  topRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  routeInfo: {
+  routeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
-    gap: 6,
+    gap: 8,
+    marginBottom: 6,
   },
   airport: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
   },
   flightLine: {
@@ -109,11 +99,13 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 1,
   },
-  priceContainer: {
-    alignItems: 'flex-end',
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginBottom: 10,
   },
   price: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
   },
   currency: {

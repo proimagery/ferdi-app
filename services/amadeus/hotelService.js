@@ -5,7 +5,7 @@
 
 import { amadeusGet } from './amadeusApi';
 
-const ONE_HOUR = 60 * 60 * 1000;
+const SIX_HOURS = 6 * 60 * 60 * 1000;
 const ONE_DAY = 24 * 60 * 60 * 1000;
 const ONE_WEEK = 7 * 24 * 60 * 60 * 1000;
 
@@ -25,7 +25,7 @@ export async function searchHotelsByCity(cityCode) {
 
   if (!result?.data) return [];
 
-  return result.data.slice(0, 20).map(hotel => ({
+  return result.data.slice(0, 40).map(hotel => ({
     hotelId: hotel.hotelId,
     name: hotel.name,
     latitude: hotel.geoCode?.latitude,
@@ -93,7 +93,7 @@ export async function getHotelOffers(hotelIds, checkInDate, checkOutDate, adults
       adults: String(adults),
       currency: 'USD',
     },
-    ONE_HOUR
+    SIX_HOURS
   );
 
   if (!result?.data) return [];

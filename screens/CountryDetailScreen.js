@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator, TextInput, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTheme } from '../context/ThemeContext';
 import CountryHeaderImage from '../components/CountryHeaderImage';
 import AttractionCard from '../components/AttractionCard';
@@ -14,7 +15,7 @@ import countryCities from '../data/countryCities';
 import { useTranslation } from 'react-i18next';
 import { searchAirports, searchFlights } from '../services/amadeus/flightService';
 import { searchHotelsByCity, getHotelOffers } from '../services/amadeus/hotelService';
-import { getActivities } from '../services/amadeus/activityService';
+import { getActivities } from '../services/google/activityService';
 import { getBusiestPeriod } from '../services/amadeus/marketInsightsService';
 import { clearAmadeusCache } from '../services/amadeus/amadeusApi';
 
@@ -35,6 +36,21 @@ export default function CountryDetailScreen({ route }) {
   const [departureCode, setDepartureCode] = useState('');
   const [airportSuggestions, setAirportSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [arrivalInput, setArrivalInput] = useState('');
+  const [arrivalCode, setArrivalCode] = useState('');
+  const [arrivalSuggestions, setArrivalSuggestions] = useState([]);
+  const [showArrivalSuggestions, setShowArrivalSuggestions] = useState(false);
+  const [departureDate, setDepartureDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 30);
+    return d;
+  });
+  const [returnDate, setReturnDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 37);
+    return d;
+  });
+  const [showDatePicker, setShowDatePicker] = useState(null); // 'departure' | 'return' | null
 
   const [hotelOffers, setHotelOffers] = useState([]);
   const [hotelsLoading, setHotelsLoading] = useState(false);
@@ -125,8 +141,64 @@ export default function CountryDetailScreen({ route }) {
     setShowSuggestions(false);
   };
 
+  const handleArrivalSearch = async (text) => {
+    setArrivalInput(text);
+    setArrivalCode('');
+    setFlightOffers([]);
+    setShowFlights(false);
+
+    if (text.length < 2) {
+      setArrivalSuggestions([]);
+      setShowArrivalSuggestions(false);
+      return;
+    }
+
+    const results = await searchAirports(text);
+    setArrivalSuggestions(results.slice(0, 5));
+    setShowArrivalSuggestions(results.length > 0);
+  };
+
+  const selectArrivalAirport = (airport) => {
+    setArrivalInput(`${airport.cityName} (${airport.iataCode})`);
+    setArrivalCode(airport.iataCode);
+    setArrivalSuggestions([]);
+    setShowArrivalSuggestions(false);
+  };
+
+  const formatDate = (date) => date.toISOString().split('T')[0];
+  const formatDateDisplay = (date) => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+  const onFlightDateChange = (event, selectedDate) => {
+    const pickerType = showDatePicker;
+    if (Platform.OS === 'android') {
+      setShowDatePicker(null);
+    }
+    if (event.type === 'dismissed') {
+      setShowDatePicker(null);
+      return;
+    }
+    if (selectedDate) {
+      if (pickerType === 'departure') {
+        setDepartureDate(selectedDate);
+        // If return date is before new departure, push it forward
+        if (selectedDate >= returnDate) {
+          const newReturn = new Date(selectedDate);
+          newReturn.setDate(newReturn.getDate() + 7);
+          setReturnDate(newReturn);
+        }
+      } else {
+        setReturnDate(selectedDate);
+      }
+      setFlightOffers([]);
+      setShowFlights(false);
+    }
+    if (Platform.OS === 'ios') {
+      setShowDatePicker(null);
+    }
+  };
+
   const handleSearchFlights = async () => {
-    if (!departureCode) return;
+    if (!departureCode || !arrivalCode) return;
 
     if (flightOffers.length > 0) {
       setShowFlights(!showFlights);
@@ -136,20 +208,10 @@ export default function CountryDetailScreen({ route }) {
     setFlightsLoading(true);
     setShowFlights(true);
     try {
-      // Find airport for this country's capital
-      const capital = country.capital || country.name;
-      const airports = await searchAirports(capital);
-      const destCode = airports.find(a => a.type === 'AIRPORT')?.iataCode || airports[0]?.iataCode;
-
-      if (destCode) {
-        // Search flights from user's selected departure airport
-        const futureDate = new Date();
-        futureDate.setDate(futureDate.getDate() + 30);
-        const dateStr = futureDate.toISOString().split('T')[0];
-
-        const offers = await searchFlights(departureCode, destCode, dateStr, 1);
-        setFlightOffers(offers);
-      }
+      const depStr = formatDate(departureDate);
+      const retStr = formatDate(returnDate);
+      const offers = await searchFlights(departureCode, arrivalCode, depStr, 1, retStr);
+      setFlightOffers(offers);
     } catch (error) {
       console.warn('Flight search error:', error);
     } finally {
@@ -190,7 +252,7 @@ export default function CountryDetailScreen({ route }) {
   };
 
   const selectHotelCity = (city) => {
-    setHotelCityInput(`${city.cityName} (${city.iataCode})`);
+    setHotelCityInput(city.cityName);
     setHotelCityCode(city.iataCode);
     setCitySuggestions([]);
     setShowCitySuggestions(false);
@@ -234,30 +296,35 @@ export default function CountryDetailScreen({ route }) {
     setHotelsLoading(true);
     setShowHotels(true);
     try {
-      // Find hotels in the selected city
+      // Find hotels in the selected city (up to 40 candidates)
       const hotels = await searchHotelsByCity(hotelCityCode);
 
       if (hotels.length > 0) {
-        // Get pricing for first 10 hotels (more chances of available offers)
-        const hotelIds = hotels.slice(0, 10).map(h => h.hotelId);
         const checkIn = new Date();
         checkIn.setDate(checkIn.getDate() + 30);
         const checkOut = new Date(checkIn);
         checkOut.setDate(checkOut.getDate() + 3);
+        const checkInStr = checkIn.toISOString().split('T')[0];
+        const checkOutStr = checkOut.toISOString().split('T')[0];
 
-        const offers = await getHotelOffers(
-          hotelIds,
-          checkIn.toISOString().split('T')[0],
-          checkOut.toISOString().split('T')[0]
+        // Run all batches in parallel for speed (API limit: 10 IDs per call)
+        const batchSize = 10;
+        const maxBatches = 3;
+        const batches = [];
+        for (let i = 0; i < Math.min(hotels.length, batchSize * maxBatches); i += batchSize) {
+          batches.push(hotels.slice(i, i + batchSize).map(h => h.hotelId));
+        }
+
+        const results = await Promise.all(
+          batches.map(batch => getHotelOffers(batch, checkInStr, checkOutStr))
         );
 
-        // Merge hotel info with distance data
-        const merged = offers.map(offer => {
+        const allMerged = results.flat().map(offer => {
           const hotelInfo = hotels.find(h => h.hotelId === offer.hotelId);
           return { ...offer, distance: hotelInfo?.distance, distanceUnit: hotelInfo?.distanceUnit };
         });
 
-        setHotelOffers(merged);
+        setHotelOffers(allMerged);
       }
     } catch (error) {
       console.warn('Hotel search error:', error);
@@ -299,7 +366,7 @@ export default function CountryDetailScreen({ route }) {
   };
 
   const selectActivityCity = (city) => {
-    setActivityCityInput(`${city.cityName} (${city.iataCode})`);
+    setActivityCityInput(city.cityName);
     setActivityCityCoords({ lat: city.lat, lng: city.lng });
     setActivityCitySuggestions([]);
     setShowActivityCitySuggestions(false);
@@ -558,95 +625,20 @@ export default function CountryDetailScreen({ route }) {
         </View>
       )}
 
-      {/* Amadeus Sections */}
+      {/* Flight Prices */}
       <View style={[styles.amadeusContainer, {
-        backgroundColor: theme.cardBackground,
-        borderColor: theme.border,
+        backgroundColor: theme.dark ? 'rgba(52, 211, 153, 0.06)' : 'rgba(52, 211, 153, 0.08)',
+        borderColor: theme.dark ? 'rgba(52, 211, 153, 0.2)' : 'rgba(52, 211, 153, 0.3)',
       }]}>
-
-        {/* Tours & Activities */}
-        <View style={styles.amadeusInnerSection}>
-        <View style={styles.subsectionHeader}>
-          <Ionicons name="ticket-outline" size={18} color="#a78bfa" />
-          <Text style={[styles.subsectionTitle, { color: theme.text }]}>Tours & Activities</Text>
-        </View>
-
-        <View style={styles.flightSearchRow}>
-          <View style={{ flex: 1 }}>
-            <TextInput
-              style={[styles.airportInput, {
-                backgroundColor: theme.cardBackground,
-                borderColor: theme.border,
-                color: theme.text,
-              }]}
-              placeholder={`City in ${country.name}...`}
-              placeholderTextColor={theme.textSecondary}
-              value={activityCityInput}
-              onChangeText={handleActivityCitySearch}
-              onFocus={handleActivityCityFocus}
-            />
-            {showActivityCitySuggestions && (
-              <View style={[styles.suggestionsDropdown, {
-                backgroundColor: theme.cardBackground,
-                borderColor: theme.border,
-              }]}>
-                {activityCitySuggestions.map((city, index) => (
-                  <TouchableOpacity
-                    key={city.iataCode + index}
-                    style={[styles.suggestionItem, {
-                      borderBottomColor: theme.border,
-                      borderBottomWidth: index < activityCitySuggestions.length - 1 ? 1 : 0,
-                    }]}
-                    onPress={() => selectActivityCity(city)}
-                  >
-                    <Ionicons name="business" size={16} color={theme.textSecondary} />
-                    <Text style={[styles.suggestionName, { color: theme.text }]}>
-                      {city.cityName} ({city.iataCode})
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-          </View>
-          <TouchableOpacity
-            onPress={handleSearchActivities}
-            disabled={!activityCityCoords || activitiesLoading}
-            style={[styles.searchFlightButton, {
-              backgroundColor: activityCityCoords ? '#a78bfa' : theme.border,
-            }]}
-          >
-            {activitiesLoading ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Ionicons name="search" size={20} color="#fff" />
-            )}
-          </TouchableOpacity>
-        </View>
-
-        {showActivities && (
-          <View style={styles.amadeusResults}>
-            {activities.length > 0 ? (
-              activities.slice(0, 5).map((activity, index) => (
-                <ActivityCard key={activity.id || index} activity={activity} theme={theme} />
-              ))
-            ) : !activitiesLoading ? (
-              <Text style={[styles.noResults, { color: theme.textSecondary }]}>
-                No activities found. Try a different city.
-              </Text>
-            ) : null}
-          </View>
-        )}
-        </View>
-
-        {/* Flight Prices */}
-        <View style={styles.amadeusInnerSection}>
         <View style={styles.subsectionHeader}>
           <Ionicons name="airplane" size={18} color={theme.primary} />
           <Text style={[styles.subsectionTitle, { color: theme.text }]}>Flight Prices</Text>
         </View>
 
-        <View style={styles.flightSearchRow}>
-          <View style={{ flex: 1 }}>
+        {/* Departure City */}
+        <View style={styles.flightFieldGroup}>
+          <Text style={[styles.flightFieldLabel, { color: theme.textSecondary }]}>From</Text>
+          <View style={{ position: 'relative' }}>
             <TextInput
               style={[styles.airportInput, {
                 backgroundColor: theme.cardBackground,
@@ -692,20 +684,121 @@ export default function CountryDetailScreen({ route }) {
               </View>
             )}
           </View>
-          <TouchableOpacity
-            onPress={handleSearchFlights}
-            disabled={!departureCode || flightsLoading}
-            style={[styles.searchFlightButton, {
-              backgroundColor: departureCode ? theme.primary : theme.border,
-            }]}
-          >
-            {flightsLoading ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Ionicons name="search" size={20} color="#fff" />
-            )}
-          </TouchableOpacity>
         </View>
+
+        {/* Arrival City */}
+        <View style={styles.flightFieldGroup}>
+          <Text style={[styles.flightFieldLabel, { color: theme.textSecondary }]}>To</Text>
+          <View style={{ position: 'relative' }}>
+            <TextInput
+              style={[styles.airportInput, {
+                backgroundColor: theme.cardBackground,
+                borderColor: theme.border,
+                color: theme.text,
+              }]}
+              placeholder={`Arrival city in ${country.name}...`}
+              placeholderTextColor={theme.textSecondary}
+              value={arrivalInput}
+              onChangeText={handleArrivalSearch}
+            />
+            {showArrivalSuggestions && (
+              <View style={[styles.suggestionsDropdown, {
+                backgroundColor: theme.cardBackground,
+                borderColor: theme.border,
+              }]}>
+                {arrivalSuggestions.map((airport, index) => (
+                  <TouchableOpacity
+                    key={airport.iataCode + index}
+                    style={[styles.suggestionItem, {
+                      borderBottomColor: theme.border,
+                      borderBottomWidth: index < arrivalSuggestions.length - 1 ? 1 : 0,
+                    }]}
+                    onPress={() => selectArrivalAirport(airport)}
+                  >
+                    <Ionicons
+                      name={airport.type === 'AIRPORT' ? 'airplane' : 'business'}
+                      size={16}
+                      color={theme.textSecondary}
+                    />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.suggestionName, { color: theme.text }]}>
+                        {airport.cityName} ({airport.iataCode})
+                      </Text>
+                      {airport.countryName ? (
+                        <Text style={[styles.suggestionCountry, { color: theme.textSecondary }]}>
+                          {airport.name} · {airport.countryName}
+                        </Text>
+                      ) : null}
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Travel Dates */}
+        <View style={styles.flightDatesRow}>
+          <View style={[styles.flightFieldGroup, { flex: 1 }]}>
+            <Text style={[styles.flightFieldLabel, { color: theme.textSecondary }]}>Depart</Text>
+            <TouchableOpacity
+              onPress={() => setShowDatePicker('departure')}
+              style={[styles.datePickerButton, {
+                backgroundColor: theme.cardBackground,
+                borderColor: theme.border,
+              }]}
+            >
+              <Ionicons name="calendar-outline" size={16} color={theme.textSecondary} />
+              <Text style={[styles.datePickerText, { color: theme.text }]}>
+                {formatDateDisplay(departureDate)}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <View style={[styles.flightFieldGroup, { flex: 1 }]}>
+            <Text style={[styles.flightFieldLabel, { color: theme.textSecondary }]}>Return</Text>
+            <TouchableOpacity
+              onPress={() => setShowDatePicker('return')}
+              style={[styles.datePickerButton, {
+                backgroundColor: theme.cardBackground,
+                borderColor: theme.border,
+              }]}
+            >
+              <Ionicons name="calendar-outline" size={16} color={theme.textSecondary} />
+              <Text style={[styles.datePickerText, { color: theme.text }]}>
+                {formatDateDisplay(returnDate)}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {showDatePicker && (
+          <DateTimePicker
+            value={showDatePicker === 'departure' ? departureDate : returnDate}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            minimumDate={showDatePicker === 'return' ? departureDate : new Date()}
+            onChange={onFlightDateChange}
+            themeVariant="dark"
+          />
+        )}
+
+        {/* Search Button */}
+        <TouchableOpacity
+          onPress={handleSearchFlights}
+          disabled={!departureCode || !arrivalCode || flightsLoading}
+          style={[styles.flightSearchButton, {
+            backgroundColor: (departureCode && arrivalCode) ? theme.primary : theme.border,
+          }]}
+        >
+          {flightsLoading ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <>
+              <Ionicons name="search" size={18} color="#fff" />
+              <Text style={styles.flightSearchButtonText}>Search Flights</Text>
+            </>
+          )}
+        </TouchableOpacity>
 
         {showFlights && (
           <View style={styles.amadeusResults}>
@@ -715,12 +808,18 @@ export default function CountryDetailScreen({ route }) {
               ))
             ) : !flightsLoading ? (
               <Text style={[styles.noResults, { color: theme.textSecondary }]}>
-                No flight offers found. Try a different airport.
+                No flight offers found. Try different cities or dates.
               </Text>
             ) : null}
           </View>
         )}
-        </View>
+      </View>
+
+      {/* Hotels, Tours & Travel Insights */}
+      <View style={[styles.amadeusContainer, {
+        backgroundColor: theme.dark ? 'rgba(52, 211, 153, 0.06)' : 'rgba(52, 211, 153, 0.08)',
+        borderColor: theme.dark ? 'rgba(52, 211, 153, 0.2)' : 'rgba(52, 211, 153, 0.3)',
+      }]}>
 
         {/* Hotel Prices */}
         <View style={styles.amadeusInnerSection}>
@@ -759,7 +858,7 @@ export default function CountryDetailScreen({ route }) {
                   >
                     <Ionicons name="business" size={16} color={theme.textSecondary} />
                     <Text style={[styles.suggestionName, { color: theme.text }]}>
-                      {city.cityName} ({city.iataCode})
+                      {city.cityName}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -790,6 +889,80 @@ export default function CountryDetailScreen({ route }) {
             ) : !hotelsLoading ? (
               <Text style={[styles.noResults, { color: theme.textSecondary }]}>
                 No hotel offers found. Try a different city.
+              </Text>
+            ) : null}
+          </View>
+        )}
+        </View>
+
+        {/* Tours & Activities */}
+        <View style={styles.amadeusInnerSection}>
+        <View style={styles.subsectionHeader}>
+          <Ionicons name="ticket-outline" size={18} color="#a78bfa" />
+          <Text style={[styles.subsectionTitle, { color: theme.text }]}>Tours & Activities</Text>
+        </View>
+
+        <View style={styles.flightSearchRow}>
+          <View style={{ flex: 1 }}>
+            <TextInput
+              style={[styles.airportInput, {
+                backgroundColor: theme.cardBackground,
+                borderColor: theme.border,
+                color: theme.text,
+              }]}
+              placeholder={`City in ${country.name}...`}
+              placeholderTextColor={theme.textSecondary}
+              value={activityCityInput}
+              onChangeText={handleActivityCitySearch}
+              onFocus={handleActivityCityFocus}
+            />
+            {showActivityCitySuggestions && (
+              <View style={[styles.suggestionsDropdown, {
+                backgroundColor: theme.cardBackground,
+                borderColor: theme.border,
+              }]}>
+                {activityCitySuggestions.map((city, index) => (
+                  <TouchableOpacity
+                    key={city.iataCode + index}
+                    style={[styles.suggestionItem, {
+                      borderBottomColor: theme.border,
+                      borderBottomWidth: index < activityCitySuggestions.length - 1 ? 1 : 0,
+                    }]}
+                    onPress={() => selectActivityCity(city)}
+                  >
+                    <Ionicons name="business" size={16} color={theme.textSecondary} />
+                    <Text style={[styles.suggestionName, { color: theme.text }]}>
+                      {city.cityName}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+          <TouchableOpacity
+            onPress={handleSearchActivities}
+            disabled={!activityCityCoords || activitiesLoading}
+            style={[styles.searchFlightButton, {
+              backgroundColor: activityCityCoords ? '#a78bfa' : theme.border,
+            }]}
+          >
+            {activitiesLoading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Ionicons name="search" size={20} color="#fff" />
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {showActivities && (
+          <View style={styles.amadeusResults}>
+            {activities.length > 0 ? (
+              activities.slice(0, 5).map((activity, index) => (
+                <ActivityCard key={activity.id || index} activity={activity} theme={theme} />
+              ))
+            ) : !activitiesLoading ? (
+              <Text style={[styles.noResults, { color: theme.textSecondary }]}>
+                No activities found. Try a different city.
               </Text>
             ) : null}
           </View>
@@ -1173,6 +1346,45 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  flightFieldGroup: {
+    marginTop: 10,
+  },
+  flightFieldLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 4,
+    marginLeft: 2,
+  },
+  flightDatesRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  datePickerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  datePickerText: {
+    fontSize: 15,
+  },
+  flightSearchButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 10,
+    marginTop: 14,
+  },
+  flightSearchButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
   },
   // Busiest months styles
   monthsGrid: {

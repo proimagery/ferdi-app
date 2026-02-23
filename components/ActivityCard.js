@@ -29,12 +29,21 @@ export default function ActivityCard({ activity, theme }) {
           </Text>
         )}
 
+        {activity.address && (
+          <Text style={[styles.address, { color: theme.textSecondary }]} numberOfLines={1}>
+            {activity.address}
+          </Text>
+        )}
+
         <View style={styles.bottomRow}>
           <View style={styles.metaRow}>
             {activity.rating && (
               <View style={styles.ratingBadge}>
                 <Ionicons name="star" size={12} color="#fbbf24" />
-                <Text style={[styles.ratingText, { color: theme.text }]}>{activity.rating}</Text>
+                <Text style={[styles.ratingText, { color: theme.text }]}>
+                  {activity.rating}
+                  {activity.userRatingCount ? ` (${activity.userRatingCount.toLocaleString()})` : ''}
+                </Text>
               </View>
             )}
             {activity.minimumDuration && (
@@ -53,12 +62,19 @@ export default function ActivityCard({ activity, theme }) {
                 ${activity.price.amount}
               </Text>
             )}
+            {activity.price?.level && !activity.price?.amount && (
+              <Text style={[styles.priceLevel, { color: theme.primary }]}>
+                {activity.price.level}
+              </Text>
+            )}
             {activity.bookingLink && (
               <TouchableOpacity
                 onPress={handleBooking}
                 style={[styles.bookButton, { backgroundColor: theme.primary }]}
               >
-                <Text style={[styles.bookText, { color: theme.background }]}>Book</Text>
+                <Text style={[styles.bookText, { color: theme.background }]}>
+                  {activity.price?.amount ? 'Book' : 'View'}
+                </Text>
               </TouchableOpacity>
             )}
           </View>
@@ -90,7 +106,11 @@ const styles = StyleSheet.create({
   description: {
     fontSize: 13,
     lineHeight: 18,
-    marginBottom: 10,
+    marginBottom: 6,
+  },
+  address: {
+    fontSize: 12,
+    marginBottom: 8,
   },
   bottomRow: {
     flexDirection: 'row',
@@ -127,6 +147,10 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 17,
     fontWeight: 'bold',
+  },
+  priceLevel: {
+    fontSize: 15,
+    fontWeight: '600',
   },
   bookButton: {
     paddingHorizontal: 14,

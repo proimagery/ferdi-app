@@ -1,75 +1,98 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Image, ActivityIndicator, TouchableOpacity, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import usePlacePhoto from '../hooks/usePlacePhoto';
 
 export default function HotelOfferCard({ hotel, theme }) {
   const bestOffer = hotel.offers?.[0];
+  const { photoUrl, loading: photoLoading } = usePlacePhoto(
+    hotel.name ? `${hotel.name} hotel` : null,
+    800
+  );
+
+  const handlePress = () => {
+    const query = encodeURIComponent(hotel.name || 'hotel');
+    Linking.openURL(`https://www.google.com/search?q=${query}`);
+  };
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
-      <View style={styles.topRow}>
-        <View style={styles.nameContainer}>
-          <Ionicons name="bed-outline" size={18} color={theme.primary} />
-          <Text style={[styles.hotelName, { color: theme.text }]} numberOfLines={2}>
-            {hotel.name}
-          </Text>
+    <TouchableOpacity
+      activeOpacity={0.8}
+      onPress={handlePress}
+      style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+    >
+      {photoUrl ? (
+        <Image source={{ uri: photoUrl }} style={styles.image} resizeMode="cover" />
+      ) : photoLoading ? (
+        <View style={[styles.imagePlaceholder, { backgroundColor: theme.border }]}>
+          <ActivityIndicator size="small" color={theme.textSecondary} />
         </View>
-        {(bestOffer?.price?.perNight || bestOffer?.price?.total) && (
-          <View style={styles.priceContainer}>
-            <Text style={[styles.price, { color: theme.primary }]}>
-              ${bestOffer.price.perNight || bestOffer.price.total}
+      ) : null}
+      <View style={styles.content}>
+        <View style={styles.topRow}>
+          <View style={styles.nameContainer}>
+            <Ionicons name="bed-outline" size={18} color={theme.primary} />
+            <Text style={[styles.hotelName, { color: theme.text }]} numberOfLines={2}>
+              {hotel.name}
             </Text>
-            <Text style={[styles.priceLabel, { color: theme.textSecondary }]}>
-              {bestOffer.price.perNight ? '/night' : 'total'}
+          </View>
+          {(bestOffer?.price?.perNight || bestOffer?.price?.total) && (
+            <View style={styles.priceContainer}>
+              <Text style={[styles.price, { color: theme.primary }]}>
+                ${bestOffer.price.perNight || bestOffer.price.total}
+              </Text>
+              <Text style={[styles.priceLabel, { color: theme.textSecondary }]}>
+                {bestOffer.price.perNight ? '/night' : 'total'}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {bestOffer && (
+          <View style={styles.detailRow}>
+            {bestOffer.roomType && (
+              <View style={styles.detailItem}>
+                <Ionicons name="resize-outline" size={14} color={theme.textSecondary} />
+                <Text style={[styles.detailText, { color: theme.textSecondary }]}>
+                  {bestOffer.roomType}
+                </Text>
+              </View>
+            )}
+            {bestOffer.bedType && (
+              <View style={styles.detailItem}>
+                <Ionicons name="bed-outline" size={14} color={theme.textSecondary} />
+                <Text style={[styles.detailText, { color: theme.textSecondary }]}>
+                  {bestOffer.bedType}
+                </Text>
+              </View>
+            )}
+            {bestOffer.price?.total && bestOffer.price?.perNight && (
+              <View style={styles.detailItem}>
+                <Ionicons name="moon-outline" size={14} color={theme.textSecondary} />
+                <Text style={[styles.detailText, { color: theme.textSecondary }]}>
+                  ${bestOffer.price.total} for {bestOffer.nights || 3} nights
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {bestOffer?.description && (
+          <Text style={[styles.description, { color: theme.textSecondary }]} numberOfLines={2}>
+            {bestOffer.description}
+          </Text>
+        )}
+
+        {hotel.distance != null && (
+          <View style={styles.distanceRow}>
+            <Ionicons name="location-outline" size={14} color={theme.textSecondary} />
+            <Text style={[styles.distanceText, { color: theme.textSecondary }]}>
+              {hotel.distance} {hotel.distanceUnit || 'KM'} from center
             </Text>
           </View>
         )}
       </View>
-
-      {bestOffer && (
-        <View style={styles.detailRow}>
-          {bestOffer.roomType && (
-            <View style={styles.detailItem}>
-              <Ionicons name="resize-outline" size={14} color={theme.textSecondary} />
-              <Text style={[styles.detailText, { color: theme.textSecondary }]}>
-                {bestOffer.roomType}
-              </Text>
-            </View>
-          )}
-          {bestOffer.bedType && (
-            <View style={styles.detailItem}>
-              <Ionicons name="bed-outline" size={14} color={theme.textSecondary} />
-              <Text style={[styles.detailText, { color: theme.textSecondary }]}>
-                {bestOffer.bedType}
-              </Text>
-            </View>
-          )}
-          {bestOffer.price?.total && bestOffer.price?.perNight && (
-            <View style={styles.detailItem}>
-              <Ionicons name="moon-outline" size={14} color={theme.textSecondary} />
-              <Text style={[styles.detailText, { color: theme.textSecondary }]}>
-                ${bestOffer.price.total} for {bestOffer.nights || 3} nights
-              </Text>
-            </View>
-          )}
-        </View>
-      )}
-
-      {bestOffer?.description && (
-        <Text style={[styles.description, { color: theme.textSecondary }]} numberOfLines={2}>
-          {bestOffer.description}
-        </Text>
-      )}
-
-      {hotel.distance != null && (
-        <View style={styles.distanceRow}>
-          <Ionicons name="location-outline" size={14} color={theme.textSecondary} />
-          <Text style={[styles.distanceText, { color: theme.textSecondary }]}>
-            {hotel.distance} {hotel.distanceUnit || 'KM'} from center
-          </Text>
-        </View>
-      )}
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -77,8 +100,21 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 12,
     borderWidth: 1,
-    padding: 14,
     marginBottom: 10,
+    overflow: 'hidden',
+  },
+  image: {
+    width: '100%',
+    height: 140,
+  },
+  imagePlaceholder: {
+    width: '100%',
+    height: 140,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  content: {
+    padding: 14,
   },
   topRow: {
     flexDirection: 'row',
