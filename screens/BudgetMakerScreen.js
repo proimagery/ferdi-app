@@ -32,6 +32,15 @@ export default function BudgetMakerScreen({ navigation, route }) {
   const { addBudget, updateBudget, budgets } = useAppContext();
   const { checkAuth, showAuthModal, setShowAuthModal, featureMessage } = useAuthGuard();
 
+  // Edit mode detection (must be before useState calls that reference these)
+  const editMode = route?.params?.editMode;
+  const budgetToEdit = route?.params?.budget;
+  const budgetIndex = route?.params?.budgetIndex;
+
+  // Trip data pre-population
+  const fromTrip = route?.params?.fromTrip;
+  const tripData = route?.params?.tripData;
+
   // Custom category modal state
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -46,16 +55,9 @@ export default function BudgetMakerScreen({ navigation, route }) {
   };
 
   // Budget name
-  const [budgetName, setBudgetName] = useState(budgetToEdit?.budgetName || (route?.params?.fromTrip && route?.params?.tripData?.tripName) || '');
-
-  // Edit mode detection
-  const editMode = route?.params?.editMode;
-  const budgetToEdit = route?.params?.budget;
-  const budgetIndex = route?.params?.budgetIndex;
-
-  // Trip data pre-population
-  const fromTrip = route?.params?.fromTrip;
-  const tripData = route?.params?.tripData;
+  const [budgetName, setBudgetName] = useState(
+    budgetToEdit?.budgetName || (fromTrip && (tripData?.tripName || tripData?.name)) || ''
+  );
 
   // Trip type selection
   const [tripType, setTripType] = useState(
@@ -380,7 +382,13 @@ export default function BudgetMakerScreen({ navigation, route }) {
 
     // Save or update to global context
     if (editMode) {
-      updateBudget(budgetIndex, budget);
+      // Find current index by ID to avoid stale index issues
+      const currentIndex = budgets.findIndex(b => b.id === budgetToEdit.id);
+      if (currentIndex !== -1) {
+        updateBudget(currentIndex, budget);
+      } else {
+        updateBudget(budgetIndex, budget);
+      }
       showAlert(t('common.success'), t('budgetMaker.updateBudget'), 'success', t('myBudget.budgetMaker'), () => navigation.navigate('MyBudget'));
     } else {
       // Check if a budget already exists for this trip

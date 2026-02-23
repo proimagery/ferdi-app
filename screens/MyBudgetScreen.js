@@ -195,8 +195,8 @@ export default function MyBudgetScreen({ navigation }) {
             {filteredBudgets.map((budget) => {
               const index = budget.originalIndex;
               const isExpanded = expandedId === budget.id;
-              const tripDuration = tripDuration || 1;
-              const dailyBudget = tripDuration > 0 ? budget.totalBudget / tripDuration : 0;
+              const budgetDuration = budget.tripDuration || 1;
+              const dailyBudget = budgetDuration > 0 ? budget.totalBudget / budgetDuration : 0;
 
               // Get linked trip name if exists
               const linkedTrip = budget.tripId ? trips.find(t => t.id === budget.tripId) : null;

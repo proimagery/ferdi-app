@@ -55,10 +55,6 @@ export default function CreateTripScreen({ navigation, route }) {
   };
 
   const handleDatePress = (index, type) => {
-    if (isActiveTripEdit) {
-      showAlert(t('common.oops'), t('activeTrip.cannotEditDates') || 'You cannot edit dates on an active trip');
-      return;
-    }
     setShowDatePicker({ index, type });
   };
 
