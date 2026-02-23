@@ -26,7 +26,7 @@ import ThemedAlert from '../components/ThemedAlert';
 import usePlacePhoto from '../hooks/usePlacePhoto';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
-const MAP_HEIGHT = screenHeight * 0.38;
+const MAP_HEIGHT = screenHeight * 0.30;
 
 // Spot card with place photo (hook must be at component level)
 function SpotPhotoCard({ spot, isHotel, distance, theme, t, onEdit, onDelete }) {
@@ -379,8 +379,10 @@ export default function LocalMapScreen({ navigation, route }) {
         </View>
       )}
 
-      {/* Map */}
-      <View style={[styles.mapContainer, { borderBottomColor: theme.border }]}>
+      {/* Scrollable content: Map + Spots */}
+      <ScrollView style={styles.listContainer} contentContainerStyle={{ paddingBottom: 100 }} nestedScrollEnabled={true}>
+        {/* Map */}
+        <View style={[styles.mapContainer, { borderBottomColor: theme.border }]}>
         <MapView
           ref={mapRef}
           style={styles.map}
@@ -416,10 +418,10 @@ export default function LocalMapScreen({ navigation, route }) {
             </Marker>
           ))}
         </MapView>
-      </View>
+        </View>
 
-      {/* Spots List */}
-      <ScrollView style={styles.listContainer} contentContainerStyle={styles.listContent}>
+        {/* Spots List */}
+        <View style={styles.listContent}>
         {/* ===== HOTEL / ACCOMMODATION SECTION ===== */}
         <View style={[styles.hotelSection, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
           <View style={styles.hotelSectionHeader}>
@@ -492,7 +494,7 @@ export default function LocalMapScreen({ navigation, route }) {
             />
           ))
         )}
-        <View style={{ height: 100 }} />
+        </View>
       </ScrollView>
 
       {/* FAB */}

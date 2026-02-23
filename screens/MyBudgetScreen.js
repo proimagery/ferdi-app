@@ -326,7 +326,7 @@ export default function MyBudgetScreen({ navigation }) {
                       borderColor: theme.border
                     }]}>
                       <Text style={[styles.briefLabel, { color: theme.textSecondary }]}>{t('myBudget.duration')}</Text>
-                      <Text style={[styles.briefValue, { color: theme.text }]}>{tripDuration} days</Text>
+                      <Text style={[styles.briefValue, { color: theme.text }]}>{budgetDuration} days</Text>
                     </View>
                     <View style={[styles.briefItem, {
                       backgroundColor: theme.background,
@@ -376,14 +376,14 @@ export default function MyBudgetScreen({ navigation }) {
                             <View style={styles.breakdownRow}>
                               <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>Per Day ({userCurrency.currency})</Text>
                               <Text style={[styles.breakdownValue, { color: theme.text }]}>
-                                ${Math.round((budget.accommodation || 0) / tripDuration).toLocaleString()}
+                                ${Math.round((budget.accommodation || 0) / budgetDuration).toLocaleString()}
                               </Text>
                             </View>
                             {localCurrencyInfo.currency !== 'USD' && (
                               <View style={styles.breakdownRow}>
                                 <Text style={[styles.breakdownLabel, { color: theme.textSecondary }]}>Per Day ({localCurrencyInfo.currency})</Text>
                                 <Text style={[styles.breakdownValue, { color: theme.text }]}>
-                                  {localCurrencyInfo.symbol}{Math.round(((budget.accommodation || 0) * localCurrencyInfo.rate) / tripDuration).toLocaleString()}
+                                  {localCurrencyInfo.symbol}{Math.round(((budget.accommodation || 0) * localCurrencyInfo.rate) / budgetDuration).toLocaleString()}
                                 </Text>
                               </View>
                             )}
@@ -395,7 +395,7 @@ export default function MyBudgetScreen({ navigation }) {
                               <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('myBudget.budgetBreakdown')}</Text>
                               {budget.lineItems.map((item, idx) => {
                                 const itemLocal = (item.total || 0) * localCurrencyInfo.rate;
-                                const itemDailyLocal = ((item.total || 0) / tripDuration) * localCurrencyInfo.rate;
+                                const itemDailyLocal = ((item.total || 0) / budgetDuration) * localCurrencyInfo.rate;
                                 return (
                                   <View key={idx} style={[styles.lineItemRow, { borderBottomColor: theme.border }]}>
                                     <View style={styles.lineItemInfo}>
@@ -410,7 +410,7 @@ export default function MyBudgetScreen({ navigation }) {
                                         </Text>
                                       )}
                                       <Text style={[styles.lineItemDaily, { color: theme.textSecondary }]}>
-                                        ${Math.round((item.total || 0) / tripDuration).toLocaleString()}/day
+                                        ${Math.round((item.total || 0) / budgetDuration).toLocaleString()}/day
                                         {localCurrencyInfo.currency !== 'USD' && ` | ${localCurrencyInfo.symbol}${Math.round(itemDailyLocal).toLocaleString()}/day`}
                                       </Text>
                                     </View>
@@ -445,7 +445,7 @@ export default function MyBudgetScreen({ navigation }) {
                               ${budget.totalBudget.toLocaleString()} USD
                             </Text>
                             <Text style={[styles.tripSummaryText, { color: theme.textSecondary }]}>
-                              {budget.countries?.length || 0} countries • {tripDuration} days
+                              {budget.countries?.length || 0} countries • {budgetDuration} days
                             </Text>
                           </View>
 

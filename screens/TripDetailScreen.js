@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Alert, Image, LayoutAnimation, UIManager, Platform } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,6 +27,7 @@ export default function TripDetailScreen({ route, navigation }) {
   const trip = trips[tripIndex];
   const [isSaved, setIsSaved] = useState(!isNewTrip);
   const [expandedCountry, setExpandedCountry] = useState(null);
+  const tripMapRef = useRef(null);
 
   if (!trip) {
     return (
@@ -216,10 +217,21 @@ export default function TripDetailScreen({ route, navigation }) {
         <View style={styles.mapSection}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('tripDetail.tripRouteMap')}</Text>
           <MapView
+            ref={tripMapRef}
             style={[styles.map, { borderColor: theme.border }]}
             initialRegion={initialRegion}
             showsUserLocation={false}
             showsMyLocationButton={false}
+            onMapReady={() => {
+              if (markers.length > 0 && tripMapRef.current) {
+                setTimeout(() => {
+                  tripMapRef.current?.fitToCoordinates(
+                    markers.map(m => ({ latitude: m.latitude, longitude: m.longitude })),
+                    { edgePadding: { top: 60, right: 60, bottom: 60, left: 60 }, animated: false }
+                  );
+                }, 100);
+              }
+            }}
           >
             {markers.map((marker, idx) => (
               <Marker
