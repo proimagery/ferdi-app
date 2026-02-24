@@ -2,8 +2,9 @@ import React from 'react';
 import { View, Text, StyleSheet, Image, ActivityIndicator, TouchableOpacity, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import usePlacePhoto from '../hooks/usePlacePhoto';
+import { getHotelAffiliateLink } from '../utils/affiliateLinks';
 
-export default function HotelOfferCard({ hotel, theme }) {
+export default function HotelOfferCard({ hotel, theme, city }) {
   const bestOffer = hotel.offers?.[0];
   const { photoUrl, loading: photoLoading } = usePlacePhoto(
     hotel.name ? `${hotel.name} hotel` : null,
@@ -11,8 +12,8 @@ export default function HotelOfferCard({ hotel, theme }) {
   );
 
   const handlePress = () => {
-    const query = encodeURIComponent(hotel.name || 'hotel');
-    Linking.openURL(`https://www.google.com/search?q=${query}`);
+    const url = getHotelAffiliateLink(hotel.name, city);
+    Linking.openURL(url);
   };
 
   return (
@@ -91,6 +92,11 @@ export default function HotelOfferCard({ hotel, theme }) {
             </Text>
           </View>
         )}
+
+        <View style={styles.bookingRow}>
+          <Text style={[styles.bookingLabel, { color: '#003580' }]}>Book on Booking.com</Text>
+          <Ionicons name="open-outline" size={13} color="#003580" />
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -170,5 +176,18 @@ const styles = StyleSheet.create({
   },
   distanceText: {
     fontSize: 12,
+  },
+  bookingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(0,53,128,0.15)',
+  },
+  bookingLabel: {
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

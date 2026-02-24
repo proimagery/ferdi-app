@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDuration } from '../services/amadeus/flightService';
+import { getFlightAffiliateLink } from '../utils/affiliateLinks';
 
-export default function FlightOfferCard({ offer, theme }) {
+export default function FlightOfferCard({ offer, theme, departureCode, arrivalCode }) {
   const outbound = offer.itineraries?.[0];
   const firstSeg = outbound?.segments?.[0];
   const lastSeg = outbound?.segments?.[outbound.segments.length - 1];
@@ -20,8 +21,20 @@ export default function FlightOfferCard({ offer, theme }) {
     return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
   };
 
+  const handlePress = () => {
+    const url = getFlightAffiliateLink(
+      departureCode || firstSeg?.departure?.airport,
+      arrivalCode || lastSeg?.arrival?.airport
+    );
+    Linking.openURL(url);
+  };
+
   return (
-    <View style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+    <TouchableOpacity
+      activeOpacity={0.8}
+      onPress={handlePress}
+      style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+    >
       <View style={styles.routeRow}>
         <Text style={[styles.airport, { color: theme.text }]}>{firstSeg?.departure?.airport}</Text>
         <View style={styles.flightLine}>
@@ -68,7 +81,12 @@ export default function FlightOfferCard({ offer, theme }) {
           {formatDate(firstSeg?.departure?.time)}
         </Text>
       </View>
-    </View>
+
+      <View style={styles.bookingRow}>
+        <Text style={[styles.bookingLabel, { color: '#003580' }]}>Book on Booking.com</Text>
+        <Ionicons name="open-outline" size={13} color="#003580" />
+      </View>
+    </TouchableOpacity>
   );
 }
 
@@ -135,5 +153,18 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 13,
+  },
+  bookingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(0,53,128,0.15)',
+  },
+  bookingLabel: {
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

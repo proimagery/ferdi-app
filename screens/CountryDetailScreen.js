@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator, TextInput, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator, TextInput, Platform, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -18,6 +18,7 @@ import { searchHotelsByCity, getHotelOffers } from '../services/amadeus/hotelSer
 import { getActivities } from '../services/google/activityService';
 import { getBusiestPeriod } from '../services/amadeus/marketInsightsService';
 import { clearAmadeusCache } from '../services/amadeus/amadeusApi';
+import { getFlightAffiliateLink, getHotelBrowseLink } from '../utils/affiliateLinks';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
@@ -804,13 +805,21 @@ export default function CountryDetailScreen({ route }) {
           <View style={styles.amadeusResults}>
             {flightOffers.length > 0 ? (
               flightOffers.slice(0, 5).map((offer, index) => (
-                <FlightOfferCard key={offer.id || index} offer={offer} theme={theme} />
+                <FlightOfferCard key={offer.id || index} offer={offer} theme={theme} departureCode={departureCode} arrivalCode={arrivalCode} />
               ))
             ) : !flightsLoading ? (
               <Text style={[styles.noResults, { color: theme.textSecondary }]}>
                 No flight offers found. Try different cities or dates.
               </Text>
             ) : null}
+
+            <TouchableOpacity
+              style={styles.browseBookingButton}
+              onPress={() => Linking.openURL(getFlightAffiliateLink(departureCode, arrivalCode))}
+            >
+              <Text style={styles.browseBookingText}>Browse all flights on Booking.com</Text>
+              <Ionicons name="open-outline" size={14} color="#003580" />
+            </TouchableOpacity>
           </View>
         )}
       </View>
@@ -884,13 +893,21 @@ export default function CountryDetailScreen({ route }) {
           <View style={styles.amadeusResults}>
             {hotelOffers.length > 0 ? (
               hotelOffers.map((hotel, index) => (
-                <HotelOfferCard key={hotel.hotelId || index} hotel={hotel} theme={theme} />
+                <HotelOfferCard key={hotel.hotelId || index} hotel={hotel} theme={theme} city={hotelCityInput} />
               ))
             ) : !hotelsLoading ? (
               <Text style={[styles.noResults, { color: theme.textSecondary }]}>
                 No hotel offers found. Try a different city.
               </Text>
             ) : null}
+
+            <TouchableOpacity
+              style={styles.browseBookingButton}
+              onPress={() => Linking.openURL(getHotelBrowseLink(hotelCityInput || country.name))}
+            >
+              <Text style={styles.browseBookingText}>Browse all hotels on Booking.com</Text>
+              <Ionicons name="open-outline" size={14} color="#003580" />
+            </TouchableOpacity>
           </View>
         )}
         </View>
@@ -1384,6 +1401,23 @@ const styles = StyleSheet.create({
   flightSearchButtonText: {
     color: '#fff',
     fontSize: 15,
+    fontWeight: '600',
+  },
+  browseBookingButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    marginTop: 6,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0, 53, 128, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 53, 128, 0.2)',
+  },
+  browseBookingText: {
+    color: '#003580',
+    fontSize: 13,
     fontWeight: '600',
   },
   // Busiest months styles
