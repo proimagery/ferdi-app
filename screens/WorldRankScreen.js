@@ -70,8 +70,8 @@ export default function WorldRankScreen({ navigation }) {
       beaches: 'Best beach destinations',
       mountains: 'Best mountain destinations',
       outdoors: 'Best for outdoor adventures',
-      mostBooked: 'Most booked flight destinations (Amadeus)',
-      mostTraveled: 'Most traveled air routes (Amadeus)',
+      mostBooked: 'Most booked flight destinations',
+      mostTraveled: 'Most traveled air routes',
     };
     return subtitles[selectedCategory] || '';
   };

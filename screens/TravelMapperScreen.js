@@ -8,7 +8,6 @@ import { countryCoordinates, officialCountryNames } from '../utils/coordinates';
 import { useTranslation } from 'react-i18next';
 import { GOOGLE_MAPS_API_KEY } from '../utils/geocoding';
 import { calculateDistance } from '../utils/distanceHelper';
-import { searchAirports, searchFlights } from '../services/amadeus/flightService';
 
 const ferdiLogo = require('../assets/Ferdi-transparent.png');
 
@@ -94,9 +93,6 @@ export default function TravelMapperScreen({ navigation, route }) {
   // Legacy support
   const [selectedCountries, setSelectedCountries] = useState([]);
 
-  // Flight cost estimates between legs
-  const [flightEstimates, setFlightEstimates] = useState({});
-
   // Draggable bottom panel
   const minPanelRatio = 0.20;  // Panel collapsed - map takes 80%
   const defaultPanelRatio = 0.40; // Default - map takes 60%
@@ -142,60 +138,6 @@ export default function TravelMapperScreen({ navigation, route }) {
       },
     })
   ).current;
-
-  // Fetch flight estimates between consecutive legs
-  useEffect(() => {
-    if (selectedLocations.length < 2) return;
-
-    const fetchFlightEstimates = async () => {
-      const estimates = { ...flightEstimates };
-
-      for (let i = 0; i < selectedLocations.length - 1; i++) {
-        const from = selectedLocations[i];
-        const to = selectedLocations[i + 1];
-        const fromName = typeof from === 'string' ? from : (from.name?.split(',')[0] || '');
-        const toName = typeof to === 'string' ? to : (to.name?.split(',')[0] || '');
-        const key = `${fromName}->${toName}`;
-
-        // Skip if already fetched
-        if (estimates[key]) continue;
-
-        try {
-          const [fromAirports, toAirports] = await Promise.all([
-            searchAirports(fromName),
-            searchAirports(toName),
-          ]);
-
-          const fromCode = fromAirports.find(a => a.type === 'AIRPORT')?.iataCode || fromAirports[0]?.iataCode;
-          const toCode = toAirports.find(a => a.type === 'AIRPORT')?.iataCode || toAirports[0]?.iataCode;
-
-          if (fromCode && toCode) {
-            const date = new Date();
-            date.setDate(date.getDate() + 30);
-            const dateStr = date.toISOString().split('T')[0];
-
-            const offers = await searchFlights(fromCode, toCode, dateStr, 1);
-            if (offers.length > 0) {
-              const prices = offers.map(o => parseFloat(o.price?.total)).filter(p => !isNaN(p));
-              estimates[key] = {
-                min: Math.min(...prices),
-                max: Math.max(...prices),
-                currency: offers[0].price?.currency || 'USD',
-                fromCode,
-                toCode,
-              };
-            }
-          }
-        } catch (error) {
-          // Silently skip failed estimates
-        }
-      }
-
-      setFlightEstimates(estimates);
-    };
-
-    fetchFlightEstimates();
-  }, [selectedLocations.length]);
 
   const countries = officialCountryNames;
 
@@ -633,13 +575,7 @@ export default function TravelMapperScreen({ navigation, route }) {
                     </View>
                   </View>
 
-                  {distance && (() => {
-                    const fromName = typeof location === 'string' ? location : (location.name?.split(',')[0] || '');
-                    const toName = typeof nextLocation === 'string' ? nextLocation : (nextLocation.name?.split(',')[0] || '');
-                    const flightKey = `${fromName}->${toName}`;
-                    const flightEst = flightEstimates[flightKey];
-
-                    return (
+                  {distance && (
                       <View style={[styles.distanceCard, {
                         backgroundColor: theme.cardBackground,
                         borderColor: theme.border,
@@ -665,17 +601,8 @@ export default function TravelMapperScreen({ navigation, route }) {
                             <Text style={[styles.modeTime, { color: theme.textSecondary }]}>{travelTimes.car}</Text>
                           </View>
                         </View>
-                        {flightEst && (
-                          <View style={[styles.flightEstimate, { borderTopColor: theme.border }]}>
-                            <Ionicons name="pricetag" size={13} color={theme.primary} />
-                            <Text style={[styles.flightEstText, { color: theme.primary }]}>
-                              Flights from ${flightEst.min} – ${flightEst.max} {flightEst.currency}
-                            </Text>
-                          </View>
-                        )}
                       </View>
-                    );
-                  })()}
+                  )}
                 </View>
               );
             })
