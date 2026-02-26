@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Image, Alert, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAppContext } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -26,6 +27,17 @@ export default function EditProfileScreen({ navigation }) {
   const { user } = useAuth();
   const { checkAuth, showAuthModal, setShowAuthModal, featureMessage } = useAuthGuard();
   const [isUploading, setIsUploading] = useState(false);
+  const [globeKey, setGlobeKey] = useState(0);
+
+  // Force globe to remount when screen gains focus to fix WebView rendering in ScrollView
+  useFocusEffect(
+    useCallback(() => {
+      const timer = setTimeout(() => {
+        setGlobeKey(prev => prev + 1);
+      }, 100);
+      return () => clearTimeout(timer);
+    }, [])
+  );
 
   const [name, setName] = useState(profile?.name || '');
   const [username, setUsername] = useState(profile?.username || '');
@@ -801,7 +813,7 @@ export default function EditProfileScreen({ navigation }) {
             ? `${completedTrips.length} ${completedTrips.length === 1 ? 'country' : 'countries'} • ${visitedCities.length} ${visitedCities.length === 1 ? 'city' : 'cities'}`
             : 'Add countries and cities to see them on your globe'}
         </Text>
-        <SpinningGlobe completedTrips={completedTrips} visitedCities={visitedCities} />
+        <SpinningGlobe key={`globe-profile-${globeKey}`} completedTrips={completedTrips} visitedCities={visitedCities} />
       </View>
 
       {/* Footer */}

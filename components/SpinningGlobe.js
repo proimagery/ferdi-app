@@ -31,12 +31,16 @@ const cityColors = [
   '#fb923c', // Orange
 ];
 
+const MAX_AUTO_RETRIES = 3;
+
 export default function SpinningGlobe({ completedTrips = [], visitedCities = [], onFullscreen, onDownload, isFullscreen = false, size = 'normal', background = false }) {
   const { t } = useTranslation();
   const { width: screenWidth } = useWindowDimensions();
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const autoRetryRef = useRef(0);
+  const globeReadyRef = useRef(false);
   const webViewRef = useRef(null);
 
   // Handle messages from WebView
@@ -44,32 +48,62 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
     try {
       const data = JSON.parse(event.nativeEvent.data);
       if (data.type === 'GLOBE_READY') {
+        globeReadyRef.current = true;
+        autoRetryRef.current = 0;
         setIsLoading(false);
         setHasError(false);
       } else if (data.type === 'GLOBE_ERROR') {
-        setIsLoading(false);
-        setHasError(true);
+        // Auto-retry on error if we haven't exhausted retries
+        if (autoRetryRef.current < MAX_AUTO_RETRIES) {
+          autoRetryRef.current += 1;
+          console.log(`[SpinningGlobe] Auto-retry ${autoRetryRef.current}/${MAX_AUTO_RETRIES}`);
+          setRetryCount(prev => prev + 1);
+          setIsLoading(true);
+          setHasError(false);
+        } else {
+          setIsLoading(false);
+          setHasError(true);
+        }
       }
     } catch (e) {
       // Ignore parse errors
     }
   }, []);
 
-  // Retry loading the globe
+  // Manual retry resets auto-retry counter
   const handleRetry = useCallback(() => {
+    autoRetryRef.current = 0;
+    globeReadyRef.current = false;
     setIsLoading(true);
     setHasError(false);
     setRetryCount(prev => prev + 1);
   }, []);
 
-  // Fallback timeout to ensure loading indicator doesn't stay forever
+  // Handle WebView process termination (iOS crash recovery)
+  const handleContentProcessDidTerminate = useCallback(() => {
+    console.log('[SpinningGlobe] WebView process terminated, reloading...');
+    globeReadyRef.current = false;
+    setIsLoading(true);
+    setHasError(false);
+    setRetryCount(prev => prev + 1);
+  }, []);
+
+  // Timeout: auto-retry if globe hasn't loaded after 10 seconds
   React.useEffect(() => {
+    globeReadyRef.current = false;
     const timeout = setTimeout(() => {
-      if (isLoading) {
-        setIsLoading(false);
-        // Don't show error immediately - globe might still be rendering
+      if (isLoading && !globeReadyRef.current) {
+        if (autoRetryRef.current < MAX_AUTO_RETRIES) {
+          autoRetryRef.current += 1;
+          console.log(`[SpinningGlobe] Timeout auto-retry ${autoRetryRef.current}/${MAX_AUTO_RETRIES}`);
+          setRetryCount(prev => prev + 1);
+        } else {
+          // All retries exhausted - show error
+          setIsLoading(false);
+          setHasError(true);
+        }
       }
-    }, 8000);
+    }, 10000);
     return () => clearTimeout(timeout);
   }, [isLoading, retryCount]);
 
@@ -322,11 +356,22 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
       'https://raw.githubusercontent.com/vasturiano/three-globe/master/example/img/earth-blue-marble.jpg'
     ];
 
+    let globeInitialized = false;
+
     function postMessage(type, data = {}) {
       if (window.ReactNativeWebView) {
         window.ReactNativeWebView.postMessage(JSON.stringify({ type, ...data }));
       }
     }
+
+    // Global error handler to catch uncaught JS errors
+    window.onerror = function(msg, url, line, col, error) {
+      console.error('Globe JS error:', msg, 'at', url, line);
+      if (!globeInitialized) {
+        postMessage('GLOBE_ERROR', { error: msg });
+      }
+      return true;
+    };
 
     function loadScript(urls, index = 0) {
       return new Promise((resolve, reject) => {
@@ -335,14 +380,54 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
           return;
         }
 
+        let settled = false;
         const script = document.createElement('script');
         script.src = urls[index];
-        script.onload = resolve;
-        script.onerror = () => {
-          console.warn('Failed to load from:', urls[index]);
-          loadScript(urls, index + 1).then(resolve).catch(reject);
+        script.onload = () => {
+          if (!settled) { settled = true; resolve(); }
         };
+        script.onerror = () => {
+          if (!settled) {
+            settled = true;
+            console.warn('Failed to load from:', urls[index]);
+            loadScript(urls, index + 1).then(resolve).catch(reject);
+          }
+        };
+        // Timeout for slow CDNs - try next after 8s
+        setTimeout(() => {
+          if (!settled) {
+            settled = true;
+            console.warn('Timeout loading from:', urls[index]);
+            loadScript(urls, index + 1).then(resolve).catch(reject);
+          }
+        }, 8000);
         document.head.appendChild(script);
+      });
+    }
+
+    // Pre-test which texture URL is reachable
+    function findWorkingTexture(urls) {
+      return new Promise((resolve) => {
+        let resolved = false;
+        // Try all textures in parallel, use the first that loads
+        urls.forEach((url) => {
+          const img = new Image();
+          img.onload = () => {
+            if (!resolved) {
+              resolved = true;
+              resolve(url);
+            }
+          };
+          img.onerror = () => {};
+          img.src = url;
+        });
+        // Fallback: if none load in 6 seconds, resolve with null (use solid color)
+        setTimeout(() => {
+          if (!resolved) {
+            resolved = true;
+            resolve(null);
+          }
+        }, 6000);
       });
     }
 
@@ -353,15 +438,19 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
         // Then load Globe.gl
         await loadScript(CDN_URLS.globe);
 
+        // Find a working texture before initializing
+        const textureUrl = await findWorkingTexture(GLOBE_TEXTURES);
+
         // Initialize the globe
-        setupGlobe();
+        setupGlobe(textureUrl);
       } catch (error) {
         console.error('Failed to load globe libraries:', error);
         postMessage('GLOBE_ERROR', { error: error.message });
       }
     }
 
-    function setupGlobe() {
+    function setupGlobe(textureUrl) {
+      try {
       const countryData = ${JSON.stringify(countryMarkers)};
       const cityData = ${JSON.stringify(cityMarkers)};
 
@@ -517,12 +606,11 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
     // Build markers data - countries first, then cities
     const allMarkersData = [...countryData, ...cityData];
 
-    // Try loading globe with texture fallbacks
-    let textureIndex = 0;
+    // Initialize globe with pre-resolved texture (or solid color fallback)
     function tryLoadGlobe() {
       world = Globe()
         (document.getElementById('globeViz'))
-        .globeImageUrl(GLOBE_TEXTURES[textureIndex])
+        .globeImageUrl(textureUrl || GLOBE_TEXTURES[0])
         .backgroundColor('#000000')
       .atmosphereColor('#4ade80')
       .atmosphereAltitude(0.15)
@@ -654,6 +742,7 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
       })();
 
       // Notify React Native that globe is ready
+      globeInitialized = true;
       setTimeout(() => {
         postMessage('GLOBE_READY');
       }, 500);
@@ -661,6 +750,10 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
 
     // Start loading the globe with texture
     tryLoadGlobe();
+      } catch (error) {
+        console.error('setupGlobe error:', error);
+        postMessage('GLOBE_ERROR', { error: error.message || 'Globe setup failed' });
+      }
     }
 
     // Initialize everything
@@ -694,24 +787,35 @@ export default function SpinningGlobe({ completedTrips = [], visitedCities = [],
           style={styles.webview}
           scrollEnabled={false}
           bounces={false}
+          nestedScrollEnabled={false}
           javaScriptEnabled={true}
           domStorageEnabled={true}
           startInLoadingState={false}
           scalesPageToFit={true}
           originWhitelist={['*']}
+          allowsInlineMediaPlayback={true}
+          mediaPlaybackRequiresUserAction={false}
+          androidLayerType="hardware"
+          setSupportMultipleWindows={false}
           onMessage={handleMessage}
           onError={(syntheticEvent) => {
             const { nativeEvent } = syntheticEvent;
             console.warn('WebView error:', nativeEvent);
-            setHasError(true);
-            setIsLoading(false);
+            if (autoRetryRef.current < MAX_AUTO_RETRIES) {
+              autoRetryRef.current += 1;
+              setRetryCount(prev => prev + 1);
+            } else {
+              setHasError(true);
+              setIsLoading(false);
+            }
           }}
           onHttpError={(syntheticEvent) => {
             const { nativeEvent } = syntheticEvent;
             console.warn('WebView HTTP error:', nativeEvent);
           }}
+          onContentProcessDidTerminate={handleContentProcessDidTerminate}
           cacheEnabled={true}
-          cacheMode="LOAD_CACHE_ELSE_NETWORK"
+          cacheMode="LOAD_DEFAULT"
         />
       </View>
 

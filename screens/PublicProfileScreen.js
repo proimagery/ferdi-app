@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Dim
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAppContext } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { useAuthGuard } from '../hooks/useAuthGuard';
@@ -26,6 +27,17 @@ export default function PublicProfileScreen({ navigation, route }) {
   const { theme } = useTheme();
   const { t } = useTranslation();
   const { checkAuth, showAuthModal, setShowAuthModal, featureMessage } = useAuthGuard();
+  const [globeKey, setGlobeKey] = useState(0);
+
+  // Force globe to remount when screen gains focus to fix WebView rendering in ScrollView
+  useFocusEffect(
+    useCallback(() => {
+      const timer = setTimeout(() => {
+        setGlobeKey(prev => prev + 1);
+      }, 100);
+      return () => clearTimeout(timer);
+    }, [])
+  );
 
   // Check if viewing another user's profile or own profile
   const viewingUser = route?.params?.user;
@@ -695,6 +707,7 @@ export default function PublicProfileScreen({ navigation, route }) {
       {/* Spinning Globe */}
       <View style={[styles.section, styles.globeSection]}>
         <SpinningGlobe
+          key={`globe-public-${globeKey}`}
           completedTrips={isOwnProfile ? completedTrips : displayCompletedTrips}
           visitedCities={isOwnProfile ? visitedCities : []}
         />
